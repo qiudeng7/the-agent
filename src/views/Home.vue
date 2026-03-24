@@ -1,345 +1,306 @@
 <template>
-  <div class="home">
-    <header class="header">
-      <h1>🤖 The Agent</h1>
-      <p class="subtitle">Electron + Vite + Vue Agent Application</p>
-    </header>
+  <div class="welcome">
+    <!-- Greeting -->
+    <div class="greeting">
+      <h1 class="greeting-title">Hi，{{ userName }}</h1>
+    </div>
 
-    <main class="main">
-      <div class="card">
-        <h2>新建任务</h2>
-        <div class="task-input">
-          <input
-            v-model="newTaskName"
-            type="text"
-            placeholder="输入任务名称..."
-            @keyup.enter="createTask"
-          />
-          <button @click="createTask" :disabled="!newTaskName.trim()">
-            创建
-          </button>
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <button
+        v-for="(action, index) in actions"
+        :key="index"
+        class="action-card"
+        @click="handleAction(action)"
+      >
+        <div class="action-icon" :style="{ background: action.color }">
+          <component :is="action.icon" />
         </div>
+        <div class="action-content">
+          <h3 class="action-title">{{ action.title }}</h3>
+          <p class="action-desc">{{ action.description }}</p>
+        </div>
+      </button>
+    </div>
+
+    <!-- Suggestions -->
+    <div class="suggestions">
+      <h2 class="suggestions-title">你可以这样问</h2>
+      <div class="suggestions-grid">
+        <button
+          v-for="(suggestion, index) in suggestionList"
+          :key="index"
+          class="suggestion-card"
+          @click="handleSuggestion(suggestion)"
+        >
+          <div class="suggestion-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </div>
+          <span class="suggestion-text">{{ suggestion }}</span>
+        </button>
       </div>
+    </div>
 
-      <div class="card">
-        <h2>任务列表</h2>
-        <div v-if="tasks.length === 0" class="empty-state">
-          暂无任务，创建一个开始吧
-        </div>
-        <ul v-else class="task-list">
-          <li
-            v-for="task in tasks"
-            :key="task.id"
-            :class="['task-item', task.status]"
-          >
-            <div class="task-info">
-              <span class="task-name">{{ task.name }}</span>
-              <span class="task-status">{{ statusText(task.status) }}</span>
-            </div>
-            <div class="task-actions">
-              <button
-                v-if="task.status === 'pending'"
-                @click="startTask(task.id)"
-                :disabled="isRunning"
-              >
-                运行
-              </button>
-              <button
-                v-if="task.status === 'running'"
-                @click="completeTask(task.id)"
-              >
-                完成
-              </button>
-              <button
-                v-if="task.status === 'running'"
-                @click="failTask(task.id)"
-                class="danger"
-              >
-                失败
-              </button>
-              <button
-                @click="removeTask(task.id)"
-                class="danger"
-              >
-                删除
-              </button>
-            </div>
-          </li>
-        </ul>
-      </div>
-
-      <div class="card stats">
-        <div class="stat">
-          <span class="stat-value">{{ tasks.length }}</span>
-          <span class="stat-label">总任务数</span>
-        </div>
-        <div class="stat">
-          <span class="stat-value">{{ completedCount }}</span>
-          <span class="stat-label">已完成</span>
-        </div>
-        <div class="stat">
-          <span class="stat-value">{{ runningTask ? 'Yes' : 'No' }}</span>
-          <span class="stat-label">运行中</span>
-        </div>
-      </div>
-    </main>
-
-    <nav class="navbar">
-      <router-link to="/" class="nav-link active">首页</router-link>
-      <router-link to="/settings" class="nav-link">设置</router-link>
-    </nav>
+    <!-- Chat Input -->
+    <ChatInput @submit="handleSubmit" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useAgentStore, type AgentTask } from '@/stores/agent'
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import ChatInput from '@/components/Chat/ChatInput.vue'
+import { useChatStore } from '@/stores/chat'
 
-const store = useAgentStore()
-const newTaskName = ref('')
+const router = useRouter()
+const chatStore = useChatStore()
 
-const tasks = computed(() => store.tasks)
-const isRunning = computed(() => store.isRunning)
-const completedCount = computed(() => store.completedCount)
-const runningTask = computed(() => store.runningTask)
+const userName = '秋灯'
 
-const createTask = () => {
-  if (newTaskName.value.trim()) {
-    store.addTask(newTaskName.value.trim())
-    newTaskName.value = ''
+const actions = [
+  {
+    title: '创作文字',
+    description: '文案、故事、诗歌',
+    icon: createTextIcon(),
+    color: 'var(--color-primary)',
+  },
+  {
+    title: '生成图片',
+    description: '创意绘画、设计',
+    icon: createImageIcon(),
+    color: 'var(--color-secondary)',
+  },
+  {
+    title: '分析问题',
+    description: '逻辑推理、总结',
+    icon: createAnalyzeIcon(),
+    color: 'var(--color-accent-foreground)',
+  },
+  {
+    title: '编程帮助',
+    description: '代码、调试、解释',
+    icon: createCodeIcon(),
+    color: '#7C5DFA',
+  },
+]
+
+const suggestionList = [
+  '为什么鳄鱼会流泪？',
+  '如果人类平均寿命延长到 150 岁，什么职业会最先淘汰？',
+  '如果地球突然变成立方体，人类能适应吗？',
+  '解释一下量子纠缠',
+]
+
+function createTextIcon() {
+  return {
+    template: `
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+        <path d="M12 19l7-7 3 3-7 7-3-3z"/>
+        <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
+        <path d="M2 2l7.586 7.586"/>
+        <circle cx="11" cy="11" r="2"/>
+      </svg>
+    `,
   }
 }
 
-const startTask = (id: string) => store.startTask(id)
-const completeTask = (id: string) => store.completeTask(id)
-const failTask = (id: string) => store.failTask(id)
-const removeTask = (id: string) => store.removeTask(id)
-
-const statusText = (status: AgentTask['status']) => {
-  const map = {
-    pending: '等待中',
-    running: '运行中',
-    completed: '已完成',
-    failed: '已失败',
+function createImageIcon() {
+  return {
+    template: `
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+        <circle cx="8.5" cy="8.5" r="1.5"/>
+        <polyline points="21 15 16 10 5 21"/>
+      </svg>
+    `,
   }
-  return map[status]
+}
+
+function createAnalyzeIcon() {
+  return {
+    template: `
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M12 16v-4M12 8h.01"/>
+      </svg>
+    `,
+  }
+}
+
+function createCodeIcon() {
+  return {
+    template: `
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+        <polyline points="16 18 22 12 16 6"/>
+        <polyline points="8 6 2 12 8 18"/>
+      </svg>
+    `,
+  }
+}
+
+function handleAction(action: typeof actions[0]) {
+  const session = chatStore.createSession(action.title)
+  router.push(`/chat/${session.id}`)
+}
+
+function handleSuggestion(text: string) {
+  const session = chatStore.createSession(text)
+  router.push(`/chat/${session.id}`)
+  // Will be handled by Chat view
+}
+
+function handleSubmit(input: string, options: { deepThink: boolean; webSearch: boolean; model: string }) {
+  const session = chatStore.createSession(input)
+  router.push(`/chat/${session.id}`)
 }
 </script>
 
 <style scoped>
-.home {
+.welcome {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  padding: 20px;
-}
-
-.header {
-  text-align: center;
-  margin-bottom: 30px;
-}
-
-.header h1 {
-  font-size: 2.5rem;
-  color: #4a9eff;
-  margin-bottom: 8px;
-}
-
-.subtitle {
-  color: #888;
-  font-size: 1rem;
-}
-
-.main {
-  flex: 1;
   overflow-y: auto;
-  max-width: 800px;
-  width: 100%;
-  margin: 0 auto;
+  padding: 40px 24px;
 }
 
-.card {
-  background: #16213e;
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 20px;
-}
-
-.card h2 {
-  font-size: 1.2rem;
-  margin-bottom: 15px;
-  color: #4a9eff;
-}
-
-.task-input {
-  display: flex;
-  gap: 10px;
-}
-
-.task-input input {
-  flex: 1;
-  padding: 12px 16px;
-  border: none;
-  border-radius: 8px;
-  background: #0f3460;
-  color: #fff;
-  font-size: 1rem;
-}
-
-.task-input input::placeholder {
-  color: #666;
-}
-
-.task-input button {
-  padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
-  background: #4a9eff;
-  color: #fff;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.task-input button:hover:not(:disabled) {
-  background: #3a8eef;
-}
-
-.task-input button:disabled {
-  background: #333;
-  cursor: not-allowed;
-}
-
-.empty-state {
+/* Greeting */
+.greeting {
   text-align: center;
-  color: #666;
-  padding: 40px;
+  margin-bottom: 40px;
 }
 
-.task-list {
-  list-style: none;
+.greeting-title {
+  font-family: var(--font-heading);
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 600;
+  color: var(--color-foreground);
+  letter-spacing: -0.02em;
 }
 
-.task-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 10px;
-  background: #0f3460;
+/* Quick Actions */
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto 48px;
 }
 
-.task-item.pending {
-  border-left: 4px solid #ffa500;
-}
-
-.task-item.running {
-  border-left: 4px solid #4a9eff;
-}
-
-.task-item.completed {
-  border-left: 4px solid #4caf50;
-}
-
-.task-item.failed {
-  border-left: 4px solid #f44336;
-}
-
-.task-info {
+.action-card {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-
-.task-name {
-  font-weight: 500;
-}
-
-.task-status {
-  font-size: 0.85rem;
-  color: #888;
-}
-
-.task-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.task-actions button {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  background: #4a9eff;
-  color: #fff;
+  gap: 16px;
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: white;
   cursor: pointer;
-  font-size: 0.9rem;
-  transition: background 0.2s;
+  transition: var(--transition-natural);
+  box-shadow: var(--shadow-soft);
 }
 
-.task-actions button:hover:not(:disabled) {
-  background: #3a8eef;
+.action-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lift);
+  border-color: var(--color-primary);
 }
 
-.task-actions button:disabled {
-  background: #333;
-  cursor: not-allowed;
-}
-
-.task-actions button.danger {
-  background: #e74c3c;
-}
-
-.task-actions button.danger:hover:not(:disabled) {
-  background: #c0392b;
-}
-
-.stats {
+.action-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-lg);
   display: flex;
-  justify-content: space-around;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: var(--transition-gentle);
 }
 
-.stat {
+.action-card:hover .action-icon {
+  transform: scale(1.05);
+}
+
+.action-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+
+.action-title {
+  font-family: var(--font-heading);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.action-desc {
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  color: var(--color-muted-foreground);
+  line-height: 1.5;
+}
+
+/* Suggestions */
+.suggestions {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto 32px;
+}
+
+.suggestions-title {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-muted-foreground);
+  margin-bottom: 16px;
   text-align: center;
 }
 
-.stat-value {
-  display: block;
-  font-size: 2rem;
-  font-weight: bold;
-  color: #4a9eff;
+.suggestions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
 }
 
-.stat-label {
-  font-size: 0.9rem;
-  color: #888;
-}
-
-.navbar {
+.suggestion-card {
   display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: white;
+  cursor: pointer;
+  transition: var(--transition-gentle);
+  text-align: left;
+}
+
+.suggestion-card:hover {
+  border-color: var(--color-primary);
+  background: var(--color-muted);
+}
+
+.suggestion-icon {
+  width: 36px;
+  height: 36px;
+  background: var(--color-primary)/10;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
   justify-content: center;
-  gap: 20px;
-  padding: 20px;
-  background: #16213e;
-  border-radius: 12px;
-  margin-top: auto;
+  color: var(--color-primary);
+  flex-shrink: 0;
 }
 
-.nav-link {
-  color: #888;
-  text-decoration: none;
-  padding: 10px 20px;
-  border-radius: 8px;
-  transition: all 0.2s;
-}
-
-.nav-link:hover {
-  color: #fff;
-  background: #0f3460;
-}
-
-.nav-link.active {
-  color: #fff;
-  background: #4a9eff;
+.suggestion-text {
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: var(--color-foreground);
+  line-height: 1.4;
 }
 </style>
