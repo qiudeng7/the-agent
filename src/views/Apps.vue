@@ -11,8 +11,10 @@
           <input
             v-model="searchQuery"
             type="text"
+            name="appSearch"
             placeholder="输入关键词"
             class="search-input"
+            aria-label="输入关键词搜索应用"
           />
         </div>
         <button class="create-btn">

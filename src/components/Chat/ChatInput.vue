@@ -3,7 +3,7 @@
     <div class="chat-input-wrapper">
       <!-- Model Selector -->
       <div class="model-selector">
-        <select v-model="selectedModel" class="model-select">
+        <select v-model="selectedModel" class="model-select" name="model" aria-label="选择模型">
           <option value="default">默认模型</option>
           <option value="deepseek">DeepSeek</option>
           <option value="gpt4">GPT-4</option>
@@ -18,6 +18,8 @@
           v-model="input"
           placeholder="有问题，尽管问，shift+enter 换行"
           class="input-field"
+          name="message"
+          aria-label="输入消息"
           @keydown.shift.enter.prevent="submit"
           @input="autoResize"
           rows="1"
@@ -28,7 +30,7 @@
       <div class="tools-bar">
         <div class="tools-left">
           <label class="tool-toggle" :class="{ active: deepThink }">
-            <input type="checkbox" v-model="deepThink" class="toggle-checkbox" />
+            <input type="checkbox" v-model="deepThink" class="toggle-checkbox" name="deepThink" />
             <span class="toggle-slider"></span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/>
@@ -38,7 +40,7 @@
           </label>
 
           <label class="tool-toggle" :class="{ active: webSearch }">
-            <input type="checkbox" v-model="webSearch" class="toggle-checkbox" />
+            <input type="checkbox" v-model="webSearch" class="toggle-checkbox" name="webSearch" />
             <span class="toggle-slider"></span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"/>

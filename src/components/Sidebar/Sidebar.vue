@@ -23,8 +23,10 @@
         <input
           v-model="searchQuery"
           type="text"
+          name="search"
           placeholder="搜索会话..."
           class="search-input"
+          aria-label="搜索会话"
         />
       </div>
     </div>
@@ -98,8 +100,10 @@
         <input
           v-model="newGroupName"
           type="text"
+          name="groupName"
           placeholder="分组名称"
           class="modal-input"
+          aria-label="分组名称"
           @keyup.enter="createGroup"
         />
         <div class="modal-actions">
@@ -125,6 +129,7 @@ const searchQuery = computed({
 })
 
 const currentSessionId = computed(() => chatStore.currentSessionId)
+const groupedSessions = computed(() => chatStore.groupedSessions)
 
 const showCreateGroup = ref(false)
 const newGroupName = ref('')
