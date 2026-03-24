@@ -49,7 +49,7 @@ the-agent/
 
 ### MCP 配置
 
-将以下配置添加到 `~/.claude/settings.json` 的 `mcpServers` 部分：
+配置已存在于项目根目录的 `.claude/settings.json`：
 
 ```json
 {
