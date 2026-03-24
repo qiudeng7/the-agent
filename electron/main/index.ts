@@ -20,6 +20,8 @@ function createWindow() {
 
   // 加载应用
   if (process.env.VITE_DEV_SERVER_URL) {
+    // 开发模式：启用远程调试端口
+    app.commandLine.appendSwitch('remote-debugging-port', '9222')
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL)
     mainWindow.webContents.openDevTools()
   } else {
