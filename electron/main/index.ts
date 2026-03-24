@@ -20,10 +20,13 @@ function createWindow() {
 
   // 加载应用
   if (process.env.VITE_DEV_SERVER_URL) {
-    // 开发模式：启用远程调试端口
-    app.commandLine.appendSwitch('remote-debugging-port', '9222')
+    // 开发模式：启用远程调试端口 9223
+    app.commandLine.appendSwitch('remote-debugging-port', '9223')
+    app.commandLine.appendSwitch('remote-debugging-pipe')
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL)
     mainWindow.webContents.openDevTools()
+    // 打印调试信息
+    console.log('[Electron] DevTools 远程调试端口：http://127.0.0.1:9223')
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
   }
