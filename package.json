@@ -5,8 +5,9 @@
   "main": "dist-electron/main/index.js",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc && vite build && electron-builder",
-    "build:dir": "vite build && electron-builder --dir",
+    "build": "vue-tsc && vite build && electron-forge package",
+    "make": "vue-tsc && vite build && electron-forge make",
+    "publish": "vue-tsc && vite build && electron-forge publish",
     "preview": "vite preview"
   },
   "keywords": [
@@ -18,10 +19,15 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@electron-forge/cli": "^7.8.13",
+    "@electron-forge/maker-deb": "^7.8.13",
+    "@electron-forge/maker-dmg": "^7.8.13",
+    "@electron-forge/maker-rpm": "^7.8.13",
+    "@electron-forge/maker-squirrel": "^7.8.13",
+    "@electron-forge/maker-zip": "^7.8.13",
     "@vitejs/plugin-vue": "^5.2.1",
     "concurrently": "^9.1.2",
     "electron": "^34.2.0",
-    "electron-builder": "^25.1.8",
     "typescript": "~5.7.2",
     "vite": "^6.2.0",
     "vite-plugin-electron": "^0.29.0",
@@ -33,28 +39,5 @@
   "dependencies": {
     "pinia": "^3.0.1",
     "vue-router": "^4.5.0"
-  },
-  "build": {
-    "appId": "com.example.the-agent",
-    "productName": "The Agent",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "dist-electron/**/*"
-    ],
-    "mac": {
-      "target": "dmg",
-      "icon": "public/icon.icns"
-    },
-    "win": {
-      "target": "nsis",
-      "icon": "public/icon.ico"
-    },
-    "linux": {
-      "target": "AppImage",
-      "icon": "public/icon.png"
-    }
   }
 }
