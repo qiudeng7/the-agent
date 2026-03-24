@@ -7,6 +7,9 @@ const config: ForgeConfig = {
     appBundleId: 'com.example.the-agent',
     appCategoryType: 'public.app-category.productivity',
     darwinDarkModeSupport: true,
+    // 跨平台打包配置
+    platform: process.env.FORGE_PLATFORM || undefined,
+    arch: process.env.FORGE_ARCH || undefined,
   },
   rebuildConfig: {},
   makers: [
@@ -16,15 +19,7 @@ const config: ForgeConfig = {
     },
     {
       name: '@electron-forge/maker-zip',
-      platforms: ['darwin'],
-    },
-    {
-      name: '@electron-forge/maker-squirrel',
-      platforms: ['win32'],
-      config: {
-        name: 'the-agent',
-        setupIcon: './public/icon.ico',
-      },
+      platforms: ['darwin', 'win32', 'linux'],
     },
     {
       name: '@electron-forge/maker-rpm',
