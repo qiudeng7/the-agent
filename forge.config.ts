@@ -52,6 +52,7 @@ const config: ForgeConfig = {
     },
   ],
   plugins: [],
+  files: ['dist', 'dist-electron', 'node_modules', 'package.json'],
 }
 
 export default config

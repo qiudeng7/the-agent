@@ -49,7 +49,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import ChatInput from '@/components/Chat/ChatInput.vue'
 import { useChatStore } from '@/stores/chat'
@@ -151,7 +150,7 @@ function handleSuggestion(text: string) {
   // Will be handled by Chat view
 }
 
-function handleSubmit(input: string, options: { deepThink: boolean; webSearch: boolean; model: string }) {
+function handleSubmit(input: string, _options: { deepThink: boolean; webSearch: boolean; model: string }) {
   const session = chatStore.createSession(input)
   router.push(`/chat/${session.id}`)
 }

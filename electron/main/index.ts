@@ -10,7 +10,7 @@ function createWindow() {
     minWidth: 800,
     minHeight: 600,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, '../preload/index.js'),
       nodeIntegration: false,
       contextIsolation: true,
     },
@@ -28,7 +28,8 @@ function createWindow() {
     // 打印调试信息
     console.log('[Electron] DevTools 远程调试端口：http://127.0.0.1:9223')
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
+    // 生产模式：从 asar 包中加载
+    mainWindow.loadFile(path.join(__dirname, '../../dist/index.html'))
   }
 
   mainWindow.on('closed', () => {
