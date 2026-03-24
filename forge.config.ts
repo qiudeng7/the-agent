@@ -1,4 +1,6 @@
-module.exports = {
+import type { ForgeConfig } from '@electron-forge/shared-types'
+
+const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     icon: './public/icon',
@@ -51,3 +53,5 @@ module.exports = {
   ],
   plugins: [],
 }
+
+export default config
