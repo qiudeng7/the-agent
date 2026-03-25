@@ -6,13 +6,24 @@
  * @layer types
  */
 
+import type { AgentEvent, AgentRunOptions } from '#agent/types'
+
 export interface IElectronAPI {
+  // ── 系统 API ────────────────────────────────────────────────────────────
   getAppVersion: () => Promise<string>
   getPlatform: () => Promise<string>
   openFileDialog: () => Promise<{ canceled: boolean; filePaths: string[] } | null>
   closeWindow: () => Promise<void>
   minimizeWindow: () => Promise<void>
   maximizeWindow: () => Promise<void>
+
+  // ── Agent API ───────────────────────────────────────────────────────────
+  /** 发起 agent 任务（toolExecutor 由主进程注入，此处不需要传入） */
+  agentRun: (options: Omit<AgentRunOptions, 'toolExecutor'>) => Promise<void>
+  /** 取消指定任务 */
+  agentAbort: (taskId: string) => Promise<void>
+  /** 订阅流式事件，返回取消订阅函数 */
+  onAgentEvent: (handler: (event: AgentEvent) => void) => () => void
 }
 
 declare global {

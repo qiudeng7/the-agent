@@ -3,17 +3,36 @@
  * @description 预加载脚本，通过 contextBridge 将安全的 IPC 调用桥接为 window.electronAPI。
  *              渲染进程通过此对象与主进程通信，无需直接访问 Node.js / Electron 内部 API。
  *              contextIsolation: true 确保渲染进程沙箱安全。
+ *
+ *              暴露的 agent 相关 API：
+ *                agentRun(options)       发起任务（不含 toolExecutor，主进程注入）
+ *                agentAbort(taskId)      取消任务
+ *                onAgentEvent(handler)   订阅流式事件，返回取消订阅函数
  * @layer electron-preload
  */
 import { contextBridge, ipcRenderer } from 'electron'
 import type { IElectronAPI } from '../electron'
 
-// 暴露安全的 API 给渲染进程
 contextBridge.exposeInMainWorld('electronAPI', {
+  // ── 系统 API ──────────────────────────────────────────────────────────────
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   getPlatform: () => ipcRenderer.invoke('get-platform'),
   openFileDialog: () => ipcRenderer.invoke('open-file-dialog'),
   closeWindow: () => ipcRenderer.invoke('closeWindow'),
   minimizeWindow: () => ipcRenderer.invoke('minimizeWindow'),
   maximizeWindow: () => ipcRenderer.invoke('maximizeWindow'),
+
+  // ── Agent API ─────────────────────────────────────────────────────────────
+  agentRun: (options: Parameters<IElectronAPI['agentRun']>[0]) =>
+    ipcRenderer.invoke('agent:run', options),
+
+  agentAbort: (taskId: string) =>
+    ipcRenderer.invoke('agent:abort', taskId),
+
+  onAgentEvent: (handler: Parameters<IElectronAPI['onAgentEvent']>[0]) => {
+    const listener = (_: Electron.IpcRendererEvent, event: unknown) =>
+      handler(event as Parameters<typeof handler>[0])
+    ipcRenderer.on('agent:event', listener)
+    return () => ipcRenderer.removeListener('agent:event', listener)
+  },
 } as IElectronAPI)

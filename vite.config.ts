@@ -15,8 +15,10 @@ const rendererAlias = {
 
 /** main process（electron/ + agent/）专用 alias，由 vite-plugin-electron 子构建处理 */
 const mainAlias = {
-  '#electron': r('./electron'),
-  '#agent': r('./agent'),
+  '#electron': r('./electron/index.ts'),
+  '#electron/': r('./electron/'),
+  '#agent': r('./agent/index.ts'),
+  '#agent/': r('./agent/'),
 }
 
 // https://vite.dev/config/
