@@ -3,6 +3,10 @@ import path from 'path'
 
 let mainWindow: BrowserWindow | null = null
 
+// 在创建窗口前配置远程调试端口
+app.commandLine.appendSwitch('remote-debugging-port', '9223')
+app.commandLine.appendSwitch('remote-debugging-pipe')
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -21,12 +25,9 @@ function createWindow() {
 
   // 加载应用
   if (process.env.VITE_DEV_SERVER_URL) {
-    // 开发模式：启用远程调试端口 9223
-    app.commandLine.appendSwitch('remote-debugging-port', '9223')
-    app.commandLine.appendSwitch('remote-debugging-pipe')
+    // 开发模式：打开 DevTools
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL)
     mainWindow.webContents.openDevTools()
-    // 打印调试信息
     console.log('[Electron] DevTools 远程调试端口：http://127.0.0.1:9223')
   } else {
     // 生产模式：从 asar 包中加载

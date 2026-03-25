@@ -83,6 +83,7 @@
           </button>
         </div>
       </div>
+    </div>
 
       <!-- User Profile -->
       <div class="user-profile" @click="goToSettings" title="设置">
