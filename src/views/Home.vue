@@ -1,3 +1,14 @@
+<!--
+  @component Home (view)
+  @description 应用首页，路由：/（根路径）。
+               包含：
+               - 个性化问候语（用户姓名）
+               - 快捷功能卡片：创作文字、生成图片、分析问题、编程帮助
+               - 推荐问题列表（点击直接创建会话并跳转对话页）
+               - 底部 ChatInput 输入框（提交后创建会话并跳转 /chat/:id）
+               图标通过 utils/icons.ts 工厂函数生成，以 <component :is="icon" /> 渲染。
+  @layer view
+-->
 <template>
   <div class="welcome">
     <!-- Greeting -->
@@ -52,6 +63,12 @@
 import { useRouter } from 'vue-router'
 import ChatInput from '@/components/Chat/ChatInput.vue'
 import { useChatStore } from '@/stores/chat'
+import {
+  createWritingIcon,
+  createImageIcon,
+  createAnalyzeIcon,
+  createCodeIcon,
+} from '@/utils/icons'
 
 const router = useRouter()
 const chatStore = useChatStore()
@@ -62,7 +79,7 @@ const actions = [
   {
     title: '创作文字',
     description: '文案、故事、诗歌',
-    icon: createTextIcon(),
+    icon: createWritingIcon(),
     color: 'var(--color-primary)',
   },
   {
@@ -92,53 +109,6 @@ const suggestionList = [
   '解释一下量子纠缠',
 ]
 
-function createTextIcon() {
-  return {
-    template: `
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-        <path d="M12 19l7-7 3 3-7 7-3-3z"/>
-        <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
-        <path d="M2 2l7.586 7.586"/>
-        <circle cx="11" cy="11" r="2"/>
-      </svg>
-    `,
-  }
-}
-
-function createImageIcon() {
-  return {
-    template: `
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-        <circle cx="8.5" cy="8.5" r="1.5"/>
-        <polyline points="21 15 16 10 5 21"/>
-      </svg>
-    `,
-  }
-}
-
-function createAnalyzeIcon() {
-  return {
-    template: `
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-        <circle cx="12" cy="12" r="10"/>
-        <path d="M12 16v-4M12 8h.01"/>
-      </svg>
-    `,
-  }
-}
-
-function createCodeIcon() {
-  return {
-    template: `
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-        <polyline points="16 18 22 12 16 6"/>
-        <polyline points="8 6 2 12 8 18"/>
-      </svg>
-    `,
-  }
-}
-
 function handleAction(action: typeof actions[0]) {
   const session = chatStore.createSession(action.title)
   router.push(`/chat/${session.id}`)
@@ -146,8 +116,8 @@ function handleAction(action: typeof actions[0]) {
 
 function handleSuggestion(text: string) {
   const session = chatStore.createSession(text)
-  router.push(`/chat/${session.id}`)
-  // Will be handled by Chat view
+  // 通过 query.q 把问题文本传给 Chat.vue，由它负责发送消息和触发 AI 回复
+  router.push({ name: 'chat', params: { id: session.id }, query: { q: text } })
 }
 
 function handleSubmit(input: string, _options: { deepThink: boolean; webSearch: boolean; model: string }) {

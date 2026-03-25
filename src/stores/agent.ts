@@ -1,3 +1,10 @@
+/**
+ * @module stores/agent
+ * @description Agent 任务状态管理（Pinia store）。
+ *              管理异步任务生命周期：pending → running → completed / failed。
+ *              当前为基础结构，待后续接入实际 AI 任务调度与执行逻辑。
+ * @layer state
+ */
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 

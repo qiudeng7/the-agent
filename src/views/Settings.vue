@@ -1,3 +1,14 @@
+<!--
+  @component Settings (view)
+  @description 设置页面，路由：/settings。
+               展示并编辑以下配置分区：
+               - 应用信息：版本号 / 平台（通过 electronAPI IPC 异步获取）
+               - 语言设置：直接绑定 settingsStore.language，实时生效
+               - 外观设置：直接绑定 settingsStore.theme，实时切换深色/亮色
+               - 通用设置：开机自启 / 最小化托盘（本地 ref，待接入 electron 逻辑）
+               - Agent 设置：API Key / 模型选择（本地 ref，待持久化）
+  @layer view
+-->
 <template>
   <div class="settings">
     <header class="header">

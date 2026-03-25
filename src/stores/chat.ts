@@ -1,3 +1,12 @@
+/**
+ * @module stores/chat
+ * @description 会话状态管理（Pinia store）。
+ *              管理会话列表（sessions）、分组（groups）、当前会话 ID 和搜索关键词。
+ *              - createSession：创建新会话并置顶
+ *              - addMessage：追加消息，首条用户消息自动截取前 30 字符作为会话标题
+ *              - groupedSessions：按分组聚合会话，未分组的归入"其他"分类
+ * @layer state
+ */
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
@@ -43,18 +52,20 @@ export const useChatStore = defineStore('chat', () => {
   })
 
   const groupedSessions = computed(() => {
+    // 基于 filteredSessions 而非 sessions.value，使搜索过滤生效
+    const base = filteredSessions.value
     if (groups.value.length === 0) {
-      return { ungrouped: sessions.value }
+      return { ungrouped: base }
     }
     const result: Record<string, ChatSession[]> = {}
     groups.value.forEach(group => {
       result[group.name] = group.sessionIds
-        .map(id => sessions.value.find(s => s.id === id))
+        .map(id => base.find(s => s.id === id))
         .filter((s): s is ChatSession => !!s)
     })
     // Add ungrouped sessions
     const groupedIds = groups.value.flatMap(g => g.sessionIds)
-    result['其他'] = sessions.value.filter(s => !groupedIds.includes(s.id))
+    result['其他'] = base.filter(s => !groupedIds.includes(s.id))
     return result
   })
 

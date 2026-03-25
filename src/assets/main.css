@@ -1,3 +1,15 @@
+/**
+ * @module assets/main.css
+ * @description 全局设计系统 CSS 变量（Design Tokens），Organic/自然风格设计语言。
+ *              包含：
+ *              - 颜色（亮色模式暖土色调 + 深色模式镜像变量，深色通过 .dark 类切换）
+ *              - 字体（Fraunces 衬线标题 + Nunito 无衬线正文，Google Fonts CDN 加载）
+ *              - 圆角（--radius-sm/md/lg/xl/full）
+ *              - 阴影（--shadow-soft/float/lift，带彩色投影）
+ *              - 过渡动画（--transition-gentle 0.3s / --transition-natural 0.5s）
+ *              深色模式由 App.vue 根据 settingsStore.currentTheme 动态添加 .dark 到 <html>。
+ * @layer global-styles
+ */
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;400;500;600;700&family=Nunito:wght@400;500;600;700&display=swap');
 
 /* Design Tokens - Organic/Natural Theme */

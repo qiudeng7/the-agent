@@ -1,3 +1,12 @@
+/**
+ * @module stores/settings
+ * @description 应用设置状态管理（Pinia store）。
+ *              管理语言（language）和主题（theme），均支持"跟随系统"选项。
+ *              - 持久化到 localStorage，key: 'app-settings'
+ *              - onMounted 时注册 prefers-color-scheme 媒体查询监听，实时响应系统主题切换
+ *              - currentLanguage / currentTheme 为解析后的实际值（排除 'system' 占位）
+ * @layer state
+ */
 import { defineStore } from 'pinia'
 import { ref, computed, watch, onMounted } from 'vue'
 
@@ -87,6 +96,10 @@ export const useSettingsStore = defineStore('settings', () => {
     theme.value = newTheme
     saveSettings()
   }
+
+  // 监听 language / theme 变化自动持久化，
+  // 确保 Settings.vue 的 v-model 直接修改也能触发保存
+  watch([language, theme], saveSettings)
 
   // Watch for system color scheme changes
   onMounted(() => {

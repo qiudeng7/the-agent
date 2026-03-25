@@ -1,3 +1,13 @@
+<!--
+  @component AppLayout
+  @description 全局页面布局容器，包含：
+    - 顶部 32px 透明拖拽区域（-webkit-app-region: drag），使窗口可拖动
+    - 绝对定位 WindowControls（侧边栏开关 + 新建对话按钮）
+    - 左侧可折叠 Sidebar（260px，collapsed 时收起为 0）
+    - 右侧 main-content 区域（<router-view /> 出口）
+  @state sidebarCollapsed - 侧边栏折叠状态，由 WindowControls 的 toggle-sidebar 事件触发
+  @layer layout
+-->
 <template>
   <div class="app-layout">
     <div class="titlebar-drag-region"></div>

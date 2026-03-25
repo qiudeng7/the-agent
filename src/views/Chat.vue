@@ -1,3 +1,12 @@
+<!--
+  @component Chat (view)
+  @description 对话页面，路由：/chat/:id。
+               展示当前会话的消息列表（用户消息右对齐 + 蓝绿气泡，AI 消息左对齐 + 灰色气泡）。
+               空状态时显示引导提示（"开始对话"）。
+               底部挂载 ChatInput，提交后追加用户消息到 chatStore，并模拟 AI 回复（1s 延迟）。
+               TODO：替换模拟回复逻辑为真实 AI API 调用（接入 agentStore）。
+  @layer view
+-->
 <template>
   <div class="chat-view">
     <!-- Messages -->
@@ -47,16 +56,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import ChatInput from '@/components/Chat/ChatInput.vue'
 import { useChatStore, type Message } from '@/stores/chat'
 
 const route = useRoute()
+const router = useRouter()
 const chatStore = useChatStore()
 
 const sessionId = computed(() => route.params.id as string)
-const session = computed(() => chatStore.currentSession)
+// 统一以路由 ID 为准查找会话，避免 currentSessionId 与 URL 不同步
+const session = computed(() => chatStore.sessions.find(s => s.id === sessionId.value))
 const messages = computed(() => session.value?.messages ?? [])
 
 function formatTime(timestamp: number) {
@@ -90,6 +101,16 @@ function handleSubmit(input: string, options: { deepThink: boolean; webSearch: b
     chatStore.addMessage(sessionId.value, aiMessage)
   }, 1000)
 }
+
+// 处理来自首页"推荐问题"点击的初始消息（通过路由 query.q 传递）
+onMounted(() => {
+  const q = route.query.q
+  if (q && typeof q === 'string') {
+    handleSubmit(q, { deepThink: false, webSearch: false, model: 'default' })
+    // 清除 query 参数，避免刷新页面重复发送
+    router.replace({ name: 'chat', params: { id: sessionId.value } })
+  }
+})
 </script>
 
 <style scoped>

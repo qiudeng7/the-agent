@@ -1,3 +1,12 @@
+<!--
+  @component Apps (view)
+  @description 应用广场页面，路由：/apps。
+               展示可用 AI 应用列表，支持分类标签筛选和关键词搜索（实时过滤）。
+               点击应用卡片自动创建新会话并跳转对话页 /chat/:id。
+               应用数据和图标定义在本文件内；图标通过 utils/icons.ts 工厂函数生成。
+               卡片 UI 由 AppCard 组件负责渲染。
+  @layer view
+-->
 <template>
   <div class="apps-page">
     <div class="apps-header">
@@ -40,21 +49,16 @@
 
     <!-- Apps Grid -->
     <div class="apps-grid">
-      <div
+      <AppCard
         v-for="app in filteredApps"
         :key="app.id"
-        class="app-card"
-        @click="selectApp(app)"
-      >
-        <div class="app-icon" :style="{ background: app.iconColor }">
-          <component :is="app.icon" />
-        </div>
-        <div class="app-content">
-          <h3 class="app-name">{{ app.name }}</h3>
-          <p class="app-desc">{{ app.description }}</p>
-          <span class="app-source">来自 {{ app.source }}</span>
-        </div>
-      </div>
+        :name="app.name"
+        :description="app.description"
+        :source="app.source"
+        :icon-color="app.iconColor"
+        :icon="app.icon"
+        @select="selectApp(app)"
+      />
     </div>
   </div>
 </template>
@@ -63,6 +67,15 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useChatStore } from '@/stores/chat'
+import AppCard from '@/components/Apps/AppCard.vue'
+import {
+  createDocumentIcon,
+  createImageIcon,
+  createCodeIcon,
+  createCopywritingIcon,
+  createLearnIcon,
+  createTravelIcon,
+} from '@/utils/icons'
 
 const router = useRouter()
 const chatStore = useChatStore()
@@ -87,7 +100,7 @@ const apps = [
     source: 'The Agent 官方',
     category: 'recommended',
     iconColor: 'var(--color-primary)',
-    icon: createDocumentIcon(),
+    icon: createDocumentIcon(28),
   },
   {
     id: '2',
@@ -96,7 +109,7 @@ const apps = [
     source: 'The Agent 官方',
     category: 'recommended',
     iconColor: 'var(--color-secondary)',
-    icon: createImageIcon(),
+    icon: createImageIcon(28),
   },
   {
     id: '3',
@@ -105,7 +118,7 @@ const apps = [
     source: 'The Agent 官方',
     category: 'productivity',
     iconColor: '#7C5DFA',
-    icon: createCodeIcon(),
+    icon: createCodeIcon(28),
   },
   {
     id: '4',
@@ -114,7 +127,7 @@ const apps = [
     source: 'The Agent 官方',
     category: 'creative',
     iconColor: 'var(--color-accent-foreground)',
-    icon: createTextIcon(),
+    icon: createCopywritingIcon(28),
   },
   {
     id: '5',
@@ -123,7 +136,7 @@ const apps = [
     source: 'The Agent 官方',
     category: 'learning',
     iconColor: 'var(--color-primary)',
-    icon: createLearnIcon(),
+    icon: createLearnIcon(28),
   },
   {
     id: '6',
@@ -132,78 +145,9 @@ const apps = [
     source: 'The Agent 官方',
     category: 'life',
     iconColor: 'var(--color-secondary)',
-    icon: createTravelIcon(),
+    icon: createTravelIcon(28),
   },
 ]
-
-function createDocumentIcon() {
-  return {
-    template: `
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-        <polyline points="14 2 14 8 20 8"/>
-        <line x1="16" y1="13" x2="8" y2="13"/>
-        <line x1="16" y1="17" x2="8" y2="17"/>
-      </svg>
-    `,
-  }
-}
-
-function createImageIcon() {
-  return {
-    template: `
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-        <circle cx="8.5" cy="8.5" r="1.5"/>
-        <polyline points="21 15 16 10 5 21"/>
-      </svg>
-    `,
-  }
-}
-
-function createCodeIcon() {
-  return {
-    template: `
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-        <polyline points="16 18 22 12 16 6"/>
-        <polyline points="8 6 2 12 8 18"/>
-      </svg>
-    `,
-  }
-}
-
-function createTextIcon() {
-  return {
-    template: `
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-        <path d="M12 19l7-7 3 3-7 7-3-3z"/>
-        <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
-      </svg>
-    `,
-  }
-}
-
-function createLearnIcon() {
-  return {
-    template: `
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-      </svg>
-    `,
-  }
-}
-
-function createTravelIcon() {
-  return {
-    template: `
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-        <circle cx="12" cy="12" r="10"/>
-        <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-      </svg>
-    `,
-  }
-}
 
 const filteredApps = computed(() => {
   let result = apps
@@ -348,65 +292,5 @@ function selectApp(app: typeof apps[0]) {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 20px;
-}
-
-.app-card {
-  display: flex;
-  gap: 16px;
-  padding: 20px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  background: var(--color-muted);
-  cursor: pointer;
-  transition: var(--transition-natural);
-  box-shadow: var(--shadow-soft);
-}
-
-.app-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lift);
-  border-color: var(--color-primary);
-}
-
-.app-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius-lg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: var(--transition-gentle);
-}
-
-.app-card:hover .app-icon {
-  transform: scale(1.05);
-}
-
-.app-content {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
-
-.app-name {
-  font-family: var(--font-heading);
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--color-foreground);
-}
-
-.app-desc {
-  font-family: var(--font-body);
-  font-size: 0.8125rem;
-  color: var(--color-muted-foreground);
-  line-height: 1.4;
-}
-
-.app-source {
-  font-family: var(--font-body);
-  font-size: 0.75rem;
-  color: var(--color-muted-foreground);
 }
 </style>

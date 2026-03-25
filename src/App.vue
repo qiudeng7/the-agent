@@ -1,3 +1,10 @@
+<!--
+  @component App
+  @description 根组件，负责：
+    - 监听 settingsStore.currentTheme 变化，同步切换 <html> 元素的 .dark 类
+    - 提供 <router-view /> 出口渲染各页面
+  @layer root
+-->
 <template>
   <div id="app" :class="{ dark: isDarkMode }">
     <router-view />

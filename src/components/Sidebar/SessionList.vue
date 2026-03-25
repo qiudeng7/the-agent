@@ -1,3 +1,13 @@
+<!--
+  @component SessionList
+  @description 侧边栏中的会话分组列表，嵌入 Sidebar.vue 的滚动区域。
+               从 chatStore.groupedSessions 读取数据（Record<分组名, ChatSession[]>）。
+               未分组的会话显示在"其他"组下。
+               支持：
+               - 点击会话：切换当前会话并跳转 /chat/:id
+               - 创建分组：通过弹窗输入分组名称，调用 chatStore.createGroup()
+  @layer sidebar
+-->
 <template>
   <div class="sessions-container">
     <div class="sessions-header">

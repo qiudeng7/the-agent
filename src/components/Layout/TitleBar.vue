@@ -1,3 +1,13 @@
+<!--
+  @component TitleBar
+  @description 自定义标题栏（备用实现，当前未挂载）。
+               当前方案使用 AppLayout 的透明 drag region + macOS titleBarStyle: 'hiddenInset' 原生按钮。
+               本组件保留作为参考，包含：
+               - macOS：红黄绿三圆点按钮（hover 显示操作图标）
+               - Windows：最小化 / 最大化 / 关闭按钮（右侧排列）
+               平台检测通过 electronAPI.getPlatform() IPC 获取。
+  @layer layout
+-->
 <template>
   <div class="titlebar">
     <!-- macOS: 三个点在左边 -->

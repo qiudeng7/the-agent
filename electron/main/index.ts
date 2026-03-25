@@ -1,3 +1,14 @@
+/**
+ * @module electron/main
+ * @description Electron 主进程入口，负责创建 BrowserWindow 并注册 IPC 处理器。
+ *              窗口配置：无边框（frame: false）+ macOS hiddenInset（保留原生红黄绿三圆点）。
+ *              调试端口：9223（开发模式下供 chrome-devtools-mcp 连接）。
+ *              IPC 处理器：
+ *                - get-app-version / get-platform：返回应用信息
+ *                - closeWindow / minimizeWindow / maximizeWindow：窗口控制
+ *                - open-file-dialog：系统文件选择对话框
+ * @layer electron-main
+ */
 import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'path'
 

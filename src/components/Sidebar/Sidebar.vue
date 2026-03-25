@@ -1,3 +1,15 @@
+<!--
+  @component Sidebar
+  @description 左侧导航栏，宽 260px，可折叠（collapsed=true 时 width 收缩到 0）。
+               包含：
+               - 顶部搜索框（双向绑定 chatStore.searchQuery）
+               - 导航菜单（首页 / 全部应用）
+               - SessionList 会话分组列表（可滚动区域）
+               - 底部固定用户信息区（点击跳转设置页）
+               整体设置 -webkit-app-region: no-drag，防止被顶部拖拽区域拦截点击事件。
+  @props collapsed - 是否处于折叠状态（由父组件 AppLayout 管理）
+  @layer layout
+-->
 <template>
   <div class="sidebar" :class="{ collapsed }">
     <div class="sidebar-header">

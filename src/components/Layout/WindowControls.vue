@@ -1,3 +1,14 @@
+<!--
+  @component WindowControls
+  @description 固定定位在窗口左上角的控制按钮组（z-index: 100）。
+               包含：侧边栏展开/收起切换、新建对话（跳转首页）。
+               - macOS: left: 72px（右移，让出系统原生红黄绿三圆点的位置）
+               - Windows / 其他: left: 8px
+               - Tooltip 通过 <Teleport to="body"> 渲染，避免被父容器 overflow: hidden 裁剪
+  @props collapsed - 侧边栏当前是否处于折叠状态
+  @emits toggleSidebar - 请求切换侧边栏折叠状态
+  @layer layout
+-->
 <template>
   <div class="window-controls" :class="{ 'is-mac': isMac }">
     <button
