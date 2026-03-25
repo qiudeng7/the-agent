@@ -360,6 +360,7 @@ function goToSettings() {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .session-item {
@@ -371,6 +372,7 @@ function goToSettings() {
   cursor: pointer;
   text-align: left;
   transition: var(--transition-gentle);
+  overflow: hidden;
 }
 
 .session-item:hover {
