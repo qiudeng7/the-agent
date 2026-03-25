@@ -3,29 +3,29 @@ import path from 'path'
 
 let mainWindow: BrowserWindow | null = null
 
+// 在创建窗口前配置远程调试端口
+app.commandLine.appendSwitch('remote-debugging-port', '9223')
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     minWidth: 800,
     minHeight: 600,
+    frame: false,  // 无边框窗口
+    titleBarStyle: 'hiddenInset',  // macOS: 隐藏标题栏但保留原生窗口控制按钮
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       nodeIntegration: false,
       contextIsolation: true,
     },
-    titleBarStyle: 'default',
-    frame: true,
   })
 
   // 加载应用
   if (process.env.VITE_DEV_SERVER_URL) {
-    // 开发模式：启用远程调试端口 9223
-    app.commandLine.appendSwitch('remote-debugging-port', '9223')
-    app.commandLine.appendSwitch('remote-debugging-pipe')
+    // 开发模式：打开 DevTools
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL)
     mainWindow.webContents.openDevTools()
-    // 打印调试信息
     console.log('[Electron] DevTools 远程调试端口：http://127.0.0.1:9223')
   } else {
     // 生产模式：从 asar 包中加载
@@ -61,6 +61,23 @@ ipcMain.handle('get-app-version', () => {
 
 ipcMain.handle('get-platform', () => {
   return process.platform
+})
+
+// 窗口控制
+ipcMain.handle('closeWindow', () => {
+  mainWindow?.close()
+})
+
+ipcMain.handle('minimizeWindow', () => {
+  mainWindow?.minimize()
+})
+
+ipcMain.handle('maximizeWindow', () => {
+  if (mainWindow?.isMaximized()) {
+    mainWindow.unmaximize()
+  } else {
+    mainWindow?.maximize()
+  }
 })
 
 // 示例：文件对话框

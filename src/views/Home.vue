@@ -196,7 +196,7 @@ function handleSubmit(input: string, _options: { deepThink: boolean; webSearch: 
   padding: 24px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
-  background: white;
+  background: var(--color-background);
   cursor: pointer;
   transition: var(--transition-natural);
   box-shadow: var(--shadow-soft);
@@ -272,8 +272,8 @@ function handleSubmit(input: string, _options: { deepThink: boolean; webSearch: 
   gap: 12px;
   padding: 14px 18px;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-  background: white;
+  border-radius: var(--radius-lg);
+  background: var(--color-muted);
   cursor: pointer;
   transition: var(--transition-gentle);
   text-align: left;

@@ -256,7 +256,7 @@ function selectApp(app: typeof apps[0]) {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: white;
+  background: var(--color-background);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
   padding: 10px 16px;
@@ -296,7 +296,7 @@ function selectApp(app: typeof apps[0]) {
   gap: 8px;
   padding: 10px 20px;
   border: 1px solid var(--color-border);
-  background: white;
+  background: var(--color-background);
   border-radius: var(--radius-full);
   cursor: pointer;
   transition: var(--transition-gentle);
@@ -323,7 +323,7 @@ function selectApp(app: typeof apps[0]) {
 .tab {
   padding: 10px 20px;
   border: none;
-  background: white;
+  background: var(--color-muted);
   border-radius: var(--radius-full);
   cursor: pointer;
   transition: var(--transition-gentle);
@@ -356,7 +356,7 @@ function selectApp(app: typeof apps[0]) {
   padding: 20px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
-  background: white;
+  background: var(--color-muted);
   cursor: pointer;
   transition: var(--transition-natural);
   box-shadow: var(--shadow-soft);

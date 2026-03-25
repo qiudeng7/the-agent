@@ -185,7 +185,7 @@ watch(input, autoResize)
   padding: 8px 32px 8px 14px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
-  background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2378786C' d='M6 8L1 3h10z'/%3E%3C/svg%3E") no-repeat right 12px center;
+  background: var(--color-background) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2378786C' d='M6 8L1 3h10z'/%3E%3C/svg%3E") no-repeat right 12px center;
   background-size: 12px;
   font-family: var(--font-body);
   font-size: 0.8125rem;
@@ -206,7 +206,7 @@ watch(input, autoResize)
 
 /* Input Box */
 .input-box {
-  background: white;
+  background: var(--color-muted);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   overflow: hidden;
@@ -390,7 +390,7 @@ watch(input, autoResize)
   bottom: 100%;
   left: 0;
   right: 0;
-  background: white;
+  background: var(--color-muted);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   padding: 16px;

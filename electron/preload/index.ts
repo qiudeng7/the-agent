@@ -6,4 +6,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   getPlatform: () => ipcRenderer.invoke('get-platform'),
   openFileDialog: () => ipcRenderer.invoke('open-file-dialog'),
+  closeWindow: () => ipcRenderer.invoke('closeWindow'),
+  minimizeWindow: () => ipcRenderer.invoke('minimizeWindow'),
+  maximizeWindow: () => ipcRenderer.invoke('maximizeWindow'),
 } as IElectronAPI)
