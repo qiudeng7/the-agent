@@ -1,9 +1,12 @@
 <template>
   <div class="app-layout">
-    <!-- 顶部拖拽区域 -->
     <div class="titlebar-drag-region"></div>
+    <WindowControls
+      :collapsed="sidebarCollapsed"
+      @toggle-sidebar="sidebarCollapsed = !sidebarCollapsed"
+    />
     <div class="app-body">
-      <Sidebar />
+      <Sidebar :collapsed="sidebarCollapsed" />
       <main class="main-content">
         <router-view />
       </main>
@@ -12,7 +15,11 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import Sidebar from '@/components/Sidebar/Sidebar.vue'
+import WindowControls from '@/components/Layout/WindowControls.vue'
+
+const sidebarCollapsed = ref(false)
 </script>
 
 <style scoped>
@@ -23,21 +30,15 @@ import Sidebar from '@/components/Sidebar/Sidebar.vue'
   overflow: hidden;
 }
 
-/* 顶部拖拽区域 - 用于窗口拖拽 */
 .titlebar-drag-region {
   height: 32px;
   -webkit-app-region: drag;
-  flex-shrink: 0;
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   z-index: 0;
   pointer-events: none;
-}
-
-.titlebar-drag-region > * {
-  pointer-events: auto;
 }
 
 .app-body {
