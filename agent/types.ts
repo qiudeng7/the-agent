@@ -91,6 +91,17 @@ export interface ToolResult {
 // 任务运行参数
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * 工具执行回调，由 AgentRunner 在调用 provider.run() 前注入。
+ * Provider 在 agentic loop 遇到 tool_use 时直接调用，无需依赖外部传递机制。
+ */
+export type ToolExecutor = (
+  name: string,
+  input: Record<string, unknown>,
+  taskId: string,
+  signal?: AbortSignal,
+) => Promise<ToolResult>
+
 export interface AgentRunOptions {
   /** 客户端生成的唯一任务 ID，用于关联流式事件和 abort 操作 */
   taskId: string
@@ -106,6 +117,8 @@ export interface AgentRunOptions {
   maxTokens?: number
   /** 本次任务可用的工具列表 */
   tools?: ToolDefinition[]
+  /** 工具执行器，由 AgentRunner 注入；transport 直接触发 run() 时可为空 */
+  toolExecutor?: ToolExecutor
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
