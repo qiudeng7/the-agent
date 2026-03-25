@@ -1,8 +1,9 @@
 <template>
   <div class="sidebar">
-    <!-- Sidebar Header with Icons -->
+    <!-- Sidebar Header - 功能按钮 -->
     <div class="sidebar-header">
-      <div class="header-icons">
+      <!-- 功能按钮：收起侧栏、新建对话 -->
+      <div class="action-buttons">
         <button class="icon-btn" @click="toggleSidebar" title="收起侧栏">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="15 18 9 12 15 6"/>
@@ -14,21 +15,21 @@
           </svg>
         </button>
       </div>
-      <!-- Search -->
-      <div class="search-box">
-        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"/>
-          <path d="m21 21-4.35-4.35"/>
-        </svg>
-        <input
-          v-model="searchQuery"
-          type="text"
-          name="search"
-          placeholder="搜索会话..."
-          class="search-input"
-          aria-label="搜索会话"
-        />
-      </div>
+    </div>
+    <!-- Search -->
+    <div class="search-box">
+      <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input
+        v-model="searchQuery"
+        type="text"
+        name="search"
+        placeholder="搜索会话..."
+        class="search-input"
+        aria-label="搜索会话"
+      />
     </div>
 
     <!-- Scrollable Content -->
@@ -188,19 +189,23 @@ function newChat() {
   border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 10;
 }
 
-/* Header - Fixed */
+/* Header */
 .sidebar-header {
-  padding: 12px 16px;
+  padding: 8px 16px;
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
 
-.header-icons {
+/* 功能按钮 */
+.action-buttons {
   display: flex;
   gap: 8px;
-  margin-bottom: 12px;
 }
 
 .icon-btn {
@@ -222,7 +227,7 @@ function newChat() {
   color: var(--color-primary-foreground);
 }
 
-/* Search - Fixed */
+/* Search */
 .search-box {
   display: flex;
   align-items: center;
@@ -231,6 +236,8 @@ function newChat() {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
   padding: 10px 14px;
+  margin: 8px 16px;
+  flex-shrink: 0;
   transition: var(--transition-gentle);
 }
 

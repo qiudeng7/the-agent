@@ -1,6 +1,7 @@
 <template>
   <div class="app-layout">
-    <TitleBar />
+    <!-- 顶部拖拽区域 -->
+    <div class="titlebar-drag-region"></div>
     <div class="app-body">
       <Sidebar />
       <main class="main-content">
@@ -12,7 +13,6 @@
 
 <script setup lang="ts">
 import Sidebar from '@/components/Sidebar/Sidebar.vue'
-import TitleBar from '@/components/Layout/TitleBar.vue'
 </script>
 
 <style scoped>
@@ -21,6 +21,23 @@ import TitleBar from '@/components/Layout/TitleBar.vue'
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+}
+
+/* 顶部拖拽区域 - 用于窗口拖拽 */
+.titlebar-drag-region {
+  height: 32px;
+  -webkit-app-region: drag;
+  flex-shrink: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.titlebar-drag-region > * {
+  pointer-events: auto;
 }
 
 .app-body {

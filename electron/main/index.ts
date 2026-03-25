@@ -5,7 +5,6 @@ let mainWindow: BrowserWindow | null = null
 
 // 在创建窗口前配置远程调试端口
 app.commandLine.appendSwitch('remote-debugging-port', '9223')
-app.commandLine.appendSwitch('remote-debugging-pipe')
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -14,8 +13,7 @@ function createWindow() {
     minWidth: 800,
     minHeight: 600,
     frame: false,  // 无边框窗口
-    titleBarStyle: 'hidden',  // macOS: 隐藏标题栏
-    trafficLightPosition: { x: -100, y: -100 },  // macOS: 隐藏原生窗口控制按钮
+    titleBarStyle: 'hiddenInset',  // macOS: 隐藏标题栏但保留原生窗口控制按钮
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       nodeIntegration: false,
