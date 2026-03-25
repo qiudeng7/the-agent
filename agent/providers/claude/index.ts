@@ -17,8 +17,8 @@ import type {
   AgentMessage,
   ContentBlock,
   ToolResultContent,
-} from '../../types'
-import type { IAgentProvider } from '../../interfaces/provider'
+} from '#agent/types'
+import type { IAgentProvider } from '#agent/interfaces/provider'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 类型映射辅助

@@ -4,6 +4,21 @@ import path from 'path'
 import electron from 'vite-plugin-electron'
 import renderer from 'vite-plugin-electron-renderer'
 
+// 各模块 alias（按构建目标分离）
+const r = (p: string) => path.resolve(__dirname, p)
+
+/** renderer（src/）专用 alias，由顶层 Vite 处理 */
+const rendererAlias = {
+  '@': r('./src'),
+  'vue': 'vue/dist/vue.esm-bundler.js',
+}
+
+/** main process（electron/ + agent/）专用 alias，由 vite-plugin-electron 子构建处理 */
+const mainAlias = {
+  '#electron': r('./electron'),
+  '#agent': r('./agent'),
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -12,9 +27,8 @@ export default defineConfig({
       {
         entry: 'electron/main/index.ts',
         vite: {
-          build: {
-            outDir: 'dist-electron/main',
-          },
+          resolve: { alias: mainAlias },
+          build: { outDir: 'dist-electron/main' },
         },
       },
       {
@@ -23,21 +37,15 @@ export default defineConfig({
           options.reload()
         },
         vite: {
-          build: {
-            outDir: 'dist-electron/preload',
-          },
+          resolve: { alias: mainAlias },
+          build: { outDir: 'dist-electron/preload' },
         },
       },
     ]),
     renderer(),
   ],
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-      '#electron': path.resolve(__dirname, './electron'),
-      '#agent': path.resolve(__dirname, './agent'),
-      'vue': 'vue/dist/vue.esm-bundler.js',
-    },
+    alias: rendererAlias,
   },
   build: {
     outDir: 'dist',
