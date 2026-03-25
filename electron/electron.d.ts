@@ -1,3 +1,6 @@
+// Electron IPC 类型声明
+// 此文件为全局类型声明，无需 import/export
+
 export interface IElectronAPI {
   getAppVersion: () => Promise<string>
   getPlatform: () => Promise<string>
@@ -9,3 +12,5 @@ declare global {
     electronAPI: IElectronAPI
   }
 }
+
+export {}
