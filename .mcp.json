@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "chrome-devtools": {
+    "electron-devtools": {
       "command": "npx",
       "args": [
         "-y",
