@@ -396,12 +396,7 @@ function goToSettings() {
 /* User Profile */
 .user-profile {
   padding: 16px;
-  border-top: 1px solid var(--color-border);
   cursor: pointer;
-}
-
-.user-profile:hover {
-  background: var(--color-muted);
 }
 
 .user-info {
@@ -411,16 +406,31 @@ function goToSettings() {
   padding: 10px;
   border-radius: var(--radius-full);
   background: var(--color-muted);
+  transition: var(--transition-gentle);
+}
+
+.user-profile:hover .user-info {
+  background: var(--color-primary);
+}
+
+.user-profile:hover .user-avatar {
+  background: var(--color-primary-foreground);
+  color: var(--color-primary);
+}
+
+.user-profile:hover .user-name {
+  color: var(--color-primary-foreground);
 }
 
 .settings-icon {
   margin-left: auto;
   color: var(--color-muted-foreground);
   flex-shrink: 0;
+  transition: var(--transition-gentle);
 }
 
 .user-profile:hover .settings-icon {
-  color: var(--color-primary);
+  color: var(--color-primary-foreground);
 }
 
 .user-avatar {
@@ -441,6 +451,7 @@ function goToSettings() {
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--color-foreground);
+  transition: var(--transition-gentle);
 }
 
 /* Modal */
