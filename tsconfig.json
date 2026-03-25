@@ -23,7 +23,9 @@
     /* Path */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "#electron/*": ["electron/*"],
+      "#agent/*": ["agent/*"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],

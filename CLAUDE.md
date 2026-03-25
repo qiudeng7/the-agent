@@ -8,8 +8,8 @@ Electron + Vite + Vue 3 + TypeScript Agent 应用模板
 
 ```bash
 pnpm run dev      # 启动开发服务器（Vite + Electron）
-pnpm run build    # 构建生产版本
-pnpm run make     # 构建安装包（DMG/EXE/DEB/RPM）
+pnpm run make     # 构建 macos arm
+pnpm run make:win # 构建 windows x86
 ```
 
 ## 技术栈
@@ -43,65 +43,12 @@ the-agent/
 
 ## Chrome DevTools MCP 集成
 
-### 远程调试端口配置
-
 开发模式下 (`pnpm run dev`)，Electron 会自动启动远程调试端口 **9223**。
 
-### MCP 配置
+然后就可以用项目级的 electron-devtools mcp 访问electron 应用了.
 
-配置已存在于项目根目录的 `.claude/settings.json`：
-
-```json
-{
-  "mcpServers": {
-    "chrome-devtools": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "chrome-devtools-mcp@latest",
-        "--browser-url=http://127.0.0.1:9223"
-      ]
-    }
-  }
-}
-```
-
-### 使用方式
-
-1. **启动开发服务器**
-   ```bash
-   pnpm run dev
-   ```
-   Electron 应用启动后，会在控制台输出：`[Electron] DevTools 远程调试端口：http://127.0.0.1:9223`
-
-2. **等待应用加载完成** - 确保 Electron 窗口已显示
-
-3. **使用 MCP 工具** - 现在可以使用以下能力：
-   - `take_snapshot` - 获取页面可访问性树
-   - `take_screenshot` - 截取屏幕
-   - `navigate_page` - 导航页面
-   - `click` - 点击元素
-   - `fill` - 填充表单
-   - `list_network_requests` - 查看网络请求
-   - `list_console_messages` - 查看控制台消息
-   - `performance_start_trace` - 性能分析
-   - 更多工具参考 chrome-devtools-mcp 文档
-
-### 注意事项
-
-- 必须在 `pnpm run dev` 模式下才能使用 MCP
-- 生产构建版本 (`pnpm run build`) 不启用远程调试端口
-- 如果端口 9223 被占用，可在 `electron/main/index.ts` 中修改端口号
-
-## 构建输出
+## 构建说明
 
 - `dist/` - Vite 构建的渲染进程资源
 - `dist-electron/` - 编译后的主进程和预加载脚本
 - `out/` - Electron Forge 打包的最终产品
-
-## 代码风格
-
-- 使用 TypeScript 严格模式
-- Vue 组件使用 `<script setup lang="ts">` 语法
-- 组件名使用 PascalCase
-- 工具函数使用 camelCase
