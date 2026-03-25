@@ -9,13 +9,14 @@ function createWindow() {
     height: 800,
     minWidth: 800,
     minHeight: 600,
+    frame: false,  // 无边框窗口
+    titleBarStyle: 'hidden',  // macOS: 隐藏标题栏
+    trafficLightPosition: { x: -100, y: -100 },  // macOS: 隐藏原生窗口控制按钮
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       nodeIntegration: false,
       contextIsolation: true,
     },
-    titleBarStyle: 'default',
-    frame: true,
   })
 
   // 加载应用
@@ -61,6 +62,23 @@ ipcMain.handle('get-app-version', () => {
 
 ipcMain.handle('get-platform', () => {
   return process.platform
+})
+
+// 窗口控制
+ipcMain.handle('closeWindow', () => {
+  mainWindow?.close()
+})
+
+ipcMain.handle('minimizeWindow', () => {
+  mainWindow?.minimize()
+})
+
+ipcMain.handle('maximizeWindow', () => {
+  if (mainWindow?.isMaximized()) {
+    mainWindow.unmaximize()
+  } else {
+    mainWindow?.maximize()
+  }
 })
 
 // 示例：文件对话框
