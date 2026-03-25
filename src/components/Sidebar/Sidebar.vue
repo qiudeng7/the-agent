@@ -1,20 +1,20 @@
 <template>
   <div class="sidebar">
-    <!-- Logo / Home -->
+    <!-- Sidebar Header with Icons -->
     <div class="sidebar-header">
-      <button class="home-btn" @click="goHome" title="首页">
-        <div class="logo-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-            <polyline points="9 22 9 12 15 12 15 22"/>
+      <div class="header-icons">
+        <button class="icon-btn" @click="toggleSidebar" title="收起侧栏">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6"/>
           </svg>
-        </div>
-        <span class="app-name">The Agent</span>
-      </button>
-    </div>
-
-    <!-- Search -->
-    <div class="search-container">
+        </button>
+        <button class="icon-btn" @click="newChat" title="新建对话">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+        </button>
+      </div>
+      <!-- Search -->
       <div class="search-box">
         <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="11" cy="11" r="8"/>
@@ -31,28 +31,30 @@
       </div>
     </div>
 
-    <!-- Navigation -->
-    <nav class="nav-menu">
-      <button class="nav-item" @click="goHome">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-          <polyline points="9 22 9 12 15 12 15 22"/>
-        </svg>
-        <span>首页</span>
-      </button>
-      <button class="nav-item" @click="goToApps">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="3" width="7" height="7" rx="1"/>
-          <rect x="14" y="3" width="7" height="7" rx="1"/>
-          <rect x="3" y="14" width="7" height="7" rx="1"/>
-          <rect x="14" y="14" width="7" height="7" rx="1"/>
-        </svg>
-        <span>全部应用</span>
-      </button>
-    </nav>
+    <!-- Scrollable Content -->
+    <div class="sidebar-content">
+      <!-- Navigation -->
+      <nav class="nav-menu">
+        <button class="nav-item" @click="goHome">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+          <span>首页</span>
+        </button>
+        <button class="nav-item" @click="goToApps">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+          <span>全部应用</span>
+        </button>
+      </nav>
 
-    <!-- Groups & Sessions -->
-    <div class="sessions-container">
+      <!-- Groups & Sessions -->
+      <div class="sessions-container">
       <div class="sessions-header">
         <span class="sessions-label">分组</span>
         <button class="add-group-btn" @click="showCreateGroup = true" title="添加分组">
@@ -81,19 +83,19 @@
           </button>
         </div>
       </div>
-    </div>
 
-    <!-- User Profile -->
-    <div class="user-profile" @click="goToSettings" title="设置">
-      <div class="user-info">
-        <div class="user-avatar">
-          <span>{{ userInitial }}</span>
+      <!-- User Profile -->
+      <div class="user-profile" @click="goToSettings" title="设置">
+        <div class="user-info">
+          <div class="user-avatar">
+            <span>{{ userInitial }}</span>
+          </div>
+          <span class="user-name">{{ userName }}</span>
+          <svg class="settings-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
         </div>
-        <span class="user-name">{{ userName }}</span>
-        <svg class="settings-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-        </svg>
       </div>
     </div>
 
@@ -165,6 +167,16 @@ function createGroup() {
 function goToSettings() {
   router.push('/settings')
 }
+
+function toggleSidebar() {
+  // TODO: 实现收起侧栏功能
+  console.log('toggle sidebar')
+}
+
+function newChat() {
+  const session = chatStore.createSession('新对话')
+  router.push(`/chat/${session.id}`)
+}
 </script>
 
 <style scoped>
@@ -175,56 +187,41 @@ function goToSettings() {
   border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
-/* Header */
+/* Header - Fixed */
 .sidebar-header {
-  padding: 20px 16px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--color-border);
-}
-
-.home-btn {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 12px;
-  border: none;
-  background: transparent;
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-  transition: var(--transition-gentle);
-}
-
-.home-btn:hover {
-  background: var(--color-muted);
-}
-
-.logo-icon {
-  width: 40px;
-  height: 40px;
-  background: var(--color-primary);
-  border-radius: var(--radius-full);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-primary-foreground);
   flex-shrink: 0;
 }
 
-.app-name {
-  font-family: var(--font-heading);
-  font-size: 1.25rem;
-  font-weight: 600;
+.header-icons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: var(--color-muted);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--color-foreground);
+  transition: var(--transition-gentle);
 }
 
-/* Search */
-.search-container {
-  padding: 16px;
+.icon-btn:hover {
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
 }
 
+/* Search - Fixed */
 .search-box {
   display: flex;
   align-items: center;
@@ -263,43 +260,24 @@ function goToSettings() {
   outline: none;
 }
 
+/* Scrollable Content */
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 16px;
+}
+
 /* Navigation */
 .nav-menu {
-  padding: 8px 16px;
   display: flex;
   flex-direction: column;
   gap: 4px;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 12px;
-  border: none;
-  background: transparent;
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-  transition: var(--transition-gentle);
-  color: var(--color-foreground);
-  font-family: var(--font-body);
-  font-size: 0.9375rem;
-}
-
-.nav-item:hover {
-  background: var(--color-muted);
-}
-
-.nav-item svg {
-  color: var(--color-primary);
+  margin-bottom: 16px;
 }
 
 /* Sessions Container */
 .sessions-container {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px 16px;
+  padding-bottom: 16px;
 }
 
 .sessions-header {
