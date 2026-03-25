@@ -15,9 +15,44 @@
           <span class="label">平台:</span>
           <span class="value">{{ platform }}</span>
         </div>
+      </div>
+
+      <div class="card">
+        <h2>语言设置</h2>
+        <div class="setting-item">
+          <div class="setting-info">
+            <span class="setting-label">显示语言</span>
+            <span class="setting-desc">选择应用的显示语言</span>
+          </div>
+          <select v-model="settingsStore.language" class="select">
+            <option value="system">跟随系统</option>
+            <option value="zh">中文</option>
+            <option value="ja">日本語</option>
+            <option value="en">English</option>
+          </select>
+        </div>
         <div class="info-item">
-          <span class="label">Electron API:</span>
-          <span class="value">{{ hasElectronAPI ? '已就绪' : '未就绪' }}</span>
+          <span class="label">当前语言：</span>
+          <span class="value">{{ getLanguageLabel(settingsStore.currentLanguage) }}</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>外观设置</h2>
+        <div class="setting-item">
+          <div class="setting-info">
+            <span class="setting-label">深色模式</span>
+            <span class="setting-desc">选择应用的主题模式</span>
+          </div>
+          <select v-model="settingsStore.theme" class="select">
+            <option value="system">跟随系统</option>
+            <option value="dark">深色</option>
+            <option value="light">亮色</option>
+          </select>
+        </div>
+        <div class="info-item">
+          <span class="label">系统主题：</span>
+          <span class="value">{{ settingsStore.isSystemDark ? '深色' : '亮色' }}</span>
         </div>
       </div>
 
@@ -41,17 +76,6 @@
           </div>
           <label class="toggle">
             <input type="checkbox" v-model="minimizeToTray" />
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-
-        <div class="setting-item">
-          <div class="setting-info">
-            <span class="setting-label">深色模式</span>
-            <span class="setting-desc">使用深色主题</span>
-          </div>
-          <label class="toggle">
-            <input type="checkbox" v-model="darkMode" checked disabled />
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -96,19 +120,30 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useSettingsStore } from '@/stores/settings'
+
+const settingsStore = useSettingsStore()
 
 const appVersion = ref('1.0.0')
 const platform = ref('unknown')
-const hasElectronAPI = ref(false)
 const autoStart = ref(false)
 const minimizeToTray = ref(false)
-const darkMode = ref(true)
 const apiKey = ref('')
 const selectedModel = ref('gpt-4')
 
+const languageLabels: Record<string, string> = {
+  zh: '中文',
+  ja: '日本語',
+  en: 'English',
+}
+
+function getLanguageLabel(lang: string): string {
+  if (lang === 'system') return '跟随系统'
+  return languageLabels[lang] || 'English'
+}
+
 onMounted(async () => {
   if (window.electronAPI) {
-    hasElectronAPI.value = true
     try {
       appVersion.value = await window.electronAPI.getAppVersion()
       platform.value = await window.electronAPI.getPlatform()
@@ -125,6 +160,7 @@ onMounted(async () => {
   flex-direction: column;
   height: 100vh;
   padding: 20px;
+  background: var(--color-background);
 }
 
 .header {
@@ -133,8 +169,9 @@ onMounted(async () => {
 }
 
 .header h1 {
-  font-size: 2.5rem;
-  color: #4a9eff;
+  font-size: 2rem;
+  color: var(--color-primary);
+  font-family: var(--font-heading);
 }
 
 .main {
@@ -143,26 +180,29 @@ onMounted(async () => {
   max-width: 800px;
   width: 100%;
   margin: 0 auto;
+  padding-right: 20px;
 }
 
 .card {
-  background: #16213e;
-  border-radius: 12px;
+  background: var(--color-muted);
+  border-radius: var(--radius-lg);
   padding: 20px;
   margin-bottom: 20px;
+  border: 1px solid var(--color-border);
 }
 
 .card h2 {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   margin-bottom: 15px;
-  color: #4a9eff;
+  color: var(--color-primary);
+  font-family: var(--font-heading);
 }
 
 .info-item {
   display: flex;
   justify-content: space-between;
-  padding: 12px 0;
-  border-bottom: 1px solid #0f3460;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .info-item:last-child {
@@ -170,11 +210,12 @@ onMounted(async () => {
 }
 
 .label {
-  color: #888;
+  color: var(--color-muted-foreground);
+  font-size: 0.9rem;
 }
 
 .value {
-  color: #fff;
+  color: var(--color-foreground);
   font-weight: 500;
 }
 
@@ -183,7 +224,7 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   padding: 15px 0;
-  border-bottom: 1px solid #0f3460;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .setting-item:last-child {
@@ -197,13 +238,13 @@ onMounted(async () => {
 }
 
 .setting-label {
-  font-weight: 500;
-  color: #fff;
+  font-weight: 600;
+  color: var(--color-foreground);
 }
 
 .setting-desc {
   font-size: 0.85rem;
-  color: #666;
+  color: var(--color-muted-foreground);
 }
 
 .toggle {
@@ -226,8 +267,8 @@ onMounted(async () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #0f3460;
-  transition: 0.3s;
+  background-color: var(--color-border);
+  transition: var(--transition-gentle);
   border-radius: 26px;
 }
 
@@ -238,13 +279,13 @@ onMounted(async () => {
   width: 20px;
   left: 3px;
   bottom: 3px;
-  background-color: white;
-  transition: 0.3s;
+  background-color: var(--color-background);
+  transition: var(--transition-gentle);
   border-radius: 50%;
 }
 
 .toggle input:checked + .toggle-slider {
-  background-color: #4a9eff;
+  background-color: var(--color-primary);
 }
 
 .toggle input:checked + .toggle-slider:before {
@@ -258,26 +299,38 @@ onMounted(async () => {
 
 .api-input {
   padding: 10px 14px;
-  border: none;
-  border-radius: 8px;
-  background: #0f3460;
-  color: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+  color: var(--color-foreground);
   font-size: 0.95rem;
   width: 200px;
 }
 
 .api-input::placeholder {
-  color: #666;
+  color: var(--color-muted-foreground);
+}
+
+.api-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary)/10;
 }
 
 .select {
   padding: 10px 14px;
-  border: none;
-  border-radius: 8px;
-  background: #0f3460;
-  color: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+  color: var(--color-foreground);
   font-size: 0.95rem;
   cursor: pointer;
+  font-family: var(--font-body);
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--color-primary);
 }
 
 .navbar {
@@ -285,26 +338,27 @@ onMounted(async () => {
   justify-content: center;
   gap: 20px;
   padding: 20px;
-  background: #16213e;
-  border-radius: 12px;
+  background: var(--color-muted);
+  border-radius: var(--radius-lg);
   margin-top: auto;
+  border: 1px solid var(--color-border);
 }
 
 .nav-link {
-  color: #888;
+  color: var(--color-muted-foreground);
   text-decoration: none;
   padding: 10px 20px;
-  border-radius: 8px;
-  transition: all 0.2s;
+  border-radius: var(--radius-md);
+  transition: var(--transition-gentle);
 }
 
 .nav-link:hover {
-  color: #fff;
-  background: #0f3460;
+  color: var(--color-foreground);
+  background: var(--color-background);
 }
 
 .nav-link.active {
-  color: #fff;
-  background: #4a9eff;
+  color: var(--color-primary-foreground);
+  background: var(--color-primary);
 }
 </style>

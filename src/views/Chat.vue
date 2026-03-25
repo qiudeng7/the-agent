@@ -223,7 +223,7 @@ function handleSubmit(input: string, options: { deepThink: boolean; webSearch: b
 }
 
 .message.assistant .message-text {
-  background: white;
+  background: var(--color-muted);
   border: 1px solid var(--color-border);
   color: var(--color-foreground);
 }

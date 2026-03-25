@@ -2,7 +2,7 @@
 
 /* Design Tokens - Organic/Natural Theme */
 :root {
-  /* Colors - Earth drawn palette */
+  /* Colors - Earth drawn palette - Light Mode */
   --color-background: #FDFCF8;
   --color-foreground: #2C2C24;
   --color-primary: #5D7052;
@@ -35,6 +35,26 @@
   /* Transitions */
   --transition-gentle: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-natural: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Dark Mode */
+.dark {
+  --color-background: #1A1A18;
+  --color-foreground: #E8E8E4;
+  --color-primary: #7A8F6B;
+  --color-primary-foreground: #1F241C;
+  --color-secondary: #D4A373;
+  --color-secondary-foreground: #1F1915;
+  --color-accent: #4A4740;
+  --color-accent-foreground: #E8E4DC;
+  --color-muted: #2D2D2A;
+  --color-muted-foreground: #9A9A94;
+  --color-border: #3D3D38;
+  --color-destructive: #C96A5A;
+
+  --shadow-soft: 0 4px 20px -2px rgba(0, 0, 0, 0.3);
+  --shadow-float: 0 10px 40px -10px rgba(0, 0, 0, 0.4);
+  --shadow-lift: 0 20px 40px -10px rgba(0, 0, 0, 0.3);
 }
 
 /* Reset & Base */

@@ -84,12 +84,16 @@
     </div>
 
     <!-- User Profile -->
-    <div class="user-profile">
+    <div class="user-profile" @click="goToSettings" title="设置">
       <div class="user-info">
         <div class="user-avatar">
           <span>{{ userInitial }}</span>
         </div>
         <span class="user-name">{{ userName }}</span>
+        <svg class="settings-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
       </div>
     </div>
 
@@ -157,6 +161,10 @@ function createGroup() {
     showCreateGroup.value = false
   }
 }
+
+function goToSettings() {
+  router.push('/settings')
+}
 </script>
 
 <style scoped>
@@ -221,7 +229,7 @@ function createGroup() {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: white;
+  background: var(--color-background);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
   padding: 10px 14px;
@@ -380,12 +388,18 @@ function createGroup() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--color-foreground);
 }
 
 /* User Profile */
 .user-profile {
   padding: 16px;
   border-top: 1px solid var(--color-border);
+  cursor: pointer;
+}
+
+.user-profile:hover {
+  background: var(--color-muted);
 }
 
 .user-info {
@@ -395,6 +409,16 @@ function createGroup() {
   padding: 10px;
   border-radius: var(--radius-full);
   background: var(--color-muted);
+}
+
+.settings-icon {
+  margin-left: auto;
+  color: var(--color-muted-foreground);
+  flex-shrink: 0;
+}
+
+.user-profile:hover .settings-icon {
+  color: var(--color-primary);
 }
 
 .user-avatar {
