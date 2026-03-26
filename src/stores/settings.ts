@@ -35,6 +35,8 @@ export const useSettingsStore = defineStore('settings', () => {
   const models = ref<ModelOption[]>([...DEFAULT_MODELS])
   /** 默认选中的模型 ID */
   const defaultModel = ref<string>('claude-sonnet-4-6')
+  /** API Base URL（可选，用于代理或自托管服务） */
+  const baseURL = ref<string>('')
 
   // Detect system color scheme
   function detectSystemColorScheme() {
@@ -78,6 +80,7 @@ export const useSettingsStore = defineStore('settings', () => {
         theme: theme.value,
         models: models.value,
         defaultModel: defaultModel.value,
+        baseURL: baseURL.value,
       }))
     }
   }
@@ -100,6 +103,9 @@ export const useSettingsStore = defineStore('settings', () => {
           }
           if (typeof settings.defaultModel === 'string') {
             defaultModel.value = settings.defaultModel
+          }
+          if (typeof settings.baseURL === 'string') {
+            baseURL.value = settings.baseURL
           }
         } catch (e) {
           console.error('Failed to load settings:', e)
@@ -157,7 +163,7 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   // 监听变化自动持久化
-  watch([language, theme, models, defaultModel], saveSettings, { deep: true })
+  watch([language, theme, models, defaultModel, baseURL], saveSettings, { deep: true })
 
   // Watch for system color scheme changes
   onMounted(() => {
@@ -186,6 +192,7 @@ export const useSettingsStore = defineStore('settings', () => {
     currentTheme,
     models,
     defaultModel,
+    baseURL,
     setLanguage,
     setTheme,
     addModel,

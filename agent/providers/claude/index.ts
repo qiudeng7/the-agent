@@ -91,14 +91,16 @@ export interface ClaudeProviderOptions {
 export class ClaudeProvider implements IAgentProvider {
   readonly name = 'claude'
 
-  private client: Anthropic
+  private defaultClient: Anthropic
   private defaultModel: string
   private defaultMaxTokens: number
   /** 正在运行的任务：taskId → AbortController */
   private runningTasks = new Map<string, AbortController>()
+  /** 每个任务使用的 client（可能不同 baseURL） */
+  private taskClients = new Map<string, Anthropic>()
 
   constructor(options: ClaudeProviderOptions = {}) {
-    this.client = new Anthropic({ apiKey: options.apiKey })
+    this.defaultClient = new Anthropic({ apiKey: options.apiKey })
     this.defaultModel = options.defaultModel ?? 'claude-opus-4-6'
     this.defaultMaxTokens = options.defaultMaxTokens ?? 16000
   }
@@ -109,16 +111,24 @@ export class ClaudeProvider implements IAgentProvider {
       ctrl.abort()
       this.runningTasks.delete(taskId)
     }
+    this.taskClients.delete(taskId)
   }
 
   async *run(options: AgentRunOptions): AsyncIterable<AgentEvent> {
     const abortCtrl = new AbortController()
     this.runningTasks.set(options.taskId, abortCtrl)
 
+    // 为这个任务创建 client（可能使用自定义 baseURL）
+    const client = options.baseURL
+      ? new Anthropic({ baseURL: options.baseURL })
+      : this.defaultClient
+    this.taskClients.set(options.taskId, client)
+
     try {
-      yield* this._agenticLoop(options, abortCtrl.signal)
+      yield* this._agenticLoop(options, abortCtrl.signal, client)
     } finally {
       this.runningTasks.delete(options.taskId)
+      this.taskClients.delete(options.taskId)
     }
   }
 
@@ -129,6 +139,7 @@ export class ClaudeProvider implements IAgentProvider {
   private async *_agenticLoop(
     options: AgentRunOptions,
     signal: AbortSignal,
+    client: Anthropic,
   ): AsyncIterable<AgentEvent> {
     const {
       taskId,
@@ -165,7 +176,7 @@ export class ClaudeProvider implements IAgentProvider {
 
       try {
         // ── 流式请求 ──────────────────────────────────────────────────────
-        const stream = this.client.messages.stream(
+        const stream = client.messages.stream(
           {
             model,
             max_tokens: maxTokens,

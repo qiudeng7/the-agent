@@ -109,6 +109,19 @@
 
         <div class="setting-item">
           <div class="setting-info">
+            <span class="setting-label">API Base URL</span>
+            <span class="setting-desc">可选，用于代理或自托管服务（留空使用默认）</span>
+          </div>
+          <input
+            type="text"
+            v-model="settingsStore.baseURL"
+            placeholder="https://api.anthropic.com"
+            class="api-input"
+          />
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
             <span class="setting-label">默认模型</span>
             <span class="setting-desc">新建对话时默认使用的模型</span>
           </div>

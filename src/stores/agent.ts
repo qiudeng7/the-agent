@@ -11,6 +11,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { AgentEvent, ContentBlock } from '#agent/types'
 import { useChatStore } from './chat'
+import { useSettingsStore } from './settings'
 
 /** 流式输出缓冲区 */
 interface StreamBuffer {
@@ -171,6 +172,7 @@ export const useAgentStore = defineStore('agent', () => {
     ensureSubscribed()
 
     const chatStore = useChatStore()
+    const settingsStore = useSettingsStore()
     const taskId = Date.now().toString()
 
     // 追加用户消息
@@ -202,6 +204,7 @@ export const useAgentStore = defineStore('agent', () => {
       messages,
       model: options?.model,
       systemPrompt: options?.systemPrompt,
+      baseURL: settingsStore.baseURL || undefined,
       // deepThink 可映射到 thinking 参数（待 provider 支持）
     })
   }
