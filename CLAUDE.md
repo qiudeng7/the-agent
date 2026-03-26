@@ -23,3 +23,19 @@ pnpm run make:win # 构建 windows x86
 - `dist/` - Vite 构建的渲染进程资源
 - `dist-electron/` - 编译后的主进程和预加载脚本
 - `out/` - Electron Forge 打包的最终产品
+
+## 版本发布
+
+发布新版本时需要：
+
+1. 修改 `package.json` 中的 `version` 字段
+2. 更新 `docs/5.changelog.md` 添加版本记录
+3. 提交更改并创建 git tag
+
+```bash
+# 示例：发布 v0.2.1
+git add .
+git commit -m "chore: release v0.2.1"
+git tag v0.2.1
+git push && git push --tags
+```

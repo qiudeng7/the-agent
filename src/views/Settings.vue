@@ -125,7 +125,8 @@
             <span class="setting-label">默认模型</span>
             <span class="setting-desc">新建对话时默认使用的模型</span>
           </div>
-          <select v-model="settingsStore.defaultModel" class="select">
+          <select v-model="settingsStore.defaultModel" class="select" :disabled="settingsStore.models.length === 0">
+            <option v-if="settingsStore.models.length === 0" value="" disabled>请先添加模型</option>
             <option v-for="model in settingsStore.models" :key="model.id" :value="model.id">
               {{ model.name }}
             </option>
@@ -139,7 +140,7 @@
           </div>
         </div>
 
-        <div class="models-list">
+        <div class="models-list" v-if="settingsStore.models.length > 0">
           <div v-for="model in settingsStore.models" :key="model.id" class="model-item">
             <div class="model-info">
               <span class="model-id">{{ model.id }}</span>
@@ -148,12 +149,14 @@
             <button
               class="remove-btn"
               @click="settingsStore.removeModel(model.id)"
-              :disabled="settingsStore.models.length <= 1"
               title="删除此模型"
             >
               ✕
             </button>
           </div>
+        </div>
+        <div v-else class="models-empty">
+          <p>暂无模型，请在下方添加</p>
         </div>
 
         <div class="add-model-form">
@@ -173,12 +176,6 @@
             :disabled="!newModelId.trim() || !newModelName.trim()"
           >
             添加
-          </button>
-        </div>
-
-        <div class="setting-item">
-          <button class="reset-btn" @click="settingsStore.resetModels">
-            重置为默认模型列表
           </button>
         </div>
       </div>
@@ -416,6 +413,11 @@ onMounted(async () => {
   border-color: var(--color-primary);
 }
 
+.select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .navbar {
   display: flex;
   justify-content: center;
@@ -456,6 +458,16 @@ onMounted(async () => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   overflow: hidden;
+}
+
+.models-empty {
+  margin-bottom: 16px;
+  padding: 20px;
+  text-align: center;
+  color: var(--color-muted-foreground);
+  font-size: 0.9rem;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
 }
 
 .model-item {
@@ -553,21 +565,5 @@ onMounted(async () => {
 .add-model-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.reset-btn {
-  padding: 8px 16px;
-  border: 1px solid var(--color-border);
-  background: transparent;
-  color: var(--color-muted-foreground);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: var(--transition-gentle);
-}
-
-.reset-btn:hover {
-  background: var(--color-muted);
-  color: var(--color-foreground);
 }
 </style>

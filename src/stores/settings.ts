@@ -20,21 +20,15 @@ export interface ModelOption {
 
 const STORAGE_KEY = 'app-settings'
 
-const DEFAULT_MODELS: ModelOption[] = [
-  { id: 'claude-opus-4-6', name: 'Claude Opus 4.6' },
-  { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6' },
-  { id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5' },
-]
-
 export const useSettingsStore = defineStore('settings', () => {
   // State
   const language = ref<Language>('system')
   const theme = ref<Theme>('system')
   const isSystemDark = ref(false)
   /** 用户自定义的模型列表 */
-  const models = ref<ModelOption[]>([...DEFAULT_MODELS])
+  const models = ref<ModelOption[]>([])
   /** 默认选中的模型 ID */
-  const defaultModel = ref<string>('claude-sonnet-4-6')
+  const defaultModel = ref<string>('')
   /** API Key */
   const apiKey = ref<string>('')
   /** API Base URL（可选，用于代理或自托管服务） */
@@ -145,9 +139,9 @@ export const useSettingsStore = defineStore('settings', () => {
     const index = models.value.findIndex(m => m.id === modelId)
     if (index !== -1) {
       models.value.splice(index, 1)
-      // If removed model was default, reset to first model
-      if (defaultModel.value === modelId && models.value.length > 0) {
-        defaultModel.value = models.value[0].id
+      // If removed model was default, update default model
+      if (defaultModel.value === modelId) {
+        defaultModel.value = models.value.length > 0 ? models.value[0].id : ''
       }
       saveSettings()
     }
@@ -159,13 +153,6 @@ export const useSettingsStore = defineStore('settings', () => {
       defaultModel.value = modelId
       saveSettings()
     }
-  }
-
-  // Reset models to default
-  function resetModels() {
-    models.value = [...DEFAULT_MODELS]
-    defaultModel.value = 'claude-sonnet-4-6'
-    saveSettings()
   }
 
   // 监听变化自动持久化
@@ -205,7 +192,6 @@ export const useSettingsStore = defineStore('settings', () => {
     addModel,
     removeModel,
     setDefaultModel,
-    resetModels,
     loadSettings,
   }
 })
