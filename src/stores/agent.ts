@@ -204,6 +204,7 @@ export const useAgentStore = defineStore('agent', () => {
       messages: JSON.parse(JSON.stringify(messages)),
       model: options?.model || settingsStore.defaultModel,
       systemPrompt: options?.systemPrompt,
+      apiKey: settingsStore.apiKey || undefined,
       baseURL: settingsStore.baseURL || undefined,
     }
     console.log('[Agent] Running with model:', requestOptions.model, 'baseURL:', requestOptions.baseURL)

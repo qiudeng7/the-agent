@@ -101,7 +101,7 @@
           </div>
           <input
             type="password"
-            v-model="apiKey"
+            v-model="settingsStore.apiKey"
             placeholder="sk-ant-..."
             class="api-input"
           />
@@ -201,7 +201,6 @@ const appVersion = ref('1.0.0')
 const platform = ref('unknown')
 const autoStart = ref(false)
 const minimizeToTray = ref(false)
-const apiKey = ref('')
 const newModelId = ref('')
 const newModelName = ref('')
 

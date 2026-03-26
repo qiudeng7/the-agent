@@ -118,9 +118,9 @@ export class ClaudeProvider implements IAgentProvider {
     const abortCtrl = new AbortController()
     this.runningTasks.set(options.taskId, abortCtrl)
 
-    // 为这个任务创建 client（可能使用自定义 baseURL）
-    const client = options.baseURL
-      ? new Anthropic({ baseURL: options.baseURL })
+    // 为这个任务创建 client（可能使用自定义 apiKey 和 baseURL）
+    const client = (options.apiKey || options.baseURL)
+      ? new Anthropic({ apiKey: options.apiKey, baseURL: options.baseURL })
       : this.defaultClient
     this.taskClients.set(options.taskId, client)
 

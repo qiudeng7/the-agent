@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-Electron + Vite + Vue 3 + TypeScript Agent 应用模板
+Electron + Vite + Vue 3 + TypeScript 的 Agent 应用.
 
 ## 开发命令
 
@@ -10,35 +10,6 @@ Electron + Vite + Vue 3 + TypeScript Agent 应用模板
 pnpm run dev      # 启动开发服务器（Vite + Electron）
 pnpm run make     # 构建 macos arm
 pnpm run make:win # 构建 windows x86
-```
-
-## 技术栈
-
-- **Electron 34** - 桌面应用框架
-- **Vite 6** - 构建工具
-- **Vue 3.5** - UI 框架（Composition API）
-- **TypeScript 5.7** - 类型系统
-- **Pinia 3** - 状态管理
-- **Vue Router 4** - 路由管理
-- **Electron Forge 7** - 打包工具
-
-## 目录结构
-
-```
-the-agent/
-├── electron/
-│   ├── main/index.ts      # Electron 主进程
-│   └── preload/index.ts   # 预加载脚本（IPC 桥接）
-├── src/
-│   ├── views/             # 页面组件
-│   ├── stores/            # Pinia 状态
-│   ├── router/            # 路由配置
-│   ├── assets/            # 静态资源
-│   └── main.ts            # Vue 入口
-├── docs/                  # 文档
-├── forge.config.ts        # Electron Forge 配置
-├── vite.config.ts         # Vite 配置
-└── package.json
 ```
 
 ## Chrome DevTools MCP 集成

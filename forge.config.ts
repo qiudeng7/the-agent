@@ -14,10 +14,6 @@ const config: ForgeConfig = {
   rebuildConfig: {},
   makers: [
     {
-      name: '@electron-forge/maker-dmg',
-      platforms: ['darwin'],
-    },
-    {
       name: '@electron-forge/maker-zip',
       platforms: ['darwin', 'win32', 'linux'],
     },

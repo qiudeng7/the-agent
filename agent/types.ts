@@ -119,6 +119,8 @@ export interface AgentRunOptions {
   tools?: ToolDefinition[]
   /** 工具执行器，由 AgentRunner 注入；transport 直接触发 run() 时可为空 */
   toolExecutor?: ToolExecutor
+  /** API Key，可选，用于覆盖默认配置 */
+  apiKey?: string
   /** API Base URL，可选，用于代理或自托管服务 */
   baseURL?: string
 }
