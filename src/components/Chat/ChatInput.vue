@@ -111,10 +111,8 @@ const deepThink = ref(false)
 const webSearch = ref(false)
 const showMoreTools = ref(false)
 
-// 同步 defaultModel 变化
-watch(() => settingsStore.defaultModel, (val) => {
-  selectedModel.value = val
-})
+// 只在初始化时同步默认模型，之后用户的选择优先
+// 不使用 watch，避免覆盖用户手动选择的模型
 
 function autoResize() {
   const el = textareaRef.value
@@ -139,6 +137,11 @@ function submit() {
 }
 
 watch(input, autoResize)
+
+// 暴露 selectedModel 供父组件读取
+defineExpose({
+  selectedModel,
+})
 </script>
 
 <style scoped>

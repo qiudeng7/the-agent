@@ -55,7 +55,7 @@
     </div>
 
     <!-- Chat Input -->
-    <ChatInput @submit="handleSubmit" />
+    <ChatInput ref="chatInputRef" @submit="handleSubmit" />
   </div>
 </template>
 
@@ -63,6 +63,8 @@
 import { useRouter } from 'vue-router'
 import ChatInput from '@/components/Chat/ChatInput.vue'
 import { useChatStore } from '@/stores/chat'
+import { useSettingsStore } from '@/stores/settings'
+import { ref, computed } from 'vue'
 import {
   createWritingIcon,
   createImageIcon,
@@ -72,6 +74,13 @@ import {
 
 const router = useRouter()
 const chatStore = useChatStore()
+const settingsStore = useSettingsStore()
+const chatInputRef = ref<InstanceType<typeof ChatInput> | null>(null)
+
+// 获取当前选中的模型（优先从 ChatInput 读取，否则用默认模型）
+const currentModel = computed(() =>
+  chatInputRef.value?.selectedModel || settingsStore.defaultModel
+)
 
 const userName = '秋灯'
 
@@ -116,14 +125,22 @@ function handleAction(action: typeof actions[0]) {
 
 function handleSuggestion(text: string) {
   const session = chatStore.createSession(text)
-  // 通过 query.q 把问题文本传给 Chat.vue，由它负责发送消息和触发 AI 回复
-  router.push({ name: 'chat', params: { id: session.id }, query: { q: text } })
+  // 通过 query 传递问题文本和选中的模型
+  router.push({
+    name: 'chat',
+    params: { id: session.id },
+    query: { q: text, model: currentModel.value },
+  })
 }
 
-function handleSubmit(input: string, _options: { deepThink: boolean; webSearch: boolean; model: string }) {
+function handleSubmit(input: string, options: { deepThink: boolean; webSearch: boolean; model: string }) {
   const session = chatStore.createSession(input)
-  // 通过 query.q 把消息传给 Chat.vue，由它负责发送
-  router.push({ name: 'chat', params: { id: session.id }, query: { q: input } })
+  // 通过 query 传递消息和模型
+  router.push({
+    name: 'chat',
+    params: { id: session.id },
+    query: { q: input, model: options.model },
+  })
 }
 </script>
 

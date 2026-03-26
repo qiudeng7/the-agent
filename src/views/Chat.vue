@@ -157,8 +157,13 @@ async function handleSubmit(input: string, options: { deepThink: boolean; webSea
 // 处理来自首页"推荐问题"点击的初始消息
 onMounted(() => {
   const q = route.query.q
+  const model = route.query.model
   if (q && typeof q === 'string') {
-    handleSubmit(q, { deepThink: false, webSearch: false, model: settingsStore.defaultModel })
+    handleSubmit(q, {
+      deepThink: false,
+      webSearch: false,
+      model: typeof model === 'string' ? model : settingsStore.defaultModel,
+    })
     router.replace({ name: 'chat', params: { id: sessionId.value } })
   }
 })
