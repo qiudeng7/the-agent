@@ -81,6 +81,7 @@ export const useAgentStore = defineStore('agent', () => {
         break
 
       case 'done': {
+        console.log('[Agent] Done, blocks:', event.message.content)
         // 最终刷新文本缓冲
         flushTextToBlocks()
         // 追加到 chat store
@@ -91,9 +92,21 @@ export const useAgentStore = defineStore('agent', () => {
       }
 
       case 'error':
+        console.error('[Agent] Error:', event.error, event.code)
         error.value = event.error
         isGenerating.value = false
-        // TODO: 可选地把错误追加到消息
+        // 可选：把错误追加到消息
+        const chatStore = useChatStore()
+        const sid = currentSessionId.value
+        if (sid) {
+          chatStore.addMessage(sid, {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: `❌ 错误: ${event.error}${event.code ? ` (${event.code})` : ''}`,
+            timestamp: Date.now(),
+          })
+        }
+        resetState()
         break
     }
   }
