@@ -26,6 +26,8 @@ export const useAgentStore = defineStore('agent', () => {
   const currentTaskId = ref<string | null>(null)
   /** 当前 taskId 关联的 sessionId */
   const currentSessionId = ref<string | null>(null)
+  /** 当前使用的模型 ID */
+  const currentModelId = ref<string | null>(null)
   /** 是否正在生成 */
   const isGenerating = ref(false)
   /** 流式输出缓冲区 */
@@ -141,12 +143,19 @@ export const useAgentStore = defineStore('agent', () => {
       role: 'assistant',
       content: finalContent,
       timestamp: Date.now(),
+      model: currentModelId.value ?? undefined,
     })
+
+    // 更新会话的当前模型
+    if (currentModelId.value) {
+      chatStore.setSessionModel(sessionId, currentModelId.value)
+    }
   }
 
   function resetState() {
     currentTaskId.value = null
     currentSessionId.value = null
+    currentModelId.value = null
     isGenerating.value = false
     buffer.value = { text: '', thinking: '', blocks: [] }
     error.value = null
@@ -190,16 +199,17 @@ export const useAgentStore = defineStore('agent', () => {
       content: m.content,
     })) ?? []
 
-    // 设置状态
-    currentTaskId.value = taskId
-    currentSessionId.value = sessionId
-    isGenerating.value = true
-    buffer.value = { text: '', thinking: '', blocks: [] }
-    error.value = null
-
     // 获取模型配置（公共模型使用内置配置，自定义模型使用用户配置）
     const modelId = options?.model || settingsStore.defaultModel
     const modelConfig = settingsStore.getModelConfig(modelId)
+
+    // 设置状态
+    currentTaskId.value = taskId
+    currentSessionId.value = sessionId
+    currentModelId.value = modelId
+    isGenerating.value = true
+    buffer.value = { text: '', thinking: '', blocks: [] }
+    error.value = null
 
     // 调用 IPC（转为普通对象，避免 Vue reactive proxy 无法 clone）
     const requestOptions = {

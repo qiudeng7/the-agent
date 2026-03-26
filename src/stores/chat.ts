@@ -26,6 +26,8 @@ export interface Message {
   /** 纯文本或富内容块（thinking / tool_use / tool_result） */
   content: string | ContentBlock[]
   timestamp: number
+  /** 该消息使用的模型 ID（仅 assistant 消息有） */
+  model?: string
 }
 
 export interface ChatGroup {
@@ -141,6 +143,36 @@ export const useChatStore = defineStore('chat', () => {
     searchQuery.value = query
   }
 
+  /** 设置会话当前使用的模型 */
+  function setSessionModel(sessionId: string, modelId: string) {
+    const session = sessions.value.find(s => s.id === sessionId)
+    if (session) {
+      session.model = modelId
+      session.updatedAt = Date.now()
+    }
+  }
+
+  /** 获取会话当前应使用的模型 ID */
+  function getSessionModel(sessionId: string): string | null {
+    const session = sessions.value.find(s => s.id === sessionId)
+    if (!session) return null
+
+    // 如果会话已有模型设置，直接返回
+    if (session.model && session.model !== 'default') {
+      return session.model
+    }
+
+    // 否则从最后一条 assistant 消息推断
+    for (let i = session.messages.length - 1; i >= 0; i--) {
+      const msg = session.messages[i]
+      if (msg.role === 'assistant' && msg.model) {
+        return msg.model
+      }
+    }
+
+    return null
+  }
+
   return {
     sessions,
     currentSessionId,
@@ -157,5 +189,7 @@ export const useChatStore = defineStore('chat', () => {
     createGroup,
     addSessionToGroup,
     setSearchQuery,
+    setSessionModel,
+    getSessionModel,
   }
 })

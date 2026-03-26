@@ -120,11 +120,19 @@ const suggestionList = [
 
 function handleAction(action: typeof actions[0]) {
   const session = chatStore.createSession(action.title)
+  // 设置会话的当前模型
+  if (currentModel.value) {
+    chatStore.setSessionModel(session.id, currentModel.value)
+  }
   router.push(`/chat/${session.id}`)
 }
 
 function handleSuggestion(text: string) {
   const session = chatStore.createSession(text)
+  // 设置会话的当前模型
+  if (currentModel.value) {
+    chatStore.setSessionModel(session.id, currentModel.value)
+  }
   // 通过 query 传递问题文本和选中的模型
   router.push({
     name: 'chat',
@@ -135,6 +143,10 @@ function handleSuggestion(text: string) {
 
 function handleSubmit(input: string, options: { deepThink: boolean; webSearch: boolean; model: string }) {
   const session = chatStore.createSession(input)
+  // 设置会话的当前模型
+  if (options.model) {
+    chatStore.setSessionModel(session.id, options.model)
+  }
   // 通过 query 传递消息和模型
   router.push({
     name: 'chat',

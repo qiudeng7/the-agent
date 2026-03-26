@@ -112,19 +112,54 @@ import { useSettingsStore } from '@/stores/settings'
 
 const settingsStore = useSettingsStore()
 
+const props = defineProps<{
+  /** 初始模型 ID（从会话恢复） */
+  initialModel?: string
+}>()
+
 const emit = defineEmits<{
   submit: [input: string, options: { deepThink: boolean; webSearch: boolean; model: string }]
+  /** 模型切换时触发 */
+  modelChange: [modelId: string]
 }>()
 
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const input = ref('')
-const selectedModel = ref(settingsStore.defaultModel || (settingsStore.enabledAvailableModels[0]?.id ?? ''))
+const selectedModel = ref('')
 const deepThink = ref(false)
 const webSearch = ref(false)
 const showMoreTools = ref(false)
 
-// 只在初始化时同步默认模型，之后用户的选择优先
-// 不使用 watch，避免覆盖用户手动选择的模型
+// 初始化 selectedModel：优先使用 initialModel，其次默认模型，最后第一个可用模型
+function initSelectedModel() {
+  const available = settingsStore.enabledAvailableModels
+  if (props.initialModel && available.some(m => m.id === props.initialModel)) {
+    selectedModel.value = props.initialModel
+  } else if (settingsStore.defaultModel && available.some(m => m.id === settingsStore.defaultModel)) {
+    selectedModel.value = settingsStore.defaultModel
+  } else if (available.length > 0) {
+    selectedModel.value = available[0].id
+  }
+}
+
+// 初始化
+initSelectedModel()
+
+// 监听 initialModel 变化（切换会话时），仅在 initialModel 有效时更新
+watch(() => props.initialModel, (newModel) => {
+  const available = settingsStore.enabledAvailableModels
+  // 只有当 initialModel 有值且在可用列表中时才更新
+  if (newModel && available.some(m => m.id === newModel)) {
+    selectedModel.value = newModel
+  }
+})
+
+// 监听 selectedModel 变化，通知父组件
+watch(selectedModel, (newModel) => {
+  if (newModel) {
+    emit('modelChange', newModel)
+  }
+})
 
 function autoResize() {
   const el = textareaRef.value

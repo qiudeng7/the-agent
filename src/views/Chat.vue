@@ -101,13 +101,17 @@
 
     <!-- Input -->
     <div class="chat-input-wrapper">
-      <ChatInput @submit="handleSubmit" />
+      <ChatInput
+        :initial-model="sessionModel"
+        @submit="handleSubmit"
+        @model-change="handleModelChange"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ChatInput from '@/components/Chat/ChatInput.vue'
 import { useChatStore, type Message } from '@/stores/chat'
@@ -124,6 +128,9 @@ const settingsStore = useSettingsStore()
 const sessionId = computed(() => route.params.id as string)
 const session = computed(() => chatStore.sessions.find(s => s.id === sessionId.value))
 const messages = computed(() => session.value?.messages ?? [])
+
+/** 会话当前模型（优先从会话获取，其次从最后消息推断，最后使用默认模型） */
+const sessionModel = ref<string>('')
 
 /** 流式内容（来自 agentStore） */
 const streamingText = computed(() => agentStore.currentText)
@@ -154,15 +161,37 @@ async function handleSubmit(input: string, options: { deepThink: boolean; webSea
   })
 }
 
+/** 模型切换时更新会话状态 */
+function handleModelChange(modelId: string) {
+  sessionModel.value = modelId
+  if (sessionId.value) {
+    chatStore.setSessionModel(sessionId.value, modelId)
+  }
+}
+
+/** 初始化会话模型 */
+function initSessionModel() {
+  if (sessionId.value) {
+    const model = chatStore.getSessionModel(sessionId.value)
+    sessionModel.value = model || settingsStore.defaultModel || settingsStore.enabledAvailableModels[0]?.id || ''
+  }
+}
+
+// 监听会话 ID 变化，重新初始化模型
+watch(sessionId, () => {
+  initSessionModel()
+}, { immediate: true })
+
 // 处理来自首页"推荐问题"点击的初始消息
 onMounted(() => {
+  initSessionModel()
   const q = route.query.q
   const model = route.query.model
   if (q && typeof q === 'string') {
     handleSubmit(q, {
       deepThink: false,
       webSearch: false,
-      model: typeof model === 'string' ? model : settingsStore.defaultModel,
+      model: typeof model === 'string' ? model : sessionModel.value,
     })
     router.replace({ name: 'chat', params: { id: sessionId.value } })
   }
