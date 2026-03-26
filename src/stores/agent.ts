@@ -183,7 +183,7 @@ export const useAgentStore = defineStore('agent', () => {
       timestamp: Date.now(),
     })
 
-    // 构建历史消息（当前会话所有消息）
+    // 构建历史消息（当前会话所有消息），转为普通对象以通过 IPC
     const session = chatStore.sessions.find(s => s.id === sessionId)
     const messages = session?.messages.map(m => ({
       role: m.role,
@@ -197,11 +197,11 @@ export const useAgentStore = defineStore('agent', () => {
     buffer.value = { text: '', thinking: '', blocks: [] }
     error.value = null
 
-    // 调用 IPC
+    // 调用 IPC（转为普通对象，避免 Vue reactive proxy 无法 clone）
     await window.electronAPI.agentRun({
       taskId,
       userInput,
-      messages,
+      messages: JSON.parse(JSON.stringify(messages)),
       model: options?.model,
       systemPrompt: options?.systemPrompt,
       baseURL: settingsStore.baseURL || undefined,
