@@ -23,16 +23,20 @@ let mainWindow: BrowserWindow | null = null
 app.commandLine.appendSwitch('remote-debugging-port', '9223')
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Agent 组装
+// Agent 组装（延迟到 app.whenReady，确保 IPC 可用）
 // ─────────────────────────────────────────────────────────────────────────────
 
-const transport = new ElectronAgentTransport(() => mainWindow)
-const provider = new ClaudeProvider()   // 读取 ANTHROPIC_API_KEY 环境变量
-const registry = new ToolRegistry()
-const runner = new AgentRunner(provider, registry, transport)
+let runner: AgentRunner | null = null
 
-// 启动 runner（监听 transport 事件）
-runner.start()
+function setupAgent() {
+  console.log('[Agent] Setting up agent runner...')
+  const transport = new ElectronAgentTransport(() => mainWindow)
+  const provider = new ClaudeProvider()
+  const registry = new ToolRegistry()
+  runner = new AgentRunner(provider, registry, transport)
+  runner.start()
+  console.log('[Agent] Agent runner started')
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 窗口管理
@@ -71,6 +75,7 @@ function createWindow() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 app.whenReady().then(() => {
+  setupAgent()
   createWindow()
 
   app.on('activate', () => {

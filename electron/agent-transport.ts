@@ -26,13 +26,17 @@ export class ElectronAgentTransport implements IAgentTransport {
     this._getWindow = getWindow
 
     // 一次性注册 IPC 处理器
+    console.log('[ElectronAgentTransport] Registering IPC handlers...')
     ipcMain.handle('agent:run', (_event, options: AgentRunOptions) => {
+      console.log('[ElectronAgentTransport] agent:run received', options.taskId)
       this._runHandler?.(options)
     })
 
     ipcMain.handle('agent:abort', (_event, taskId: string) => {
+      console.log('[ElectronAgentTransport] agent:abort received', taskId)
       this._abortHandler?.(taskId)
     })
+    console.log('[ElectronAgentTransport] IPC handlers registered')
   }
 
   /** 向渲染进程推送流式事件 */
