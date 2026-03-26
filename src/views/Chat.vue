@@ -3,8 +3,8 @@
   @description 对话页面，路由：/chat/:id。
                展示当前会话的消息列表（用户消息右对齐 + 蓝绿气泡，AI 消息左对齐 + 灰色气泡）。
                空状态时显示引导提示（"开始对话"）。
-               底部挂载 ChatInput，提交后追加用户消息到 chatStore，并模拟 AI 回复（1s 延迟）。
-               TODO：替换模拟回复逻辑为真实 AI API 调用（接入 agentStore）。
+               底部挂载 ChatInput，提交后通过 agentStore.runAgent() 调用 AI。
+               支持富内容展示（thinking / tool_use / tool_result）。
   @layer view
 -->
 <template>
@@ -41,8 +41,59 @@
             </div>
           </div>
           <div class="message-content">
-            <p class="message-text">{{ message.content }}</p>
+            <template v-for="(block, idx) in getMessageBlocks(message)" :key="idx">
+              <div v-if="block.type === 'thinking'" class="thinking-block">
+                <div class="thinking-header">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 6v6l4 2"/>
+                  </svg>
+                  <span>思考过程</span>
+                </div>
+                <p class="thinking-text">{{ block.thinking }}</p>
+              </div>
+              <div v-else-if="block.type === 'tool_use'" class="tool-block">
+                <div class="tool-header">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                  </svg>
+                  <span>{{ block.name }}</span>
+                </div>
+              </div>
+              <div v-else-if="block.type === 'tool_result'" class="tool-result-block">
+                <pre>{{ block.content }}</pre>
+              </div>
+              <p v-else-if="block.type === 'text'" class="message-text">{{ block.text }}</p>
+            </template>
             <span class="message-time">{{ formatTime(message.timestamp) }}</span>
+          </div>
+        </div>
+
+        <!-- 流式生成中的 assistant 消息 -->
+        <div v-if="isGenerating" class="message assistant streaming">
+          <div class="message-avatar">
+            <div class="ai-avatar">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+            </div>
+          </div>
+          <div class="message-content">
+            <div v-if="streamingThinking" class="thinking-block">
+              <div class="thinking-header">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M12 6v6l4 2"/>
+                </svg>
+                <span>思考中...</span>
+              </div>
+              <p class="thinking-text">{{ streamingThinking }}</p>
+            </div>
+            <p v-if="streamingText" class="message-text">{{ streamingText }}</p>
+            <div v-if="!streamingText && !streamingThinking" class="typing-indicator">
+              <span></span><span></span><span></span>
+            </div>
           </div>
         </div>
       </div>
@@ -60,15 +111,30 @@ import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ChatInput from '@/components/Chat/ChatInput.vue'
 import { useChatStore, type Message } from '@/stores/chat'
+import { useAgentStore } from '@/stores/agent'
+import type { ContentBlock } from '#agent/types'
 
 const route = useRoute()
 const router = useRouter()
 const chatStore = useChatStore()
+const agentStore = useAgentStore()
 
 const sessionId = computed(() => route.params.id as string)
-// 统一以路由 ID 为准查找会话，避免 currentSessionId 与 URL 不同步
 const session = computed(() => chatStore.sessions.find(s => s.id === sessionId.value))
 const messages = computed(() => session.value?.messages ?? [])
+
+/** 流式内容（来自 agentStore） */
+const streamingText = computed(() => agentStore.currentText)
+const streamingThinking = computed(() => agentStore.currentThinking)
+const isGenerating = computed(() => agentStore.isGenerating)
+
+/** 从消息提取 ContentBlock 数组 */
+function getMessageBlocks(message: Message): ContentBlock[] {
+  if (typeof message.content === 'string') {
+    return [{ type: 'text', text: message.content }]
+  }
+  return message.content
+}
 
 function formatTime(timestamp: number) {
   return new Date(timestamp).toLocaleTimeString('zh-CN', {
@@ -77,37 +143,20 @@ function formatTime(timestamp: number) {
   })
 }
 
-function handleSubmit(input: string, options: { deepThink: boolean; webSearch: boolean; model: string }) {
-  if (!sessionId.value) return
+async function handleSubmit(input: string, options: { deepThink: boolean; webSearch: boolean; model: string }) {
+  if (!sessionId.value || isGenerating.value) return
 
-  // Add user message
-  const userMessage: Message = {
-    id: Date.now().toString(),
-    role: 'user',
-    content: input,
-    timestamp: Date.now(),
-  }
-  chatStore.addMessage(sessionId.value, userMessage)
-
-  // TODO: Send to AI and get response
-  // For now, add a mock response
-  setTimeout(() => {
-    const aiMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: 'assistant',
-      content: `这是一个模拟回复。你问了："${input}"\n\n（深度思考：${options.deepThink}, 联网搜索：${options.webSearch}, 模型：${options.model}）`,
-      timestamp: Date.now(),
-    }
-    chatStore.addMessage(sessionId.value, aiMessage)
-  }, 1000)
+  await agentStore.runAgent(sessionId.value, input, {
+    model: options.model === 'default' ? undefined : options.model,
+    // deepThink / webSearch 可扩展为 thinking 参数或工具
+  })
 }
 
-// 处理来自首页"推荐问题"点击的初始消息（通过路由 query.q 传递）
+// 处理来自首页"推荐问题"点击的初始消息
 onMounted(() => {
   const q = route.query.q
   if (q && typeof q === 'string') {
     handleSubmit(q, { deepThink: false, webSearch: false, model: 'default' })
-    // 清除 query 参数，避免刷新页面重复发送
     router.replace({ name: 'chat', params: { id: sessionId.value } })
   }
 })
@@ -258,6 +307,89 @@ onMounted(() => {
   font-size: 0.75rem;
   color: var(--color-muted-foreground);
   padding: 0 4px;
+}
+
+/* Thinking Block */
+.thinking-block {
+  background: var(--color-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  font-size: 0.875rem;
+}
+
+.thinking-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-muted-foreground);
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.thinking-text {
+  color: var(--color-muted-foreground);
+  font-style: italic;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+/* Tool Block */
+.tool-block {
+  background: var(--color-secondary)/10;
+  border: 1px solid var(--color-secondary)/30;
+  border-radius: var(--radius-lg);
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  font-size: 0.875rem;
+}
+
+.tool-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-secondary);
+  font-weight: 500;
+}
+
+.tool-result-block {
+  background: var(--color-muted);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  font-family: monospace;
+  font-size: 0.8125rem;
+  overflow-x: auto;
+}
+
+.tool-result-block pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Typing Indicator */
+.typing-indicator {
+  display: flex;
+  gap: 4px;
+  padding: 8px 0;
+}
+
+.typing-indicator span {
+  width: 8px;
+  height: 8px;
+  background: var(--color-muted-foreground);
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+.typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
 }
 
 /* Chat Input Wrapper */
