@@ -16,10 +16,9 @@
       <!-- Model Selector -->
       <div class="model-selector">
         <select v-model="selectedModel" class="model-select" name="model" aria-label="选择模型">
-          <option value="default">默认模型</option>
-          <option value="deepseek">DeepSeek</option>
-          <option value="gpt4">GPT-4</option>
-          <option value="claude">Claude</option>
+          <option v-for="model in settingsStore.models" :key="model.id" :value="model.id">
+            {{ model.name }}
+          </option>
         </select>
       </div>
 
@@ -97,6 +96,9 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import ChatToolsPanel from './ChatToolsPanel.vue'
+import { useSettingsStore } from '@/stores/settings'
+
+const settingsStore = useSettingsStore()
 
 const emit = defineEmits<{
   submit: [input: string, options: { deepThink: boolean; webSearch: boolean; model: string }]
@@ -104,10 +106,15 @@ const emit = defineEmits<{
 
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const input = ref('')
-const selectedModel = ref('default')
+const selectedModel = ref(settingsStore.defaultModel)
 const deepThink = ref(false)
 const webSearch = ref(false)
 const showMoreTools = ref(false)
+
+// 同步 defaultModel 变化
+watch(() => settingsStore.defaultModel, (val) => {
+  selectedModel.value = val
+})
 
 function autoResize() {
   const el = textareaRef.value

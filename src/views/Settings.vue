@@ -97,27 +97,76 @@
         <div class="setting-item">
           <div class="setting-info">
             <span class="setting-label">API Key</span>
-            <span class="setting-desc">配置你的 AI 服务 API 密钥</span>
+            <span class="setting-desc">配置你的 Anthropic API 密钥</span>
           </div>
           <input
             type="password"
             v-model="apiKey"
-            placeholder="sk-..."
+            placeholder="sk-ant-..."
             class="api-input"
           />
         </div>
 
         <div class="setting-item">
           <div class="setting-info">
-            <span class="setting-label">模型</span>
-            <span class="setting-desc">选择使用的 AI 模型</span>
+            <span class="setting-label">默认模型</span>
+            <span class="setting-desc">新建对话时默认使用的模型</span>
           </div>
-          <select v-model="selectedModel" class="select">
-            <option value="gpt-4">GPT-4</option>
-            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-            <option value="claude-3">Claude 3</option>
-            <option value="claude-sonnet">Claude Sonnet</option>
+          <select v-model="settingsStore.defaultModel" class="select">
+            <option v-for="model in settingsStore.models" :key="model.id" :value="model.id">
+              {{ model.name }}
+            </option>
           </select>
+        </div>
+
+        <div class="setting-item models-section">
+          <div class="setting-info">
+            <span class="setting-label">模型列表</span>
+            <span class="setting-desc">自定义可选的模型（输入 ID 和显示名称）</span>
+          </div>
+        </div>
+
+        <div class="models-list">
+          <div v-for="model in settingsStore.models" :key="model.id" class="model-item">
+            <div class="model-info">
+              <span class="model-id">{{ model.id }}</span>
+              <span class="model-name">{{ model.name }}</span>
+            </div>
+            <button
+              class="remove-btn"
+              @click="settingsStore.removeModel(model.id)"
+              :disabled="settingsStore.models.length <= 1"
+              title="删除此模型"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+
+        <div class="add-model-form">
+          <input
+            v-model="newModelId"
+            placeholder="模型 ID (如 claude-opus-4-6)"
+            class="model-input"
+          />
+          <input
+            v-model="newModelName"
+            placeholder="显示名称 (如 Claude Opus 4.6)"
+            class="model-input"
+          />
+          <button
+            class="add-model-btn"
+            @click="handleAddModel"
+            :disabled="!newModelId.trim() || !newModelName.trim()"
+          >
+            添加
+          </button>
+        </div>
+
+        <div class="setting-item">
+          <button class="reset-btn" @click="settingsStore.resetModels">
+            重置为默认模型列表
+          </button>
         </div>
       </div>
     </main>
@@ -140,7 +189,8 @@ const platform = ref('unknown')
 const autoStart = ref(false)
 const minimizeToTray = ref(false)
 const apiKey = ref('')
-const selectedModel = ref('gpt-4')
+const newModelId = ref('')
+const newModelName = ref('')
 
 const languageLabels: Record<string, string> = {
   zh: '中文',
@@ -151,6 +201,16 @@ const languageLabels: Record<string, string> = {
 function getLanguageLabel(lang: string): string {
   if (lang === 'system') return '跟随系统'
   return languageLabels[lang] || 'English'
+}
+
+function handleAddModel() {
+  const id = newModelId.value.trim()
+  const name = newModelName.value.trim()
+  if (id && name) {
+    settingsStore.addModel({ id, name })
+    newModelId.value = ''
+    newModelName.value = ''
+  }
 }
 
 onMounted(async () => {
@@ -371,5 +431,131 @@ onMounted(async () => {
 .nav-link.active {
   color: var(--color-primary-foreground);
   background: var(--color-primary);
+}
+
+/* Models Section */
+.models-section {
+  border-bottom: none;
+  padding-bottom: 8px;
+}
+
+.models-list {
+  margin-bottom: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.model-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-background);
+}
+
+.model-item:last-child {
+  border-bottom: none;
+}
+
+.model-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.model-id {
+  font-family: monospace;
+  font-size: 0.875rem;
+  color: var(--color-foreground);
+}
+
+.model-name {
+  font-size: 0.75rem;
+  color: var(--color-muted-foreground);
+}
+
+.remove-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--color-muted-foreground);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: var(--transition-gentle);
+}
+
+.remove-btn:hover:not(:disabled) {
+  background: var(--color-destructive)/10;
+  color: var(--color-destructive);
+}
+
+.remove-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.add-model-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.model-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-size: 0.9rem;
+}
+
+.model-input::placeholder {
+  color: var(--color-muted-foreground);
+}
+
+.model-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary)/10;
+}
+
+.add-model-btn {
+  padding: 10px 20px;
+  border: none;
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-weight: 500;
+  transition: var(--transition-gentle);
+}
+
+.add-model-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.add-model-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.reset-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-muted-foreground);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: var(--transition-gentle);
+}
+
+.reset-btn:hover {
+  background: var(--color-muted);
+  color: var(--color-foreground);
 }
 </style>
