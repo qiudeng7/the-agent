@@ -1,124 +1,98 @@
 # The Agent
 
-Electron + Vite + Vue 3 + TypeScript Agent 应用模板
+Electron + Vite + Vue 3 + TypeScript Agent 桌面应用。
 
 ## 技术栈
 
 - **Electron** - 跨平台桌面应用框架
-- **Vite** - 快速构建工具
-- **Vue 3** - 渐进式 JavaScript 框架（Composition API）
-- **TypeScript** - 类型安全的 JavaScript 超集
-- **Pinia** - Vue 3 官方推荐的状态管理库
-- **Vue Router** - Vue.js 官方路由管理器
-
-## 项目结构
-
-```
-the-agent/
-├── electron/
-│   ├── main/          # Electron 主进程代码
-│   │   └── index.ts
-│   └── preload/       # 预加载脚本
-│       └── index.ts
-├── src/
-│   ├── assets/        # 静态资源
-│   ├── components/    # Vue 组件
-│   ├── router/        # 路由配置
-│   ├── stores/        # Pinia 状态管理
-│   ├── views/         # 页面视图
-│   ├── App.vue        # 根组件
-│   └── main.ts        # 应用入口
-├── public/            # 公共静态资源
-├── index.html         # HTML 模板
-├── package.json       # 项目依赖和脚本
-├── tsconfig.json      # TypeScript 配置
-├── vite.config.ts     # Vite 配置
-└── electron-builder.json # Electron 打包配置
-```
+- **Vite** - 快速构建工具（vite-plugin-electron 双进程构建）
+- **Vue 3** - 渐进式 JavaScript 框架（Composition API + `<script setup>`）
+- **TypeScript** - 类型安全
+- **Pinia** - 状态管理
+- **Vue Router** - 路由（hash 模式，兼容 Electron file://）
+- **@anthropic-ai/sdk** - Claude API 流式调用
 
 ## 快速开始
 
-### 安装依赖
-
 ```bash
-npm install
+pnpm install     # 安装依赖
+pnpm run dev     # 启动开发服务器
+pnpm run make    # 构建 macOS ARM
+pnpm run make:win # 构建 Windows x86
 ```
 
-### 开发模式
+开发模式下 Electron 会自动启动远程调试端口 **9223**，可用 electron-devtools MCP 访问。
 
-```bash
-# 使用 npm scripts
-npm run electron:dev
+## 文件结构
 
-# 或者分别启动 Vite 和 Electron
-npm run dev          # 启动 Vite 开发服务器
-# 在另一个终端
-npx electron .       # 启动 Electron
+```
+the-agent/
+├── src/                    # 渲染进程（Vue 应用）
+│   ├── views/              # 页面组件（Home / Chat / Apps / Settings）
+│   ├── components/         # 通用组件（Layout / Chat / Sidebar / Apps）
+│   ├── stores/             # Pinia stores（chat / agent / settings）
+│   ├── router/             # Vue Router 配置
+│   └── utils/              # 工具函数
+├── electron/               # 主进程
+│   ├── main/               # BrowserWindow 创建、IPC handlers
+│   ├── preload/            # contextBridge API 暴露
+│   ├── agent-transport.ts  # IAgentTransport 的 Electron IPC 实现
+│   └── electron.d.ts       # window.electronAPI 类型声明
+├── agent/                  # Agent 核心（provider-agnostic）
+│   ├── types.ts            # 共享类型（AgentMessage / AgentEvent / ToolDefinition）
+│   ├── interfaces/         # 抽象接口（IAgentProvider / ITool / IAgentTransport）
+│   ├── providers/claude/   # Claude provider 实现
+│   ├── runner.ts           # AgentRunner（连接 provider + registry + transport）
+│   └── tool-registry.ts    # IToolRegistry 实现
+├── vite.config.ts          # Vite + electron 插件配置，模块 alias
+└── tsconfig.*.json         # TypeScript 配置（renderer / main process 分离）
 ```
 
-### 构建应用
+## 架构说明
 
-```bash
-# 构建并打包
-npm run build
+### 三层架构
 
-# 仅构建，不打包
-npm run build:dir
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     渲染进程（Vue）                          │
+│  views / components / stores                                │
+│  通过 window.electronAPI 调用 IPC                           │
+└───────────────────────┬─────────────────────────────────────┘
+                        │ IPC (agent:run / agent:event)
+┌───────────────────────▼─────────────────────────────────────┐
+│                     主进程（Electron）                       │
+│  ElectronAgentTransport ←→ AgentRunner                      │
+│                              ↓                              │
+│  ClaudeProvider + ToolRegistry                              │
+└───────────────────────┬─────────────────────────────────────┘
+                        │ HTTPS (Anthropic API)
+┌───────────────────────▼─────────────────────────────────────┐
+│                     Claude API                               │
+│  流式返回 text_delta / thinking_delta / tool_use            │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## 功能特性
+### Agent 模块设计
 
-- ✅ 热模块替换 (HMR) 开发体验
-- ✅ TypeScript 类型支持
-- ✅ Vue Router 路由管理
-- ✅ Pinia 状态管理
-- ✅ Electron IPC 通信示例
-- ✅ 深色主题 UI
-- ✅ 响应式设计
+`agent/` 目录独立于 Electron，可移植到其他宿主（HTTP Server、CLI）：
 
-## 自定义开发
+| 接口 | 职责 | 实现 |
+|------|------|------|
+| `IAgentProvider` | 执行 agentic loop，产出流式事件 | `ClaudeProvider` |
+| `IToolRegistry` | 注册/查找工具 | `ToolRegistry` |
+| `IAgentTransport` | 接收 run/abort 指令，推送事件 | `ElectronAgentTransport` |
+| `AgentRunner` | 组装三者，驱动循环 | — |
 
-### 添加新的路由
+### 模块别名
 
-在 `src/router/index.ts` 中添加路由配置：
+| Alias | 作用域 | 构建系统 |
+|-------|--------|----------|
+| `@/*` | 渲染进程 | Vite top-level + tsconfig.json |
+| `#agent/*` | 主进程 + 渲染进程（type-only） | electron 子 vite + tsconfig.node.json |
+| `#electron/*` | 主进程 | electron 子 vite + tsconfig.node.json |
 
-```typescript
-{
-  path: '/your-path',
-  name: 'your-name',
-  component: () => import('@/views/YourView.vue'),
-}
-```
+### 构建输出
 
-### 添加新的 Store
-
-在 `src/stores/` 目录下创建新的 store 文件：
-
-```typescript
-import { defineStore } from 'pinia'
-
-export const useYourStore = defineStore('your-store', () => {
-  // state, getters, actions
-})
-```
-
-### Electron IPC 通信
-
-主进程 (`electron/main/index.ts`):
-
-```typescript
-ipcMain.handle('your-channel', async (event, data) => {
-  // 处理逻辑
-  return result
-})
-```
-
-渲染进程 (Vue 组件):
-
-```typescript
-const result = await window.electronAPI.yourMethod()
-```
-
-## License
-
-MIT
+- `dist/` - Vite 构建的渲染进程资源
+- `dist-electron/` - 编译后的主进程和预加载脚本
+- `out/` - Electron Forge 打包的最终产品
