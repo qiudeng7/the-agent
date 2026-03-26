@@ -3,7 +3,7 @@
   @description 聊天输入区域，被首页（Home）和对话页（Chat）复用。
                包含：
                - 模型选择下拉框（默认模型 / DeepSeek / GPT-4 / Claude）
-               - 自动伸缩 textarea（最高 200px，Shift+Enter 提交）
+               - 自动伸缩 textarea（最高 200px，Enter 提交，Shift+Enter 换行）
                - 工具栏：深度思考开关、联网搜索开关、扩展工具按钮
                - ChatToolsPanel：点击"工具"时展开的扩展面板（上传/导出/设置）
                - 右侧：添加内容按钮 + 提交按钮（input 为空时禁用）
@@ -28,11 +28,11 @@
         <textarea
           ref="textareaRef"
           v-model="input"
-          placeholder="有问题，尽管问，shift+enter 换行"
+          placeholder="有问题，尽管问，Shift+Enter 换行"
           class="input-field"
           name="message"
           aria-label="输入消息"
-          @keydown.shift.enter.prevent="submit"
+          @keydown.enter.exact.prevent="submit"
           @input="autoResize"
           rows="1"
         />

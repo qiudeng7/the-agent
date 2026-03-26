@@ -122,7 +122,8 @@ function handleSuggestion(text: string) {
 
 function handleSubmit(input: string, _options: { deepThink: boolean; webSearch: boolean; model: string }) {
   const session = chatStore.createSession(input)
-  router.push(`/chat/${session.id}`)
+  // 通过 query.q 把消息传给 Chat.vue，由它负责发送
+  router.push({ name: 'chat', params: { id: session.id }, query: { q: input } })
 }
 </script>
 
