@@ -96,90 +96,145 @@
         <h2>Agent 设置</h2>
         <div class="setting-item">
           <div class="setting-info">
-            <span class="setting-label">API Key</span>
-            <span class="setting-desc">配置你的 Anthropic API 密钥</span>
-          </div>
-          <input
-            type="password"
-            v-model="settingsStore.apiKey"
-            placeholder="sk-ant-..."
-            class="api-input"
-          />
-        </div>
-
-        <div class="setting-item">
-          <div class="setting-info">
-            <span class="setting-label">API Base URL</span>
-            <span class="setting-desc">可选，用于代理或自托管服务（留空使用默认）</span>
-          </div>
-          <input
-            type="text"
-            v-model="settingsStore.baseURL"
-            placeholder="https://api.anthropic.com"
-            class="api-input"
-          />
-        </div>
-
-        <div class="setting-item">
-          <div class="setting-info">
             <span class="setting-label">默认模型</span>
             <span class="setting-desc">新建对话时默认使用的模型</span>
           </div>
-          <select v-model="settingsStore.defaultModel" class="select" :disabled="settingsStore.models.length === 0">
-            <option v-if="settingsStore.models.length === 0" value="" disabled>请先添加模型</option>
-            <option v-for="model in settingsStore.models" :key="model.id" :value="model.id">
+          <select v-model="settingsStore.defaultModel" class="select" :disabled="settingsStore.enabledAvailableModels.length === 0">
+            <option v-if="settingsStore.enabledAvailableModels.length === 0" value="" disabled>请先启用模型</option>
+            <option v-for="model in settingsStore.enabledAvailableModels" :key="model.id" :value="model.id">
               {{ model.name }}
             </option>
           </select>
         </div>
 
-        <div class="setting-item models-section">
-          <div class="setting-info">
-            <span class="setting-label">模型列表</span>
-            <span class="setting-desc">自定义可选的模型（输入 ID 和显示名称）</span>
+        <!-- 内置模型 -->
+        <div class="model-section">
+          <h3 class="section-title">内置模型</h3>
+          <div class="models-list" v-if="BUNDLE_MODELS.length > 0">
+            <div v-for="model in BUNDLE_MODELS" :key="model.id" class="model-item">
+              <div class="model-info">
+                <span class="model-name">{{ model.name }}</span>
+                <span class="model-desc">{{ model.description }}</span>
+              </div>
+              <label class="toggle toggle-sm">
+                <input
+                  type="checkbox"
+                  :checked="settingsStore.enabledModels.includes(model.id)"
+                  @change="settingsStore.toggleModel(model.id)"
+                />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+          <div v-else class="models-empty">
+            <p>暂无可用的内置模型</p>
           </div>
         </div>
 
-        <div class="models-list" v-if="settingsStore.models.length > 0">
-          <div v-for="model in settingsStore.models" :key="model.id" class="model-item">
-            <div class="model-info">
-              <span class="model-id">{{ model.id }}</span>
-              <span class="model-name">{{ model.name }}</span>
-            </div>
-            <button
-              class="remove-btn"
-              @click="settingsStore.removeModel(model.id)"
-              title="删除此模型"
-            >
-              ✕
+        <!-- 自定义模型 -->
+        <div class="model-section">
+          <div class="section-header">
+            <h3 class="section-title">自定义模型</h3>
+            <button class="add-config-btn" @click="openAddModal">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              添加配置
             </button>
           </div>
-        </div>
-        <div v-else class="models-empty">
-          <p>暂无模型，请在下方添加</p>
-        </div>
 
-        <div class="add-model-form">
-          <input
-            v-model="newModelId"
-            placeholder="模型 ID (如 claude-opus-4-6)"
-            class="model-input"
-          />
-          <input
-            v-model="newModelName"
-            placeholder="显示名称 (如 Claude Opus 4.6)"
-            class="model-input"
-          />
-          <button
-            class="add-model-btn"
-            @click="handleAddModel"
-            :disabled="!newModelId.trim() || !newModelName.trim()"
-          >
-            添加
-          </button>
+          <div class="models-list" v-if="allCustomModels.length > 0">
+            <div v-for="item in allCustomModels" :key="item.model.id" class="model-item">
+              <div class="model-info">
+                <span class="model-name">{{ item.model.id }}</span>
+                <span class="model-desc">{{ item.model.description || item.config.name }}</span>
+              </div>
+              <div class="model-actions">
+                <label class="toggle toggle-sm">
+                  <input
+                    type="checkbox"
+                    :checked="settingsStore.enabledModels.includes(item.model.id)"
+                    @change="settingsStore.toggleModel(item.model.id)"
+                  />
+                  <span class="toggle-slider"></span>
+                </label>
+                <button class="edit-btn" @click="openEditModal(item.config)" title="编辑配置">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div v-else class="models-empty">
+            <p>暂无自定义模型，点击上方按钮添加</p>
+          </div>
         </div>
       </div>
     </main>
+
+    <!-- 添加/编辑配置弹窗 -->
+    <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>{{ editingConfig ? '编辑配置' : '添加配置' }}</h3>
+          <button class="modal-close" @click="closeModal">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="form-group">
+            <label>配置名称</label>
+            <input v-model="modalForm.name" placeholder="如：我的 OpenAI 配置" class="form-input" />
+          </div>
+
+          <div class="form-group">
+            <label>API Base URL</label>
+            <input v-model="modalForm.baseURL" placeholder="https://api.openai.com/v1" class="form-input" />
+          </div>
+
+          <div class="form-group">
+            <label>API Key</label>
+            <input v-model="modalForm.apiKey" type="password" placeholder="sk-..." class="form-input" />
+          </div>
+
+          <div class="form-group">
+            <div class="models-header">
+              <label>模型列表</label>
+              <button class="add-model-btn" @click="addModalModel" type="button">
+                + 添加模型
+              </button>
+            </div>
+            <div class="modal-models-list">
+              <div v-for="(model, index) in modalForm.models" :key="index" class="modal-model-item">
+                <input v-model="model.id" placeholder="模型 ID" class="form-input model-id-input" />
+                <input v-model="model.description" placeholder="描述" class="form-input model-desc-input" />
+                <button class="remove-model-btn" @click="removeModalModel(index)" type="button">✕</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" @click="closeModal">取消</button>
+          <button
+            class="btn btn-primary"
+            @click="saveConfig"
+            :disabled="!isModalValid"
+          >
+            {{ editingConfig ? '保存' : '添加' }}
+          </button>
+          <button
+            v-if="editingConfig"
+            class="btn btn-danger"
+            @click="deleteConfig"
+          >
+            删除
+          </button>
+        </div>
+      </div>
+    </div>
 
     <nav class="navbar">
       <router-link to="/" class="nav-link">首页</router-link>
@@ -189,8 +244,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useSettingsStore } from '@/stores/settings'
+import { ref, computed, onMounted } from 'vue'
+import { useSettingsStore, BUNDLE_MODELS, type CustomModelConfig, type CustomModelItem } from '@/stores/settings'
 
 const settingsStore = useSettingsStore()
 
@@ -198,8 +253,41 @@ const appVersion = ref('1.0.0')
 const platform = ref('unknown')
 const autoStart = ref(false)
 const minimizeToTray = ref(false)
-const newModelId = ref('')
-const newModelName = ref('')
+
+// 弹窗状态
+const showModal = ref(false)
+const editingConfig = ref<CustomModelConfig | null>(null)
+const modalForm = ref<{
+  name: string
+  baseURL: string
+  apiKey: string
+  models: CustomModelItem[]
+}>({
+  name: '',
+  baseURL: '',
+  apiKey: '',
+  models: [{ id: '', description: '' }],
+})
+
+// 展开所有自定义模型用于显示
+const allCustomModels = computed(() => {
+  const result: { config: CustomModelConfig; model: CustomModelItem }[] = []
+  for (const config of settingsStore.customModelConfigs) {
+    for (const model of config.models) {
+      result.push({ config, model })
+    }
+  }
+  return result
+})
+
+const isModalValid = computed(() => {
+  return (
+    modalForm.value.name.trim() &&
+    modalForm.value.baseURL.trim() &&
+    modalForm.value.apiKey.trim() &&
+    modalForm.value.models.some(m => m.id.trim())
+  )
+})
 
 const languageLabels: Record<string, string> = {
   zh: '中文',
@@ -212,13 +300,71 @@ function getLanguageLabel(lang: string): string {
   return languageLabels[lang] || 'English'
 }
 
-function handleAddModel() {
-  const id = newModelId.value.trim()
-  const name = newModelName.value.trim()
-  if (id && name) {
-    settingsStore.addModel({ id, name })
-    newModelId.value = ''
-    newModelName.value = ''
+function openAddModal() {
+  editingConfig.value = null
+  modalForm.value = {
+    name: '',
+    baseURL: '',
+    apiKey: '',
+    models: [{ id: '', description: '' }],
+  }
+  showModal.value = true
+}
+
+function openEditModal(config: CustomModelConfig) {
+  editingConfig.value = config
+  modalForm.value = {
+    name: config.name,
+    baseURL: config.baseURL,
+    apiKey: config.apiKey,
+    models: [...config.models.map(m => ({ ...m }))],
+  }
+  showModal.value = true
+}
+
+function closeModal() {
+  showModal.value = false
+  editingConfig.value = null
+}
+
+function addModalModel() {
+  modalForm.value.models.push({ id: '', description: '' })
+}
+
+function removeModalModel(index: number) {
+  if (modalForm.value.models.length > 1) {
+    modalForm.value.models.splice(index, 1)
+  }
+}
+
+function saveConfig() {
+  const models = modalForm.value.models.filter(m => m.id.trim())
+
+  if (editingConfig.value) {
+    settingsStore.updateCustomModelConfig({
+      id: editingConfig.value.id,
+      name: modalForm.value.name.trim(),
+      baseURL: modalForm.value.baseURL.trim(),
+      apiKey: modalForm.value.apiKey.trim(),
+      models,
+    })
+  } else {
+    settingsStore.addCustomModelConfig({
+      id: Date.now().toString(),
+      name: modalForm.value.name.trim(),
+      baseURL: modalForm.value.baseURL.trim(),
+      apiKey: modalForm.value.apiKey.trim(),
+      models,
+    })
+  }
+
+  closeModal()
+}
+
+function deleteConfig() {
+  if (editingConfig.value) {
+    settingsStore.removeCustomModelConfig(editingConfig.value.id)
+    closeModal()
   }
 }
 
@@ -377,24 +523,19 @@ onMounted(async () => {
   cursor: not-allowed;
 }
 
-.api-input {
-  padding: 10px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-background);
-  color: var(--color-foreground);
-  font-size: 0.95rem;
-  width: 200px;
+/* Small Toggle */
+.toggle-sm {
+  width: 44px;
+  height: 24px;
 }
 
-.api-input::placeholder {
-  color: var(--color-muted-foreground);
+.toggle-sm .toggle-slider:before {
+  height: 18px;
+  width: 18px;
 }
 
-.api-input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary)/10;
+.toggle-sm input:checked + .toggle-slider:before {
+  transform: translateX(20px);
 }
 
 .select {
@@ -447,21 +588,38 @@ onMounted(async () => {
   background: var(--color-primary);
 }
 
-/* Models Section */
-.models-section {
-  border-bottom: none;
-  padding-bottom: 8px;
+/* Model Section */
+.model-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-foreground);
+  margin-bottom: 12px;
+}
+
+.section-header .section-title {
+  margin-bottom: 0;
 }
 
 .models-list {
-  margin-bottom: 16px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   overflow: hidden;
 }
 
 .models-empty {
-  margin-bottom: 16px;
   padding: 20px;
   text-align: center;
   color: var(--color-muted-foreground);
@@ -489,18 +647,24 @@ onMounted(async () => {
   gap: 2px;
 }
 
-.model-id {
-  font-family: monospace;
+.model-name {
   font-size: 0.875rem;
   color: var(--color-foreground);
+  font-weight: 500;
 }
 
-.model-name {
+.model-desc {
   font-size: 0.75rem;
   color: var(--color-muted-foreground);
 }
 
-.remove-btn {
+.model-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.edit-btn {
   width: 28px;
   height: 28px;
   border: none;
@@ -508,62 +672,223 @@ onMounted(async () => {
   color: var(--color-muted-foreground);
   cursor: pointer;
   border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: var(--transition-gentle);
 }
 
-.remove-btn:hover:not(:disabled) {
-  background: var(--color-destructive)/10;
-  color: var(--color-destructive);
+.edit-btn:hover {
+  background: var(--color-muted);
+  color: var(--color-foreground);
 }
 
-.remove-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.add-model-form {
+.add-config-btn {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-size: 0.85rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition-gentle);
+}
+
+.add-config-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: var(--color-background);
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lift);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal-header h3 {
+  font-size: 1.1rem;
+  color: var(--color-foreground);
+}
+
+.modal-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--color-muted-foreground);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+}
+
+.modal-close:hover {
+  background: var(--color-muted);
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.form-group {
   margin-bottom: 16px;
 }
 
-.model-input {
-  flex: 1;
-  padding: 10px 14px;
+.form-group label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-foreground);
+  margin-bottom: 6px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 10px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: var(--color-background);
+  background: var(--color-muted);
   color: var(--color-foreground);
   font-size: 0.9rem;
 }
 
-.model-input::placeholder {
-  color: var(--color-muted-foreground);
-}
-
-.model-input:focus {
+.form-input:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary)/10;
+}
+
+.models-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
 }
 
 .add-model-btn {
-  padding: 10px 20px;
-  border: none;
-  background: var(--color-primary);
-  color: var(--color-primary-foreground);
+  padding: 4px 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  color: var(--color-primary);
+  font-size: 0.8rem;
   border-radius: var(--radius-md);
   cursor: pointer;
+}
+
+.add-model-btn:hover {
+  background: var(--color-primary)/10;
+}
+
+.modal-models-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modal-model-item {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.model-id-input {
+  flex: 1;
+}
+
+.model-desc-input {
+  flex: 1.5;
+}
+
+.remove-model-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--color-muted-foreground);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+}
+
+.remove-model-btn:hover {
+  background: var(--color-destructive)/10;
+  color: var(--color-destructive);
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--color-border);
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
   font-weight: 500;
+  cursor: pointer;
   transition: var(--transition-gentle);
 }
 
-.add-model-btn:hover:not(:disabled) {
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+}
+
+.btn-primary:hover:not(:disabled) {
   opacity: 0.9;
 }
 
-.add-model-btn:disabled {
+.btn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: var(--color-muted);
+  color: var(--color-foreground);
+  border: 1px solid var(--color-border);
+}
+
+.btn-secondary:hover {
+  background: var(--color-background);
+}
+
+.btn-danger {
+  background: var(--color-destructive);
+  color: white;
+}
+
+.btn-danger:hover {
+  opacity: 0.9;
 }
 </style>

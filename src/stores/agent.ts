@@ -197,15 +197,19 @@ export const useAgentStore = defineStore('agent', () => {
     buffer.value = { text: '', thinking: '', blocks: [] }
     error.value = null
 
+    // 获取模型配置（公共模型使用内置配置，自定义模型使用用户配置）
+    const modelId = options?.model || settingsStore.defaultModel
+    const modelConfig = settingsStore.getModelConfig(modelId)
+
     // 调用 IPC（转为普通对象，避免 Vue reactive proxy 无法 clone）
     const requestOptions = {
       taskId,
       userInput,
       messages: JSON.parse(JSON.stringify(messages)),
-      model: options?.model || settingsStore.defaultModel,
+      model: modelId,
       systemPrompt: options?.systemPrompt,
-      apiKey: settingsStore.apiKey || undefined,
-      baseURL: settingsStore.baseURL || undefined,
+      apiKey: modelConfig.apiKey,
+      baseURL: modelConfig.baseURL,
     }
     console.log('[Agent] Running with model:', requestOptions.model, 'baseURL:', requestOptions.baseURL)
     await window.electronAPI.agentRun(requestOptions)

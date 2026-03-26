@@ -15,9 +15,9 @@
     <div class="chat-input-wrapper">
       <!-- Model Selector -->
       <div class="model-selector">
-        <template v-if="settingsStore.models.length > 0">
+        <template v-if="settingsStore.enabledAvailableModels.length > 0">
           <select v-model="selectedModel" class="model-select" name="model" aria-label="选择模型">
-            <option v-for="model in settingsStore.models" :key="model.id" :value="model.id">
+            <option v-for="model in settingsStore.enabledAvailableModels" :key="model.id" :value="model.id">
               {{ model.name }}
             </option>
           </select>
@@ -29,7 +29,7 @@
               <line x1="12" y1="8" x2="12" y2="12"/>
               <line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
-            请先在设置中添加模型
+            请先在设置中启用模型
           </router-link>
         </template>
       </div>
@@ -89,7 +89,7 @@
             </svg>
           </button>
 
-          <button class="submit-btn" @click="submit" :disabled="!input.trim() || settingsStore.models.length === 0">
+          <button class="submit-btn" @click="submit" :disabled="!input.trim() || settingsStore.enabledAvailableModels.length === 0">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
               <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
             </svg>
@@ -118,7 +118,7 @@ const emit = defineEmits<{
 
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const input = ref('')
-const selectedModel = ref(settingsStore.defaultModel || (settingsStore.models[0]?.id ?? ''))
+const selectedModel = ref(settingsStore.defaultModel || (settingsStore.enabledAvailableModels[0]?.id ?? ''))
 const deepThink = ref(false)
 const webSearch = ref(false)
 const showMoreTools = ref(false)
@@ -135,7 +135,7 @@ function autoResize() {
 }
 
 function submit() {
-  if (input.value.trim() && settingsStore.models.length > 0 && selectedModel.value) {
+  if (input.value.trim() && settingsStore.enabledAvailableModels.length > 0 && selectedModel.value) {
     emit('submit', input.value.trim(), {
       deepThink: deepThink.value,
       webSearch: webSearch.value,

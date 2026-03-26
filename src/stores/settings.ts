@@ -13,10 +13,69 @@ import { ref, computed, watch, onMounted } from 'vue'
 export type Language = 'system' | 'zh' | 'ja' | 'en'
 export type Theme = 'system' | 'light' | 'dark'
 
-export interface ModelOption {
+/** 内置模型定义 */
+export interface BundleModel {
   id: string
   name: string
+  description: string
+  baseURL: string
+  apiKey: string
 }
+
+/** 自定义模型项 */
+export interface CustomModelItem {
+  id: string
+  description: string
+}
+
+/** 自定义模型配置（一个配置可包含多个模型） */
+export interface CustomModelConfig {
+  id: string
+  name: string
+  apiKey: string
+  baseURL: string
+  models: CustomModelItem[]
+}
+
+/** 可用模型信息 */
+export interface AvailableModel {
+  id: string
+  name: string
+  description: string
+  type: 'bundle' | 'custom'
+}
+
+/** 内置模型列表 */
+export const BUNDLE_MODELS: BundleModel[] = [
+  {
+    id: 'qwen3.5-plus',
+    name: 'Qwen3.5-Plus',
+    description: '通义千问',
+    baseURL: 'https://coding.dashscope.aliyuncs.com/apps/anthropic',
+    apiKey: 'sk-sp-f09b783d6c824e2fab15646a07f9e179',
+  },
+  {
+    id: 'glm-5',
+    name: 'GLM-5',
+    description: '智谱 AI',
+    baseURL: 'https://coding.dashscope.aliyuncs.com/apps/anthropic',
+    apiKey: 'sk-sp-f09b783d6c824e2fab15646a07f9e179',
+  },
+  {
+    id: 'kimi-k2.5',
+    name: 'Kimi-K2.5',
+    description: '月之暗面',
+    baseURL: 'https://coding.dashscope.aliyuncs.com/apps/anthropic',
+    apiKey: 'sk-sp-f09b783d6c824e2fab15646a07f9e179',
+  },
+  {
+    id: 'MiniMax-M2.5',
+    name: 'MiniMax-M2.5',
+    description: 'MiniMax',
+    baseURL: 'https://coding.dashscope.aliyuncs.com/apps/anthropic',
+    apiKey: 'sk-sp-f09b783d6c824e2fab15646a07f9e179',
+  },
+]
 
 const STORAGE_KEY = 'app-settings'
 
@@ -25,14 +84,70 @@ export const useSettingsStore = defineStore('settings', () => {
   const language = ref<Language>('system')
   const theme = ref<Theme>('system')
   const isSystemDark = ref(false)
-  /** 用户自定义的模型列表 */
-  const models = ref<ModelOption[]>([])
+  /** 用户自定义模型配置列表 */
+  const customModelConfigs = ref<CustomModelConfig[]>([])
+  /** 已启用的模型 ID 列表（包括 bundle 和 custom） */
+  const enabledModels = ref<string[]>([])
   /** 默认选中的模型 ID */
   const defaultModel = ref<string>('')
-  /** API Key */
+  /** API Key（兼容旧版本） */
   const apiKey = ref<string>('')
-  /** API Base URL（可选，用于代理或自托管服务） */
+  /** API Base URL（兼容旧版本） */
   const baseURL = ref<string>('')
+
+  /** 所有可用模型 */
+  const availableModels = computed<AvailableModel[]>(() => {
+    const models: AvailableModel[] = []
+
+    // Bundle 模型
+    for (const m of BUNDLE_MODELS) {
+      models.push({
+        id: m.id,
+        name: m.name,
+        description: m.description,
+        type: 'bundle',
+      })
+    }
+
+    // Custom 模型（展开所有配置中的模型）
+    for (const config of customModelConfigs.value) {
+      for (const m of config.models) {
+        models.push({
+          id: m.id,
+          name: m.id,
+          description: m.description,
+          type: 'custom',
+        })
+      }
+    }
+
+    return models
+  })
+
+  /** 已启用的可用模型 */
+  const enabledAvailableModels = computed<AvailableModel[]>(() => {
+    return availableModels.value.filter(m => enabledModels.value.includes(m.id))
+  })
+
+  /** 获取模型的 API 配置 */
+  function getModelConfig(modelId: string): { apiKey?: string; baseURL?: string } {
+    // 检查 bundle 模型
+    const bundleModel = BUNDLE_MODELS.find(m => m.id === modelId)
+    if (bundleModel) {
+      return { apiKey: bundleModel.apiKey, baseURL: bundleModel.baseURL }
+    }
+
+    // 检查 custom 模型
+    for (const config of customModelConfigs.value) {
+      const model = config.models.find(m => m.id === modelId)
+      if (model) {
+        return { apiKey: config.apiKey, baseURL: config.baseURL }
+      }
+    }
+
+    // 兼容旧版本
+    return { apiKey: apiKey.value || undefined, baseURL: baseURL.value || undefined }
+  }
 
   // Detect system color scheme
   function detectSystemColorScheme() {
@@ -55,7 +170,6 @@ export const useSettingsStore = defineStore('settings', () => {
   const currentLanguage = computed(() => {
     if (language.value !== 'system') return language.value
     const sysLang = getSystemLanguage()
-    // Only return zh, ja, en - default to en for other languages
     if (sysLang === 'zh' || sysLang === 'ja' || sysLang === 'en') {
       return sysLang
     }
@@ -74,7 +188,8 @@ export const useSettingsStore = defineStore('settings', () => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         language: language.value,
         theme: theme.value,
-        models: models.value,
+        customModelConfigs: customModelConfigs.value,
+        enabledModels: enabledModels.value,
         defaultModel: defaultModel.value,
         apiKey: apiKey.value,
         baseURL: baseURL.value,
@@ -95,8 +210,15 @@ export const useSettingsStore = defineStore('settings', () => {
           if (['system', 'light', 'dark'].includes(settings.theme)) {
             theme.value = settings.theme
           }
-          if (Array.isArray(settings.models) && settings.models.length > 0) {
-            models.value = settings.models
+          if (Array.isArray(settings.customModelConfigs)) {
+            customModelConfigs.value = settings.customModelConfigs
+          }
+          if (Array.isArray(settings.enabledModels)) {
+            enabledModels.value = settings.enabledModels
+          }
+          // 兼容旧版本字段
+          if (Array.isArray(settings.enabledPublicModels)) {
+            enabledModels.value = [...new Set([...enabledModels.value, ...settings.enabledPublicModels])]
           }
           if (typeof settings.defaultModel === 'string') {
             defaultModel.value = settings.defaultModel
@@ -126,42 +248,92 @@ export const useSettingsStore = defineStore('settings', () => {
     saveSettings()
   }
 
-  // Add a custom model
-  function addModel(model: ModelOption) {
-    if (!models.value.find(m => m.id === model.id)) {
-      models.value.push(model)
+  // Toggle model enabled state
+  function toggleModel(modelId: string) {
+    const index = enabledModels.value.indexOf(modelId)
+    if (index !== -1) {
+      enabledModels.value.splice(index, 1)
+      if (defaultModel.value === modelId) {
+        defaultModel.value = enabledAvailableModels.value[0]?.id || ''
+      }
+    } else {
+      enabledModels.value.push(modelId)
+    }
+    saveSettings()
+  }
+
+  // Add custom model config
+  function addCustomModelConfig(config: CustomModelConfig) {
+    customModelConfigs.value.push(config)
+    // 默认启用新添加的模型
+    for (const m of config.models) {
+      if (!enabledModels.value.includes(m.id)) {
+        enabledModels.value.push(m.id)
+      }
+    }
+    saveSettings()
+  }
+
+  // Remove custom model config
+  function removeCustomModelConfig(configId: string) {
+    const index = customModelConfigs.value.findIndex(c => c.id === configId)
+    if (index !== -1) {
+      const config = customModelConfigs.value[index]
+      // 移除相关的启用状态
+      for (const m of config.models) {
+        const enabledIndex = enabledModels.value.indexOf(m.id)
+        if (enabledIndex !== -1) {
+          enabledModels.value.splice(enabledIndex, 1)
+        }
+        if (defaultModel.value === m.id) {
+          defaultModel.value = enabledAvailableModels.value[0]?.id || ''
+        }
+      }
+      customModelConfigs.value.splice(index, 1)
       saveSettings()
     }
   }
 
-  // Remove a model by id
-  function removeModel(modelId: string) {
-    const index = models.value.findIndex(m => m.id === modelId)
+  // Update custom model config
+  function updateCustomModelConfig(config: CustomModelConfig) {
+    const index = customModelConfigs.value.findIndex(c => c.id === config.id)
     if (index !== -1) {
-      models.value.splice(index, 1)
-      // If removed model was default, update default model
-      if (defaultModel.value === modelId) {
-        defaultModel.value = models.value.length > 0 ? models.value[0].id : ''
-      }
+      customModelConfigs.value[index] = config
       saveSettings()
     }
   }
 
   // Set default model
   function setDefaultModel(modelId: string) {
-    if (models.value.find(m => m.id === modelId)) {
+    if (availableModels.value.find(m => m.id === modelId)) {
       defaultModel.value = modelId
       saveSettings()
     }
   }
 
+  // 初始化默认设置
+  function initializeDefaults() {
+    // 默认启用所有 bundle 模型
+    for (const m of BUNDLE_MODELS) {
+      if (!enabledModels.value.includes(m.id)) {
+        enabledModels.value.push(m.id)
+      }
+    }
+    // 默认模型使用第一个 bundle 模型
+    if (!defaultModel.value && BUNDLE_MODELS.length > 0) {
+      defaultModel.value = BUNDLE_MODELS[0].id
+    }
+    saveSettings()
+  }
+
   // 监听变化自动持久化
-  watch([language, theme, models, defaultModel, apiKey, baseURL], saveSettings, { deep: true })
+  watch([language, theme, customModelConfigs, enabledModels, defaultModel, apiKey, baseURL], saveSettings, { deep: true })
 
   // Watch for system color scheme changes
   onMounted(() => {
     detectSystemColorScheme()
     loadSettings()
+    initializeDefaults()
 
     if (typeof window !== 'undefined' && window.matchMedia) {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
@@ -170,7 +342,6 @@ export const useSettingsStore = defineStore('settings', () => {
       }
       mediaQuery.addEventListener('change', handleChange)
 
-      // Cleanup
       return () => {
         mediaQuery.removeEventListener('change', handleChange)
       }
@@ -183,14 +354,20 @@ export const useSettingsStore = defineStore('settings', () => {
     isSystemDark,
     currentLanguage,
     currentTheme,
-    models,
+    customModelConfigs,
+    enabledModels,
+    availableModels,
+    enabledAvailableModels,
     defaultModel,
     apiKey,
     baseURL,
+    getModelConfig,
     setLanguage,
     setTheme,
-    addModel,
-    removeModel,
+    toggleModel,
+    addCustomModelConfig,
+    removeCustomModelConfig,
+    updateCustomModelConfig,
     setDefaultModel,
     loadSettings,
   }
