@@ -198,15 +198,16 @@ export const useAgentStore = defineStore('agent', () => {
     error.value = null
 
     // 调用 IPC（转为普通对象，避免 Vue reactive proxy 无法 clone）
-    await window.electronAPI.agentRun({
+    const requestOptions = {
       taskId,
       userInput,
       messages: JSON.parse(JSON.stringify(messages)),
-      model: options?.model,
+      model: options?.model || settingsStore.defaultModel,
       systemPrompt: options?.systemPrompt,
       baseURL: settingsStore.baseURL || undefined,
-      // deepThink 可映射到 thinking 参数（待 provider 支持）
-    })
+    }
+    console.log('[Agent] Running with model:', requestOptions.model, 'baseURL:', requestOptions.baseURL)
+    await window.electronAPI.agentRun(requestOptions)
   }
 
   /** 取消当前任务 */
