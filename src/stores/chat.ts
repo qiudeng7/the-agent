@@ -9,6 +9,7 @@
  */
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import type { ContentBlock } from '#agent/types'
 
 export interface ChatSession {
   id: string
@@ -22,7 +23,8 @@ export interface ChatSession {
 export interface Message {
   id: string
   role: 'user' | 'assistant'
-  content: string
+  /** 纯文本或富内容块（thinking / tool_use / tool_result） */
+  content: string | ContentBlock[]
   timestamp: number
 }
 
@@ -108,9 +110,12 @@ export const useChatStore = defineStore('chat', () => {
     if (session) {
       session.messages.push(message)
       session.updatedAt = Date.now()
-      // Update title from first message if it's the first message
+      // Update title from first message if it's the first user message
       if (session.messages.length === 1 && message.role === 'user') {
-        session.title = message.content.slice(0, 30) + (message.content.length > 30 ? '...' : '')
+        const text = typeof message.content === 'string'
+          ? message.content
+          : message.content.find(b => b.type === 'text')?.text ?? ''
+        session.title = text.slice(0, 30) + (text.length > 30 ? '...' : '')
       }
     }
   }

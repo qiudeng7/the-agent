@@ -27,6 +27,6 @@
       "#agent/*": ["agent/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "electron/electron.d.ts", "agent/types.ts"],
+  "exclude": ["node_modules"]
 }
