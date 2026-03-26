@@ -4,23 +4,6 @@ import path from 'path'
 import electron from 'vite-plugin-electron'
 import renderer from 'vite-plugin-electron-renderer'
 
-// 各模块 alias（按构建目标分离）
-const r = (p: string) => path.resolve(__dirname, p)
-
-/** renderer（src/）专用 alias，由顶层 Vite 处理 */
-const rendererAlias = {
-  '@': r('./src'),
-  'vue': 'vue/dist/vue.esm-bundler.js',
-}
-
-/** main process（electron/ + agent/）专用 alias，由 vite-plugin-electron 子构建处理 */
-const mainAlias = {
-  '#electron': r('./electron/index.ts'),
-  '#electron/': r('./electron/'),
-  '#agent': r('./agent/index.ts'),
-  '#agent/': r('./agent/'),
-}
-
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -29,7 +12,14 @@ export default defineConfig({
       {
         entry: 'electron/main/index.ts',
         vite: {
-          resolve: { alias: mainAlias },
+          resolve: {
+            alias: [
+              { find: /^#electron\//, replacement: path.resolve(__dirname, 'electron/') + '/' },
+              { find: '#electron', replacement: path.resolve(__dirname, 'electron/index.ts') },
+              { find: /^#agent\//, replacement: path.resolve(__dirname, 'agent/') + '/' },
+              { find: '#agent', replacement: path.resolve(__dirname, 'agent/index.ts') },
+            ],
+          },
           build: { outDir: 'dist-electron/main' },
         },
       },
@@ -39,7 +29,14 @@ export default defineConfig({
           options.reload()
         },
         vite: {
-          resolve: { alias: mainAlias },
+          resolve: {
+            alias: [
+              { find: /^#electron\//, replacement: path.resolve(__dirname, 'electron/') + '/' },
+              { find: '#electron', replacement: path.resolve(__dirname, 'electron/index.ts') },
+              { find: /^#agent\//, replacement: path.resolve(__dirname, 'agent/') + '/' },
+              { find: '#agent', replacement: path.resolve(__dirname, 'agent/index.ts') },
+            ],
+          },
           build: { outDir: 'dist-electron/preload' },
         },
       },
@@ -47,7 +44,10 @@ export default defineConfig({
     renderer(),
   ],
   resolve: {
-    alias: rendererAlias,
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+      'vue': 'vue/dist/vue.esm-bundler.js',
+    },
   },
   build: {
     outDir: 'dist',
