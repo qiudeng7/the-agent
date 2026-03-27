@@ -1,19 +1,18 @@
 /**
  * @module composables
- * @description Vue Composables 模块。
- *              通过 Vue inject 获取依赖，与具体实现解耦。
+ * @description 项目特定的 Vue Composables。
+ *              通用功能优先使用 VueUse。
+ *
+ * 可用：
+ * - useAutoResize: textarea 自动伸缩（VueUse 无对应）
+ *
+ * VueUse 替代：
+ * - useStorage / useLocalStorage → @vueuse/core
+ * - usePreferredDark → @vueuse/core
+ * - useDateFormat / useNow → @vueuse/core
  *
  * @layer composables
  */
 
 export { useAutoResize, useAutoResizeWithContent } from './useAutoResize'
 export type { UseAutoResizeOptions } from './useAutoResize'
-
-export { useStorage } from './useStorage'
-export type { UseStorageOptions } from './useStorage'
-
-export { useSystemTheme } from './useSystemTheme'
-export type { ThemeMode } from './useSystemTheme'
-
-export { useFormatTime, useLiveClock } from './useFormatTime'
-export type { UseFormatTimeOptions } from './useFormatTime'

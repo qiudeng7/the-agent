@@ -39,6 +39,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
+    "@vueuse/core": "^14.2.1",
     "pinia": "^3.0.1",
     "vue-router": "^4.5.0"
   }

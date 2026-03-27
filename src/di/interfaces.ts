@@ -42,15 +42,7 @@ export interface ISystemService {
   language: ILanguageDetector
 }
 
-/** 所有依赖 */
-export interface IDependencies {
-  agentTransport: IAgentTransport
-  storage: IStorage
-  systemService: ISystemService
-}
-
 /** Vue provide/inject 的 key */
-export const DEPENDENCIES_KEY = Symbol('dependencies')
 export const AGENT_TRANSPORT_KEY = Symbol('agentTransport')
 export const STORAGE_KEY = Symbol('storage')
 export const SYSTEM_SERVICE_KEY = Symbol('systemService')
