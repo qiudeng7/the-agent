@@ -19,6 +19,8 @@ export interface ThinkingContent {
   thinking: string
   /** 部分 provider 要求回传此签名以验证思考内容未被篡改 */
   signature?: string
+  /** 思考耗时（毫秒），由前端计算并附加 */
+  durationMs?: number
 }
 
 /** AI 发起的工具调用 */

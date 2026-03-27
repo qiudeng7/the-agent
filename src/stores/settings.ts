@@ -121,6 +121,8 @@ export const useSettingsStore = defineStore('settings', () => {
   const apiKey = ref<string>('')
   /** API Base URL（兼容旧版本） */
   const baseURL = ref<string>('')
+  /** 思考内容是否折叠（默认折叠） */
+  const collapseThinking = ref<boolean>(true)
 
   /** 所有可用模型 */
   const availableModels = computed<AvailableModel[]>(() => {
@@ -215,6 +217,7 @@ export const useSettingsStore = defineStore('settings', () => {
       defaultModel: defaultModel.value,
       apiKey: apiKey.value,
       baseURL: baseURL.value,
+      collapseThinking: collapseThinking.value,
     }))
   }
 
@@ -248,6 +251,9 @@ export const useSettingsStore = defineStore('settings', () => {
         }
         if (typeof settings.baseURL === 'string') {
           baseURL.value = settings.baseURL
+        }
+        if (typeof settings.collapseThinking === 'boolean') {
+          collapseThinking.value = settings.collapseThinking
         }
       } catch (e) {
         console.error('Failed to load settings:', e)
@@ -330,6 +336,12 @@ export const useSettingsStore = defineStore('settings', () => {
     }
   }
 
+  // Set collapse thinking
+  function setCollapseThinking(value: boolean) {
+    collapseThinking.value = value
+    saveSettings()
+  }
+
   // 初始化默认设置
   function initializeDefaults() {
     // 默认启用所有 bundle 模型
@@ -346,7 +358,7 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   // 监听变化自动持久化
-  watch([language, theme, customModelConfigs, enabledModels, defaultModel, apiKey, baseURL], saveSettings, { deep: true })
+  watch([language, theme, customModelConfigs, enabledModels, defaultModel, apiKey, baseURL, collapseThinking], saveSettings, { deep: true })
 
   // 监听系统主题变化
   let unsubscribeTheme: (() => void) | null = null
@@ -381,6 +393,7 @@ export const useSettingsStore = defineStore('settings', () => {
     defaultModel,
     apiKey,
     baseURL,
+    collapseThinking,
     getModelConfig,
     setLanguage,
     setTheme,
@@ -389,6 +402,7 @@ export const useSettingsStore = defineStore('settings', () => {
     removeCustomModelConfig,
     updateCustomModelConfig,
     setDefaultModel,
+    setCollapseThinking,
     loadSettings,
   }
 })

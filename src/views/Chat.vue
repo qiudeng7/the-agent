@@ -42,15 +42,27 @@
           </div>
           <div class="message-content">
             <template v-for="(block, idx) in getMessageBlocks(message)" :key="idx">
-              <div v-if="block.type === 'thinking'" class="thinking-block">
-                <div class="thinking-header">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <path d="M12 6v6l4 2"/>
-                  </svg>
-                  <span>思考过程</span>
+              <div v-if="block.type === 'thinking'" class="thinking-block" :class="{ collapsed: isThinkingCollapsed(message.id, idx) }">
+                <div class="thinking-header" @click="toggleThinking(message.id, idx)">
+                  <div class="thinking-header-left">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M12 6v6l4 2"/>
+                    </svg>
+                    <span>思考过程</span>
+                  </div>
+                  <div class="thinking-header-right">
+                    <span class="thinking-stats">
+                      {{ formatThinkingStats(block) }}
+                    </span>
+                    <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </div>
                 </div>
-                <p class="thinking-text">{{ block.thinking }}</p>
+                <div class="thinking-content" v-show="!isThinkingCollapsed(message.id, idx)">
+                  <p class="thinking-text">{{ block.thinking }}</p>
+                </div>
               </div>
               <div v-else-if="block.type === 'tool_use'" class="tool-block">
                 <div class="tool-header">
@@ -82,15 +94,27 @@
             </div>
           </div>
           <div class="message-content">
-            <div v-if="streamingThinking" class="thinking-block">
-              <div class="thinking-header">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M12 6v6l4 2"/>
-                </svg>
-                <span>思考中...</span>
+            <div v-if="streamingThinking" class="thinking-block" :class="{ collapsed: isStreamingThinkingCollapsed }">
+              <div class="thinking-header" @click="isStreamingThinkingCollapsed = !isStreamingThinkingCollapsed">
+                <div class="thinking-header-left">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 6v6l4 2"/>
+                  </svg>
+                  <span>思考中...</span>
+                </div>
+                <div class="thinking-header-right">
+                  <span class="thinking-stats">
+                    {{ streamingThinking.length }} 字
+                  </span>
+                  <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </div>
               </div>
-              <p class="thinking-text">{{ streamingThinking }}</p>
+              <div class="thinking-content" v-show="!isStreamingThinkingCollapsed">
+                <p class="thinking-text">{{ streamingThinking }}</p>
+              </div>
             </div>
             <div v-if="streamingText" class="message-text">
               <MarkdownRenderer :content="streamingText" />
@@ -137,6 +161,9 @@ const messages = computed(() => session.value?.messages ?? [])
 /** 会话当前模型（优先从会话获取，其次从最后消息推断，最后使用默认模型） */
 const sessionModel = ref<string>('')
 
+/** 流式思考是否折叠 */
+const isStreamingThinkingCollapsed = ref(settingsStore.collapseThinking)
+
 /** 流式内容（来自 agentStore） */
 const streamingText = computed(() => agentStore.currentText)
 const streamingThinking = computed(() => agentStore.currentThinking)
@@ -156,6 +183,40 @@ function getMessageBlocks(message: Message): ContentBlock[] {
     return [{ type: 'text', text: message.content }]
   }
   return message.content
+}
+
+/** 判断思考块是否折叠 */
+function isThinkingCollapsed(messageId: string, blockIdx: number): boolean {
+  const key = `${messageId}-${blockIdx}`
+  return chatStore.isThinkingCollapsed(key, settingsStore.collapseThinking)
+}
+
+/** 切换思考块的折叠状态 */
+function toggleThinking(messageId: string, blockIdx: number): void {
+  const key = `${messageId}-${blockIdx}`
+  chatStore.toggleThinking(key)
+}
+
+/** 格式化思考统计信息（时间 + 字数） */
+function formatThinkingStats(block: ContentBlock): string {
+  if (block.type !== 'thinking') return ''
+  const parts: string[] = []
+
+  // 字数
+  const charCount = block.thinking.length
+  parts.push(`${charCount} 字`)
+
+  // 耗时（如果有）
+  if (block.durationMs) {
+    const duration = block.durationMs
+    if (duration < 1000) {
+      parts.push(`${duration} ms`)
+    } else {
+      parts.push(`${(duration / 1000).toFixed(1)} s`)
+    }
+  }
+
+  return parts.join(' · ')
 }
 
 async function handleSubmit(input: string, options: { deepThink: boolean; webSearch: boolean; model: string }) {
@@ -356,18 +417,55 @@ onMounted(() => {
   background: var(--color-muted);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: 12px 16px;
   margin-bottom: 8px;
   font-size: 0.875rem;
+  overflow: hidden;
 }
 
 .thinking-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   color: var(--color-muted-foreground);
   font-weight: 500;
-  margin-bottom: 8px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
+}
+
+.thinking-header:hover {
+  background: var(--color-background);
+}
+
+.thinking-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.thinking-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.thinking-stats {
+  font-size: 0.75rem;
+  color: var(--color-muted-foreground);
+}
+
+.collapse-icon {
+  transition: transform 0.2s;
+}
+
+.thinking-block.collapsed .collapse-icon {
+  transform: rotate(-90deg);
+}
+
+.thinking-content {
+  padding: 0 16px 12px 16px;
 }
 
 .thinking-text {
@@ -375,6 +473,7 @@ onMounted(() => {
   font-style: italic;
   white-space: pre-wrap;
   line-height: 1.5;
+  margin: 0;
 }
 
 /* Tool Block */

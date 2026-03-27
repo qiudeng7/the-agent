@@ -42,6 +42,8 @@ export const useChatStore = defineStore('chat', () => {
   const currentSessionId = ref<string | null>(null)
   const groups = ref<ChatGroup[]>([])
   const searchQuery = ref('')
+  /** 思考块展开状态（key: `${messageId}-${blockIdx}`） */
+  const thinkingExpandedStates = ref<Record<string, boolean>>({})
 
   // Getters
   const currentSession = computed(() =>
@@ -173,6 +175,19 @@ export const useChatStore = defineStore('chat', () => {
     return null
   }
 
+  /** 判断思考块是否折叠 */
+  function isThinkingCollapsed(key: string, defaultCollapsed: boolean): boolean {
+    if (thinkingExpandedStates.value[key] === undefined) {
+      return defaultCollapsed
+    }
+    return !thinkingExpandedStates.value[key]
+  }
+
+  /** 切换思考块的折叠状态 */
+  function toggleThinking(key: string): void {
+    thinkingExpandedStates.value[key] = !thinkingExpandedStates.value[key]
+  }
+
   return {
     sessions,
     currentSessionId,
@@ -181,6 +196,7 @@ export const useChatStore = defineStore('chat', () => {
     searchQuery,
     filteredSessions,
     groupedSessions,
+    thinkingExpandedStates,
     createSession,
     switchSession,
     deleteSession,
@@ -191,5 +207,7 @@ export const useChatStore = defineStore('chat', () => {
     setSearchQuery,
     setSessionModel,
     getSessionModel,
+    isThinkingCollapsed,
+    toggleThinking,
   }
 })

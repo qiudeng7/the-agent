@@ -90,6 +90,17 @@
             <span class="toggle-slider"></span>
           </label>
         </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <span class="setting-label">折叠思考内容</span>
+            <span class="setting-desc">默认折叠 AI 的思考过程，点击可展开查看详情</span>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" v-model="settingsStore.collapseThinking" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
       </div>
 
       <div class="card">

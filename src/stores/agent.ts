@@ -20,6 +20,8 @@ interface StreamBuffer {
   text: string
   thinking: string
   blocks: ContentBlock[]
+  /** 思考开始时间（毫秒），用于计算思考耗时 */
+  thinkingStartTime: number | null
 }
 
 export const useAgentStore = defineStore('agent', () => {
@@ -36,7 +38,7 @@ export const useAgentStore = defineStore('agent', () => {
   /** 是否正在生成 */
   const isGenerating = ref(false)
   /** 流式输出缓冲区 */
-  const buffer = ref<StreamBuffer>({ text: '', thinking: '', blocks: [] })
+  const buffer = ref<StreamBuffer>({ text: '', thinking: '', blocks: [], thinkingStartTime: null })
   /** 错误信息 */
   const error = ref<string | null>(null)
 
@@ -65,6 +67,10 @@ export const useAgentStore = defineStore('agent', () => {
         break
 
       case 'thinking_delta':
+        // 首次收到 thinking 时记录开始时间
+        if (!buffer.value.thinkingStartTime) {
+          buffer.value.thinkingStartTime = Date.now()
+        }
         buffer.value.thinking += event.delta
         break
 
@@ -121,10 +127,16 @@ export const useAgentStore = defineStore('agent', () => {
 
   /** 将累积的 text/thinking 刷新为 ContentBlock */
   function flushTextToBlocks() {
-    const { text, thinking, blocks } = buffer.value
+    const { text, thinking, blocks, thinkingStartTime } = buffer.value
     if (thinking) {
-      blocks.push({ type: 'thinking', thinking })
+      blocks.push({
+        type: 'thinking',
+        thinking,
+        // 计算思考耗时（从首次收到 thinking_delta 到现在）
+        durationMs: thinkingStartTime ? Date.now() - thinkingStartTime : undefined,
+      })
       buffer.value.thinking = ''
+      buffer.value.thinkingStartTime = null
     }
     if (text) {
       blocks.push({ type: 'text', text })
@@ -162,7 +174,7 @@ export const useAgentStore = defineStore('agent', () => {
     currentSessionId.value = null
     currentModelId.value = null
     isGenerating.value = false
-    buffer.value = { text: '', thinking: '', blocks: [] }
+    buffer.value = { text: '', thinking: '', blocks: [], thinkingStartTime: null }
     error.value = null
   }
 
@@ -213,7 +225,7 @@ export const useAgentStore = defineStore('agent', () => {
     currentSessionId.value = sessionId
     currentModelId.value = modelId
     isGenerating.value = true
-    buffer.value = { text: '', thinking: '', blocks: [] }
+    buffer.value = { text: '', thinking: '', blocks: [], thinkingStartTime: null }
     error.value = null
 
     // 调用 IPC（转为普通对象，避免 Vue reactive proxy 无法 clone）
