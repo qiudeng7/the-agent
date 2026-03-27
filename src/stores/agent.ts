@@ -1,10 +1,14 @@
 /**
  * @module stores/agent
  * @description Agent 任务状态管理（Pinia store）。
- *              通过 Electron IPC 与主进程 AgentRunner 通信：
+ *              通过依赖注入的 transport 与后端通信：
  *              - runAgent()：发起任务，传入 sessionId 和用户输入
- *              - 订阅 onAgentEvent 实时更新流式输出
+ *              - 订阅 onEvent 实时更新流式输出
  *              - abort()：取消当前任务
+ *
+ * 依赖注入：
+ * - agentTransport: IAgentTransport - Agent 传输接口
+ *
  * @layer state
  */
 import { defineStore } from 'pinia'
@@ -12,6 +16,7 @@ import { ref, computed } from 'vue'
 import type { AgentEvent, ContentBlock } from '#agent/types'
 import { useChatStore } from './chat'
 import { useSettingsStore } from './settings'
+import { getAgentTransport } from '@/di'
 
 /** 流式输出缓冲区 */
 interface StreamBuffer {
@@ -21,6 +26,9 @@ interface StreamBuffer {
 }
 
 export const useAgentStore = defineStore('agent', () => {
+  // ── 依赖注入 ────────────────────────────────────────────────────────────────
+  const transport = getAgentTransport()
+
   // ── State ──────────────────────────────────────────────────────────────────
   /** 当前运行的 taskId（对应一个 assistant 消息的生成过程） */
   const currentTaskId = ref<string | null>(null)
@@ -42,12 +50,12 @@ export const useAgentStore = defineStore('agent', () => {
   /** 当前累积的 thinking 内容 */
   const currentThinking = computed(() => buffer.value.thinking)
 
-  // ── IPC 事件订阅 ───────────────────────────────────────────────────────────
+  // ── 事件订阅 ───────────────────────────────────────────────────────────────
   let unsubscribe: (() => void) | null = null
 
   function ensureSubscribed() {
     if (unsubscribe) return
-    unsubscribe = window.electronAPI.onAgentEvent(handleAgentEvent)
+    unsubscribe = transport.onEvent(handleAgentEvent)
   }
 
   function handleAgentEvent(event: AgentEvent) {
@@ -222,14 +230,14 @@ export const useAgentStore = defineStore('agent', () => {
       baseURL: modelConfig.baseURL,
     }
     console.log('[Agent] Running with model:', requestOptions.model, 'baseURL:', requestOptions.baseURL)
-    await window.electronAPI.agentRun(requestOptions)
+    await transport.run(requestOptions)
   }
 
   /** 取消当前任务 */
   async function abort() {
     const taskId = currentTaskId.value
     if (!taskId) return
-    await window.electronAPI.agentAbort(taskId)
+    await transport.abort(taskId)
     resetState()
   }
 

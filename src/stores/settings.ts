@@ -2,13 +2,19 @@
  * @module stores/settings
  * @description 应用设置状态管理（Pinia store）。
  *              管理语言（language）、主题（theme）、自定义模型列表（models）。
- *              - 持久化到 localStorage，key: 'app-settings'
- *              - onMounted 时注册 prefers-color-scheme 媒体查询监听，实时响应系统主题切换
+ *              - 持久化到注入的 storage，key: 'app-settings'
+ *              - 使用注入的 systemService 检测系统主题和语言
  *              - currentLanguage / currentTheme 为解析后的实际值（排除 'system' 占位）
+ *
+ * 依赖注入：
+ * - storage: IStorage - 存储服务
+ * - systemService: ISystemService - 系统服务（主题/语言检测）
+ *
  * @layer state
  */
 import { defineStore } from 'pinia'
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { getStorage, getSystemService } from '@/di'
 
 export type Language = 'system' | 'zh' | 'ja' | 'en'
 export type Theme = 'system' | 'light' | 'dark'
@@ -101,6 +107,10 @@ export const BUNDLE_MODELS: BundleModel[] = [
 const STORAGE_KEY = 'app-settings'
 
 export const useSettingsStore = defineStore('settings', () => {
+  // ── 依赖注入 ────────────────────────────────────────────────────────────────
+  const storage = getStorage()
+  const systemService = getSystemService()
+
   // State
   const language = ref<Language>('system')
   const theme = ref<Theme>('system')
@@ -172,16 +182,12 @@ export const useSettingsStore = defineStore('settings', () => {
 
   // Detect system color scheme
   function detectSystemColorScheme() {
-    if (typeof window !== 'undefined' && window.matchMedia) {
-      isSystemDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches
-    }
+    isSystemDark.value = systemService.theme.isDark
   }
 
   // Detect system language
   function getSystemLanguage(): Language {
-    if (typeof window === 'undefined') return 'en'
-
-    const sysLang = navigator.language.toLowerCase()
+    const sysLang = systemService.language.getLanguage().toLowerCase()
     if (sysLang.startsWith('zh')) return 'zh'
     if (sysLang.startsWith('ja')) return 'ja'
     return 'en'
@@ -203,56 +209,52 @@ export const useSettingsStore = defineStore('settings', () => {
     return isSystemDark.value ? 'dark' : 'light'
   })
 
-  // Save to localStorage
+  // Save to storage
   function saveSettings() {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        language: language.value,
-        theme: theme.value,
-        customModelConfigs: customModelConfigs.value,
-        enabledModels: enabledModels.value,
-        defaultModel: defaultModel.value,
-        apiKey: apiKey.value,
-        baseURL: baseURL.value,
-      }))
-    }
+    storage.setItem(STORAGE_KEY, JSON.stringify({
+      language: language.value,
+      theme: theme.value,
+      customModelConfigs: customModelConfigs.value,
+      enabledModels: enabledModels.value,
+      defaultModel: defaultModel.value,
+      apiKey: apiKey.value,
+      baseURL: baseURL.value,
+    }))
   }
 
-  // Load from localStorage
+  // Load from storage
   function loadSettings() {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        try {
-          const settings = JSON.parse(saved)
-          if (['system', 'zh', 'ja', 'en'].includes(settings.language)) {
-            language.value = settings.language
-          }
-          if (['system', 'light', 'dark'].includes(settings.theme)) {
-            theme.value = settings.theme
-          }
-          if (Array.isArray(settings.customModelConfigs)) {
-            customModelConfigs.value = settings.customModelConfigs
-          }
-          if (Array.isArray(settings.enabledModels)) {
-            enabledModels.value = settings.enabledModels
-          }
-          // 兼容旧版本字段
-          if (Array.isArray(settings.enabledPublicModels)) {
-            enabledModels.value = [...new Set([...enabledModels.value, ...settings.enabledPublicModels])]
-          }
-          if (typeof settings.defaultModel === 'string') {
-            defaultModel.value = settings.defaultModel
-          }
-          if (typeof settings.apiKey === 'string') {
-            apiKey.value = settings.apiKey
-          }
-          if (typeof settings.baseURL === 'string') {
-            baseURL.value = settings.baseURL
-          }
-        } catch (e) {
-          console.error('Failed to load settings:', e)
+    const saved = storage.getItem(STORAGE_KEY)
+    if (saved) {
+      try {
+        const settings = JSON.parse(saved)
+        if (['system', 'zh', 'ja', 'en'].includes(settings.language)) {
+          language.value = settings.language
         }
+        if (['system', 'light', 'dark'].includes(settings.theme)) {
+          theme.value = settings.theme
+        }
+        if (Array.isArray(settings.customModelConfigs)) {
+          customModelConfigs.value = settings.customModelConfigs
+        }
+        if (Array.isArray(settings.enabledModels)) {
+          enabledModels.value = settings.enabledModels
+        }
+        // 兼容旧版本字段
+        if (Array.isArray(settings.enabledPublicModels)) {
+          enabledModels.value = [...new Set([...enabledModels.value, ...settings.enabledPublicModels])]
+        }
+        if (typeof settings.defaultModel === 'string') {
+          defaultModel.value = settings.defaultModel
+        }
+        if (typeof settings.apiKey === 'string') {
+          apiKey.value = settings.apiKey
+        }
+        if (typeof settings.baseURL === 'string') {
+          baseURL.value = settings.baseURL
+        }
+      } catch (e) {
+        console.error('Failed to load settings:', e)
       }
     }
   }
@@ -350,22 +352,23 @@ export const useSettingsStore = defineStore('settings', () => {
   // 监听变化自动持久化
   watch([language, theme, customModelConfigs, enabledModels, defaultModel, apiKey, baseURL], saveSettings, { deep: true })
 
-  // Watch for system color scheme changes
+  // 监听系统主题变化
+  let unsubscribeTheme: (() => void) | null = null
+
   onMounted(() => {
     detectSystemColorScheme()
     loadSettings()
     initializeDefaults()
 
-    if (typeof window !== 'undefined' && window.matchMedia) {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-      const handleChange = (e: MediaQueryListEvent) => {
-        isSystemDark.value = e.matches
-      }
-      mediaQuery.addEventListener('change', handleChange)
+    // 使用注入的主题服务监听变化
+    unsubscribeTheme = systemService.theme.onChange((isDark) => {
+      isSystemDark.value = isDark
+    })
+  })
 
-      return () => {
-        mediaQuery.removeEventListener('change', handleChange)
-      }
+  onUnmounted(() => {
+    if (unsubscribeTheme) {
+      unsubscribeTheme()
     }
   })
 
