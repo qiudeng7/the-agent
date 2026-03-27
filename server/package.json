@@ -1,0 +1,29 @@
+{
+  "name": "@the-agent/server",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "nitro dev",
+    "build": "nitro build",
+    "preview": "nitro preview",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.40.0",
+    "jose": "^5.9.6",
+    "nanoid": "^5.1.2"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250321.0",
+    "@rollup/plugin-terser": "^1.0.0",
+    "better-sqlite3": "^11.9.1",
+    "drizzle-kit": "^0.30.0",
+    "nitro": "^3.0.0",
+    "typescript": "~5.7.2",
+    "wrangler": "^4.6.0"
+  }
+}

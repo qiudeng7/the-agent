@@ -1,0 +1,12 @@
+name = "the-agent-api"
+main = "./.output/server/index.mjs"
+compatibility_date = "2025-03-28"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "the-agent-db"
+database_id = "a911c155-9f25-4a64-a926-5df07bdedbfb"
+
+[vars]
+NODE_ENV = "production"

@@ -46,6 +46,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '#agent': path.resolve(__dirname, './agent'),
       'vue': 'vue/dist/vue.esm-bundler.js',
     },
   },

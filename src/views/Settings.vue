@@ -348,11 +348,11 @@ function removeModalModel(index: number) {
   }
 }
 
-function saveConfig() {
+async function saveConfig() {
   const models = modalForm.value.models.filter(m => m.id.trim())
 
   if (editingConfig.value) {
-    settingsStore.updateCustomModelConfig({
+    await settingsStore.updateCustomModelConfig({
       id: editingConfig.value.id,
       name: modalForm.value.name.trim(),
       baseURL: modalForm.value.baseURL.trim(),
@@ -360,7 +360,7 @@ function saveConfig() {
       models,
     })
   } else {
-    settingsStore.addCustomModelConfig({
+    await settingsStore.addCustomModelConfig({
       id: Date.now().toString(),
       name: modalForm.value.name.trim(),
       baseURL: modalForm.value.baseURL.trim(),
@@ -372,9 +372,9 @@ function saveConfig() {
   closeModal()
 }
 
-function deleteConfig() {
+async function deleteConfig() {
   if (editingConfig.value) {
-    settingsStore.removeCustomModelConfig(editingConfig.value.id)
+    await settingsStore.removeCustomModelConfig(editingConfig.value.id)
     closeModal()
   }
 }

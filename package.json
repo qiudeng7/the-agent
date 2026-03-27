@@ -3,6 +3,9 @@
   "version": "0.5.0",
   "description": "Electron + Vite + Vue Agent Application",
   "main": "dist-electron/main/index.js",
+  "pnpm": {
+    "onlyBuiltDependencies": ["bcrypt", "better-sqlite3", "electron", "electron-winstaller", "esbuild"]
+  },
   "scripts": {
     "dev": "vite",
     "make": "vue-tsc && vite build && electron-forge make",

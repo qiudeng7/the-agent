@@ -98,8 +98,10 @@ export const useAgentStore = defineStore('agent', () => {
         console.log('[Agent] Done, blocks:', event.message.content)
         // 最终刷新文本缓冲
         flushTextToBlocks()
-        // 追加到 chat store
-        appendToChat(event.message.content)
+        // 追加到 chat store（异步，不阻塞）
+        appendToChat(event.message.content).catch(err => {
+          console.error('[Agent] Failed to append message:', err)
+        })
         // 重置状态
         resetState()
         break
@@ -118,6 +120,8 @@ export const useAgentStore = defineStore('agent', () => {
             role: 'assistant',
             content: `❌ 错误: ${event.error}${event.code ? ` (${event.code})` : ''}`,
             timestamp: Date.now(),
+          }).catch(err => {
+            console.error('[Agent] Failed to append error message:', err)
           })
         }
         resetState()
@@ -145,7 +149,7 @@ export const useAgentStore = defineStore('agent', () => {
   }
 
   /** 将 assistant 消息追加到 chat store */
-  function appendToChat(content: string | ContentBlock[]) {
+  async function appendToChat(content: string | ContentBlock[]) {
     const chatStore = useChatStore()
     const sessionId = currentSessionId.value
     if (!sessionId) return
@@ -155,7 +159,7 @@ export const useAgentStore = defineStore('agent', () => {
     const finalContent: string | ContentBlock[] =
       typeof content === 'string' ? content : buffer.value.blocks
 
-    chatStore.addMessage(sessionId, {
+    await chatStore.addMessage(sessionId, {
       id: Date.now().toString(),
       role: 'assistant',
       content: finalContent,
@@ -202,7 +206,7 @@ export const useAgentStore = defineStore('agent', () => {
     const taskId = Date.now().toString()
 
     // 追加用户消息
-    chatStore.addMessage(sessionId, {
+    await chatStore.addMessage(sessionId, {
       id: taskId + '-user',
       role: 'user',
       content: userInput,

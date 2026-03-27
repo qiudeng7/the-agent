@@ -118,8 +118,8 @@ const suggestionList = [
   '解释一下量子纠缠',
 ]
 
-function handleAction(action: typeof actions[0]) {
-  const session = chatStore.createSession(action.title)
+async function handleAction(action: typeof actions[0]) {
+  const session = await chatStore.createSession(action.title)
   // 设置会话的当前模型
   if (currentModel.value) {
     chatStore.setSessionModel(session.id, currentModel.value)
@@ -127,8 +127,8 @@ function handleAction(action: typeof actions[0]) {
   router.push(`/chat/${session.id}`)
 }
 
-function handleSuggestion(text: string) {
-  const session = chatStore.createSession(text)
+async function handleSuggestion(text: string) {
+  const session = await chatStore.createSession(text)
   // 设置会话的当前模型
   if (currentModel.value) {
     chatStore.setSessionModel(session.id, currentModel.value)
@@ -141,8 +141,8 @@ function handleSuggestion(text: string) {
   })
 }
 
-function handleSubmit(input: string, options: { deepThink: boolean; webSearch: boolean; model: string }) {
-  const session = chatStore.createSession(input)
+async function handleSubmit(input: string, options: { deepThink: boolean; webSearch: boolean; model: string }) {
+  const session = await chatStore.createSession(input)
   // 设置会话的当前模型
   if (options.model) {
     chatStore.setSessionModel(session.id, options.model)
