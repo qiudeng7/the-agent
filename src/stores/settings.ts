@@ -1,20 +1,16 @@
 /**
  * @module stores/settings
  * @description 应用设置状态管理（Pinia store）。
- *              管理语言（language）、主题（theme）、自定义模型列表（models）。
- *              - 持久化到注入的 storage，key: 'app-settings'
- *              - 使用注入的 systemService 检测系统主题和语言
- *              - currentLanguage / currentTheme 为解析后的实际值（排除 'system' 占位）
  *
- * 依赖注入：
- * - storage: IStorage - 存储服务
- * - systemService: ISystemService - 系统服务（主题/语言检测）
+ * 依赖注入（通过 Vue inject）：
+ * - storage: IStorage
+ * - systemService: ISystemService
  *
  * @layer state
  */
 import { defineStore } from 'pinia'
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { getStorage, getSystemService } from '@/di'
+import { ref, computed, watch, onMounted, onUnmounted, inject } from 'vue'
+import { STORAGE_KEY, SYSTEM_SERVICE_KEY, type IStorage, type ISystemService } from '@/di/interfaces'
 
 export type Language = 'system' | 'zh' | 'ja' | 'en'
 export type Theme = 'system' | 'light' | 'dark'
@@ -104,12 +100,12 @@ export const BUNDLE_MODELS: BundleModel[] = [
   },
 ]
 
-const STORAGE_KEY = 'app-settings'
+const SETTINGS_STORAGE_KEY = 'app-settings'
 
 export const useSettingsStore = defineStore('settings', () => {
   // ── 依赖注入 ────────────────────────────────────────────────────────────────
-  const storage = getStorage()
-  const systemService = getSystemService()
+  const storage = inject<IStorage>(STORAGE_KEY)!
+  const systemService = inject<ISystemService>(SYSTEM_SERVICE_KEY)!
 
   // State
   const language = ref<Language>('system')
@@ -211,7 +207,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
   // Save to storage
   function saveSettings() {
-    storage.setItem(STORAGE_KEY, JSON.stringify({
+    storage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify({
       language: language.value,
       theme: theme.value,
       customModelConfigs: customModelConfigs.value,
@@ -224,7 +220,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
   // Load from storage
   function loadSettings() {
-    const saved = storage.getItem(STORAGE_KEY)
+    const saved = storage.getItem(SETTINGS_STORAGE_KEY)
     if (saved) {
       try {
         const settings = JSON.parse(saved)

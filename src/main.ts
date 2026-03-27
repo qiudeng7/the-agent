@@ -1,12 +1,7 @@
 /**
  * @module main
- * @description Vue 应用入口，初始化 Pinia 状态管理和 Vue Router 路由，
- *              挂载应用到 #app 元素，并在挂载完成后淡出启动 loading 动画。
- *
- * 启动流程：
- * 1. 初始化依赖注入（Electron 环境的依赖实现）
- * 2. 创建 Vue 应用和 Pinia store
- * 3. 挂载应用
+ * @description Vue 应用入口。
+ *              通过 provide 注入依赖，stores 通过 inject 获取。
  *
  * @layer bootstrap
  */
@@ -14,18 +9,23 @@ import { createApp, nextTick } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
-import { initDependencies, createElectronDependencies } from './di'
+import { AGENT_TRANSPORT_KEY, STORAGE_KEY, SYSTEM_SERVICE_KEY } from './di/interfaces'
+import { createElectronDependencies } from './di/electron'
 import './assets/main.css'
 
-// 初始化依赖注入（必须在 Pinia store 使用之前）
-initDependencies(createElectronDependencies())
+// 创建依赖
+const deps = createElectronDependencies()
 
 const app = createApp(App)
 const pinia = createPinia()
 
+// 通过 Vue provide 注入依赖
+app.provide(AGENT_TRANSPORT_KEY, deps.agentTransport)
+app.provide(STORAGE_KEY, deps.storage)
+app.provide(SYSTEM_SERVICE_KEY, deps.systemService)
+
 app.use(pinia)
 app.use(router)
-
 app.mount('#app')
 
 // Vue 挂载完成后移除 loading

@@ -1,22 +1,19 @@
 /**
  * @module stores/agent
  * @description Agent 任务状态管理（Pinia store）。
- *              通过依赖注入的 transport 与后端通信：
- *              - runAgent()：发起任务，传入 sessionId 和用户输入
- *              - 订阅 onEvent 实时更新流式输出
- *              - abort()：取消当前任务
+ *              通过依赖注入的 transport 与后端通信。
  *
- * 依赖注入：
- * - agentTransport: IAgentTransport - Agent 传输接口
+ * 依赖注入（通过 Vue inject）：
+ * - agentTransport: IAgentTransport
  *
  * @layer state
  */
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, inject } from 'vue'
 import type { AgentEvent, ContentBlock } from '#agent/types'
 import { useChatStore } from './chat'
 import { useSettingsStore } from './settings'
-import { getAgentTransport } from '@/di'
+import { AGENT_TRANSPORT_KEY, type IAgentTransport } from '@/di/interfaces'
 
 /** 流式输出缓冲区 */
 interface StreamBuffer {
@@ -27,7 +24,7 @@ interface StreamBuffer {
 
 export const useAgentStore = defineStore('agent', () => {
   // ── 依赖注入 ────────────────────────────────────────────────────────────────
-  const transport = getAgentTransport()
+  const transport = inject<IAgentTransport>(AGENT_TRANSPORT_KEY)!
 
   // ── State ──────────────────────────────────────────────────────────────────
   /** 当前运行的 taskId（对应一个 assistant 消息的生成过程） */
