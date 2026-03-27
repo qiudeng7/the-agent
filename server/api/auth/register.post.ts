@@ -1,0 +1,86 @@
+/**
+ * @module api/auth/register
+ * @description 用户注册 API
+ *              POST /api/auth/register
+ */
+import { defineEventHandler, readBody, createError } from 'h3'
+import { nanoid } from 'nanoid'
+import { db, users } from '~/db'
+import { hashPassword } from '~/utils/crypto'
+import { generateToken } from '~/utils/auth'
+import { eq } from 'drizzle-orm'
+
+interface RegisterBody {
+  email: string
+  password: string
+  nickname?: string
+}
+
+export default defineEventHandler(async (event) => {
+  const body = await readBody<RegisterBody>(event)
+
+  // 验证必填字段
+  if (!body.email || !body.password) {
+    throw createError({
+      statusCode: 400,
+      message: 'Email and password are required',
+    })
+  }
+
+  // 验证邮箱格式
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(body.email)) {
+    throw createError({
+      statusCode: 400,
+      message: 'Invalid email format',
+    })
+  }
+
+  // 验证密码长度
+  if (body.password.length < 6) {
+    throw createError({
+      statusCode: 400,
+      message: 'Password must be at least 6 characters',
+    })
+  }
+
+  // 检查邮箱是否已存在
+  const existing = await db.select().from(users).where(eq(users.email, body.email)).limit(1)
+  if (existing.length > 0) {
+    throw createError({
+      statusCode: 409,
+      message: 'Email already registered',
+    })
+  }
+
+  // 创建用户
+  const now = new Date()
+  const userId = nanoid()
+  const passwordHash = await hashPassword(body.password)
+
+  await db.insert(users).values({
+    id: userId,
+    email: body.email,
+    passwordHash,
+    nickname: body.nickname || null,
+    createdAt: now,
+    updatedAt: now,
+  })
+
+  // 生成 JWT
+  const token = await generateToken({
+    userId,
+    email: body.email,
+  })
+
+  // 返回结果
+  return {
+    token,
+    user: {
+      id: userId,
+      email: body.email,
+      nickname: body.nickname || null,
+      createdAt: now.getTime(),
+    },
+  }
+})

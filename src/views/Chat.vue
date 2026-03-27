@@ -183,13 +183,21 @@ function initSessionModel() {
   }
 }
 
-// 监听会话 ID 变化，重新初始化模型
-watch(sessionId, () => {
-  initSessionModel()
+// 监听会话 ID 变化，重新初始化模型并加载消息
+watch(sessionId, async (id) => {
+  if (id) {
+    // 加载消息
+    await chatStore.loadSessionMessages(id)
+    initSessionModel()
+  }
 }, { immediate: true })
 
 // 处理来自首页"推荐问题"点击的初始消息
-onMounted(() => {
+onMounted(async () => {
+  const id = sessionId.value
+  if (id) {
+    await chatStore.loadSessionMessages(id)
+  }
   initSessionModel()
   const q = route.query.q
   const model = route.query.model

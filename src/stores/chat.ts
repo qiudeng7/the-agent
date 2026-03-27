@@ -2,14 +2,13 @@
  * @module stores/chat
  * @description 会话状态管理（Pinia store）。
  *              管理会话列表（sessions）、分组（groups）、当前会话 ID 和搜索关键词。
- *              - createSession：创建新会话并置顶
- *              - addMessage：追加消息，首条用户消息自动截取前 30 字符作为会话标题
- *              - groupedSessions：按分组聚合会话，未分组的归入"其他"分类
+ *              数据来源为后端 API，本地作为缓存。
  * @layer state
  */
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { ContentBlock } from '#agent/types'
+import * as backend from '@/services/backend'
 
 export interface ChatSession {
   id: string
@@ -18,6 +17,8 @@ export interface ChatSession {
   messages: Message[]
   createdAt: number
   updatedAt: number
+  /** 消息是否已加载 */
+  messagesLoaded?: boolean
 }
 
 export interface Message {
@@ -42,6 +43,7 @@ export const useChatStore = defineStore('chat', () => {
   const currentSessionId = ref<string | null>(null)
   const groups = ref<ChatGroup[]>([])
   const searchQuery = ref('')
+  const isLoading = ref(false)
 
   // Getters
   const currentSession = computed(() =>
@@ -56,7 +58,6 @@ export const useChatStore = defineStore('chat', () => {
   })
 
   const groupedSessions = computed(() => {
-    // 基于 filteredSessions 而非 sessions.value，使搜索过滤生效
     const base = filteredSessions.value
     if (groups.value.length === 0) {
       return { ungrouped: base }
@@ -67,36 +68,143 @@ export const useChatStore = defineStore('chat', () => {
         .map(id => base.find(s => s.id === id))
         .filter((s): s is ChatSession => !!s)
     })
-    // Add ungrouped sessions
     const groupedIds = groups.value.flatMap(g => g.sessionIds)
     result['其他'] = base.filter(s => !groupedIds.includes(s.id))
     return result
   })
 
-  // Actions
-  function createSession(title?: string) {
-    const session: ChatSession = {
-      id: Date.now().toString(),
-      title: title || '新会话',
-      model: 'default',
-      messages: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+  // ── API Actions ────────────────────────────────────────────────────────────
+
+  /**
+   * 从服务器获取所有会话（登录后调用）
+   */
+  async function fetchAll() {
+    try {
+      isLoading.value = true
+      const remoteSessions = await backend.fetchSessions()
+
+      // 转换为本地格式（messages 为空，需要时加载）
+      sessions.value = remoteSessions.map(s => ({
+        id: s.id,
+        title: s.title,
+        model: s.model,
+        messages: [],
+        messagesLoaded: false,
+        createdAt: s.createdAt,
+        updatedAt: s.updatedAt,
+      }))
+    } finally {
+      isLoading.value = false
     }
+  }
+
+  /**
+   * 加载单个会话的消息
+   */
+  async function loadSessionMessages(sessionId: string) {
+    const session = sessions.value.find(s => s.id === sessionId)
+    if (!session || session.messagesLoaded) return
+
+    try {
+      const detail = await backend.fetchSession(sessionId)
+      session.messages = detail.messages.map(m => ({
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        model: m.model,
+        timestamp: m.timestamp,
+      }))
+      session.messagesLoaded = true
+    } catch (err) {
+      console.error('[Chat] Failed to load messages:', err)
+    }
+  }
+
+  /**
+   * 创建会话（调用 API）
+   */
+  async function createSession(title?: string, model?: string): Promise<ChatSession> {
+    const remote = await backend.createSession(title, model)
+
+    const session: ChatSession = {
+      id: remote.id,
+      title: remote.title,
+      model: remote.model,
+      messages: [],
+      messagesLoaded: true,
+      createdAt: remote.createdAt,
+      updatedAt: remote.updatedAt,
+    }
+
     sessions.value.unshift(session)
     currentSessionId.value = session.id
     return session
   }
 
-  function switchSession(id: string) {
-    currentSessionId.value = id
-  }
-
-  function deleteSession(id: string) {
+  /**
+   * 删除会话（调用 API）
+   */
+  async function deleteSession(id: string) {
+    await backend.deleteSession(id)
     sessions.value = sessions.value.filter(s => s.id !== id)
     if (currentSessionId.value === id) {
       currentSessionId.value = null
     }
+  }
+
+  /**
+   * 添加消息（调用 API）
+   */
+  async function addMessage(sessionId: string, message: Message) {
+    const session = sessions.value.find(s => s.id === sessionId)
+    if (!session) return
+
+    // 先乐观更新本地
+    session.messages.push(message)
+    session.updatedAt = Date.now()
+
+    try {
+      // 调用 API
+      const saved = await backend.addMessage(sessionId, {
+        id: message.id,
+        role: message.role,
+        content: message.content,
+        model: message.model,
+        timestamp: message.timestamp,
+      })
+
+      // 更新消息 ID（如果服务器生成了新的）
+      const index = session.messages.findIndex(m => m.id === message.id)
+      if (index !== -1) {
+        session.messages[index].id = saved.id
+      }
+
+      // 更新会话标题（服务器可能已更新）
+      const detail = await backend.fetchSession(sessionId)
+      session.title = detail.session.title
+    } catch (err) {
+      console.error('[Chat] Failed to add message:', err)
+      // 回滚
+      session.messages.pop()
+    }
+  }
+
+  /**
+   * 清空本地缓存（登出时调用）
+   */
+  function clear() {
+    sessions.value = []
+    currentSessionId.value = null
+    groups.value = []
+    searchQuery.value = ''
+  }
+
+  // ── Local Actions ───────────────────────────────────────────────────────────
+
+  function switchSession(id: string) {
+    currentSessionId.value = id
+    // 自动加载消息
+    loadSessionMessages(id)
   }
 
   function updateSessionTitle(id: string, title: string) {
@@ -104,21 +212,6 @@ export const useChatStore = defineStore('chat', () => {
     if (session) {
       session.title = title
       session.updatedAt = Date.now()
-    }
-  }
-
-  function addMessage(sessionId: string, message: Message) {
-    const session = sessions.value.find(s => s.id === sessionId)
-    if (session) {
-      session.messages.push(message)
-      session.updatedAt = Date.now()
-      // Update title from first message if it's the first user message
-      if (session.messages.length === 1 && message.role === 'user') {
-        const text = typeof message.content === 'string'
-          ? message.content
-          : message.content.find(b => b.type === 'text')?.text ?? ''
-        session.title = text.slice(0, 30) + (text.length > 30 ? '...' : '')
-      }
     }
   }
 
@@ -143,7 +236,6 @@ export const useChatStore = defineStore('chat', () => {
     searchQuery.value = query
   }
 
-  /** 设置会话当前使用的模型 */
   function setSessionModel(sessionId: string, modelId: string) {
     const session = sessions.value.find(s => s.id === sessionId)
     if (session) {
@@ -152,17 +244,14 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  /** 获取会话当前应使用的模型 ID */
   function getSessionModel(sessionId: string): string | null {
     const session = sessions.value.find(s => s.id === sessionId)
     if (!session) return null
 
-    // 如果会话已有模型设置，直接返回
     if (session.model && session.model !== 'default') {
       return session.model
     }
 
-    // 否则从最后一条 assistant 消息推断
     for (let i = session.messages.length - 1; i >= 0; i--) {
       const msg = session.messages[i]
       if (msg.role === 'assistant' && msg.model) {
@@ -179,13 +268,19 @@ export const useChatStore = defineStore('chat', () => {
     currentSession,
     groups,
     searchQuery,
+    isLoading,
     filteredSessions,
     groupedSessions,
+    // API Actions
+    fetchAll,
+    loadSessionMessages,
     createSession,
-    switchSession,
     deleteSession,
-    updateSessionTitle,
     addMessage,
+    clear,
+    // Local Actions
+    switchSession,
+    updateSessionTitle,
     createGroup,
     addSessionToGroup,
     setSearchQuery,

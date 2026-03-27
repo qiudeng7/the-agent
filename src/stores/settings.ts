@@ -1,16 +1,13 @@
 /**
  * @module stores/settings
  * @description 应用设置状态管理（Pinia store）。
- *
- * 依赖注入（通过 Vue inject）：
- * - storage: IStorage
- * - systemService: ISystemService
- *
+ *              设置数据同步到云端，本地作为缓存。
  * @layer state
  */
 import { defineStore } from 'pinia'
-import { ref, computed, watch, onMounted, onUnmounted, inject } from 'vue'
-import { STORAGE_KEY, SYSTEM_SERVICE_KEY, type IStorage, type ISystemService } from '@/di/interfaces'
+import { ref, computed, watch, inject } from 'vue'
+import { SYSTEM_SERVICE_KEY, type ISystemService } from '@/di/interfaces'
+import * as backend from '@/services/backend'
 
 export type Language = 'system' | 'zh' | 'ja' | 'en'
 export type Theme = 'system' | 'light' | 'dark'
@@ -100,33 +97,24 @@ export const BUNDLE_MODELS: BundleModel[] = [
   },
 ]
 
-const SETTINGS_STORAGE_KEY = 'app-settings'
-
 export const useSettingsStore = defineStore('settings', () => {
   // ── 依赖注入 ────────────────────────────────────────────────────────────────
-  const storage = inject<IStorage>(STORAGE_KEY)!
   const systemService = inject<ISystemService>(SYSTEM_SERVICE_KEY)!
 
   // State
   const language = ref<Language>('system')
   const theme = ref<Theme>('system')
   const isSystemDark = ref(false)
-  /** 用户自定义模型配置列表 */
   const customModelConfigs = ref<CustomModelConfig[]>([])
-  /** 已启用的模型 ID 列表（包括 bundle 和 custom） */
   const enabledModels = ref<string[]>([])
-  /** 默认选中的模型 ID */
   const defaultModel = ref<string>('')
-  /** API Key（兼容旧版本） */
-  const apiKey = ref<string>('')
-  /** API Base URL（兼容旧版本） */
-  const baseURL = ref<string>('')
+  const isLoading = ref(false)
 
-  /** 所有可用模型 */
+  // ── Getters ──────────────────────────────────────────────────────────────────
+
   const availableModels = computed<AvailableModel[]>(() => {
     const models: AvailableModel[] = []
 
-    // Bundle 模型
     for (const m of BUNDLE_MODELS) {
       models.push({
         id: m.id,
@@ -136,7 +124,6 @@ export const useSettingsStore = defineStore('settings', () => {
       })
     }
 
-    // Custom 模型（展开所有配置中的模型）
     for (const config of customModelConfigs.value) {
       for (const m of config.models) {
         models.push({
@@ -151,45 +138,10 @@ export const useSettingsStore = defineStore('settings', () => {
     return models
   })
 
-  /** 已启用的可用模型 */
   const enabledAvailableModels = computed<AvailableModel[]>(() => {
     return availableModels.value.filter(m => enabledModels.value.includes(m.id))
   })
 
-  /** 获取模型的 API 配置 */
-  function getModelConfig(modelId: string): { apiKey?: string; baseURL?: string } {
-    // 检查 bundle 模型
-    const bundleModel = BUNDLE_MODELS.find(m => m.id === modelId)
-    if (bundleModel) {
-      return { apiKey: bundleModel.apiKey, baseURL: bundleModel.baseURL }
-    }
-
-    // 检查 custom 模型
-    for (const config of customModelConfigs.value) {
-      const model = config.models.find(m => m.id === modelId)
-      if (model) {
-        return { apiKey: config.apiKey, baseURL: config.baseURL }
-      }
-    }
-
-    // 兼容旧版本
-    return { apiKey: apiKey.value || undefined, baseURL: baseURL.value || undefined }
-  }
-
-  // Detect system color scheme
-  function detectSystemColorScheme() {
-    isSystemDark.value = systemService.theme.isDark
-  }
-
-  // Detect system language
-  function getSystemLanguage(): Language {
-    const sysLang = systemService.language.getLanguage().toLowerCase()
-    if (sysLang.startsWith('zh')) return 'zh'
-    if (sysLang.startsWith('ja')) return 'ja'
-    return 'en'
-  }
-
-  // Get current language (resolved)
   const currentLanguage = computed(() => {
     if (language.value !== 'system') return language.value
     const sysLang = getSystemLanguage()
@@ -199,76 +151,99 @@ export const useSettingsStore = defineStore('settings', () => {
     return 'en'
   })
 
-  // Get current theme (resolved)
   const currentTheme = computed(() => {
     if (theme.value !== 'system') return theme.value
     return isSystemDark.value ? 'dark' : 'light'
   })
 
-  // Save to storage
-  function saveSettings() {
-    storage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify({
-      language: language.value,
-      theme: theme.value,
-      customModelConfigs: customModelConfigs.value,
-      enabledModels: enabledModels.value,
-      defaultModel: defaultModel.value,
-      apiKey: apiKey.value,
-      baseURL: baseURL.value,
-    }))
-  }
+  // ── API Actions ──────────────────────────────────────────────────────────────
 
-  // Load from storage
-  function loadSettings() {
-    const saved = storage.getItem(SETTINGS_STORAGE_KEY)
-    if (saved) {
-      try {
-        const settings = JSON.parse(saved)
-        if (['system', 'zh', 'ja', 'en'].includes(settings.language)) {
-          language.value = settings.language
-        }
-        if (['system', 'light', 'dark'].includes(settings.theme)) {
-          theme.value = settings.theme
-        }
-        if (Array.isArray(settings.customModelConfigs)) {
-          customModelConfigs.value = settings.customModelConfigs
-        }
-        if (Array.isArray(settings.enabledModels)) {
-          enabledModels.value = settings.enabledModels
-        }
-        // 兼容旧版本字段
-        if (Array.isArray(settings.enabledPublicModels)) {
-          enabledModels.value = [...new Set([...enabledModels.value, ...settings.enabledPublicModels])]
-        }
-        if (typeof settings.defaultModel === 'string') {
-          defaultModel.value = settings.defaultModel
-        }
-        if (typeof settings.apiKey === 'string') {
-          apiKey.value = settings.apiKey
-        }
-        if (typeof settings.baseURL === 'string') {
-          baseURL.value = settings.baseURL
-        }
-      } catch (e) {
-        console.error('Failed to load settings:', e)
-      }
+  /**
+   * 从服务器获取设置（登录后调用）
+   */
+  async function fetch() {
+    try {
+      isLoading.value = true
+      const settings = await backend.fetchSettings()
+
+      language.value = settings.language as Language
+      theme.value = settings.theme as Theme
+      customModelConfigs.value = settings.customModelConfigs as CustomModelConfig[] ?? []
+      enabledModels.value = settings.enabledModels ?? []
+      defaultModel.value = settings.defaultModel ?? ''
+    } finally {
+      isLoading.value = false
     }
   }
 
-  // Set language
-  function setLanguage(lang: Language) {
+  /**
+   * 保存设置到服务器
+   */
+  async function saveToServer() {
+    try {
+      await backend.updateSettings({
+        language: language.value,
+        theme: theme.value,
+        customModelConfigs: customModelConfigs.value,
+        enabledModels: enabledModels.value,
+        defaultModel: defaultModel.value,
+      })
+    } catch (err) {
+      console.error('[Settings] Failed to save:', err)
+    }
+  }
+
+  /**
+   * 清空本地缓存（登出时调用）
+   */
+  function clear() {
+    language.value = 'system'
+    theme.value = 'system'
+    customModelConfigs.value = []
+    enabledModels.value = []
+    defaultModel.value = ''
+  }
+
+  // ── Local Actions ────────────────────────────────────────────────────────────
+
+  function getModelConfig(modelId: string): { apiKey?: string; baseURL?: string } {
+    const bundleModel = BUNDLE_MODELS.find(m => m.id === modelId)
+    if (bundleModel) {
+      return { apiKey: bundleModel.apiKey, baseURL: bundleModel.baseURL }
+    }
+
+    for (const config of customModelConfigs.value) {
+      const model = config.models.find(m => m.id === modelId)
+      if (model) {
+        return { apiKey: config.apiKey, baseURL: config.baseURL }
+      }
+    }
+
+    return {}
+  }
+
+  function detectSystemColorScheme() {
+    isSystemDark.value = systemService.theme.isDark
+  }
+
+  function getSystemLanguage(): Language {
+    const sysLang = systemService.language.getLanguage().toLowerCase()
+    if (sysLang.startsWith('zh')) return 'zh'
+    if (sysLang.startsWith('ja')) return 'ja'
+    return 'en'
+  }
+
+  async function setLanguage(lang: Language) {
     language.value = lang
-    saveSettings()
+    await saveToServer()
   }
 
-  // Set theme
-  function setTheme(newTheme: Theme) {
+  async function setTheme(newTheme: Theme) {
     theme.value = newTheme
-    saveSettings()
+    await saveToServer()
   }
 
-  // Toggle model enabled state
-  function toggleModel(modelId: string) {
+  async function toggleModel(modelId: string) {
     const index = enabledModels.value.indexOf(modelId)
     if (index !== -1) {
       enabledModels.value.splice(index, 1)
@@ -278,27 +253,23 @@ export const useSettingsStore = defineStore('settings', () => {
     } else {
       enabledModels.value.push(modelId)
     }
-    saveSettings()
+    await saveToServer()
   }
 
-  // Add custom model config
-  function addCustomModelConfig(config: CustomModelConfig) {
+  async function addCustomModelConfig(config: CustomModelConfig) {
     customModelConfigs.value.push(config)
-    // 默认启用新添加的模型
     for (const m of config.models) {
       if (!enabledModels.value.includes(m.id)) {
         enabledModels.value.push(m.id)
       }
     }
-    saveSettings()
+    await saveToServer()
   }
 
-  // Remove custom model config
-  function removeCustomModelConfig(configId: string) {
+  async function removeCustomModelConfig(configId: string) {
     const index = customModelConfigs.value.findIndex(c => c.id === configId)
     if (index !== -1) {
       const config = customModelConfigs.value[index]
-      // 移除相关的启用状态
       for (const m of config.models) {
         const enabledIndex = enabledModels.value.indexOf(m.id)
         if (enabledIndex !== -1) {
@@ -309,64 +280,55 @@ export const useSettingsStore = defineStore('settings', () => {
         }
       }
       customModelConfigs.value.splice(index, 1)
-      saveSettings()
+      await saveToServer()
     }
   }
 
-  // Update custom model config
-  function updateCustomModelConfig(config: CustomModelConfig) {
+  async function updateCustomModelConfig(config: CustomModelConfig) {
     const index = customModelConfigs.value.findIndex(c => c.id === config.id)
     if (index !== -1) {
       customModelConfigs.value[index] = config
-      saveSettings()
+      await saveToServer()
     }
   }
 
-  // Set default model
-  function setDefaultModel(modelId: string) {
+  async function setDefaultModel(modelId: string) {
     if (availableModels.value.find(m => m.id === modelId)) {
       defaultModel.value = modelId
-      saveSettings()
+      await saveToServer()
     }
   }
 
-  // 初始化默认设置
+  // 初始化默认设置（仅在本地，不保存到服务器）
   function initializeDefaults() {
-    // 默认启用所有 bundle 模型
     for (const m of BUNDLE_MODELS) {
       if (!enabledModels.value.includes(m.id)) {
         enabledModels.value.push(m.id)
       }
     }
-    // 默认模型使用第一个 bundle 模型
     if (!defaultModel.value && BUNDLE_MODELS.length > 0) {
       defaultModel.value = BUNDLE_MODELS[0].id
     }
-    saveSettings()
   }
-
-  // 监听变化自动持久化
-  watch([language, theme, customModelConfigs, enabledModels, defaultModel, apiKey, baseURL], saveSettings, { deep: true })
 
   // 监听系统主题变化
   let unsubscribeTheme: (() => void) | null = null
 
-  onMounted(() => {
+  function startWatching() {
     detectSystemColorScheme()
-    loadSettings()
     initializeDefaults()
 
-    // 使用注入的主题服务监听变化
     unsubscribeTheme = systemService.theme.onChange((isDark) => {
       isSystemDark.value = isDark
     })
-  })
+  }
 
-  onUnmounted(() => {
+  function stopWatching() {
     if (unsubscribeTheme) {
       unsubscribeTheme()
+      unsubscribeTheme = null
     }
-  })
+  }
 
   return {
     language,
@@ -379,9 +341,12 @@ export const useSettingsStore = defineStore('settings', () => {
     availableModels,
     enabledAvailableModels,
     defaultModel,
-    apiKey,
-    baseURL,
+    isLoading,
     getModelConfig,
+    // API Actions
+    fetch,
+    clear,
+    // Local Actions
     setLanguage,
     setTheme,
     toggleModel,
@@ -389,6 +354,7 @@ export const useSettingsStore = defineStore('settings', () => {
     removeCustomModelConfig,
     updateCustomModelConfig,
     setDefaultModel,
-    loadSettings,
+    startWatching,
+    stopWatching,
   }
 })
