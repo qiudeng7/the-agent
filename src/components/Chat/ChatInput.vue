@@ -109,6 +109,7 @@
 import { ref, watch } from 'vue'
 import ChatToolsPanel from './ChatToolsPanel.vue'
 import { useSettingsStore } from '@/stores/settings'
+import { useAutoResize } from '@/composables'
 
 const settingsStore = useSettingsStore()
 
@@ -129,6 +130,9 @@ const selectedModel = ref('')
 const deepThink = ref(false)
 const webSearch = ref(false)
 const showMoreTools = ref(false)
+
+// 使用 composable
+const { resize: autoResize, reset: resetTextarea } = useAutoResize(textareaRef, { maxHeight: 200 })
 
 // 初始化 selectedModel：优先使用 initialModel，其次默认模型，最后第一个可用模型
 function initSelectedModel() {
@@ -161,14 +165,6 @@ watch(selectedModel, (newModel) => {
   }
 })
 
-function autoResize() {
-  const el = textareaRef.value
-  if (el) {
-    el.style.height = 'auto'
-    el.style.height = Math.min(el.scrollHeight, 200) + 'px'
-  }
-}
-
 function submit() {
   if (input.value.trim() && settingsStore.enabledAvailableModels.length > 0 && selectedModel.value) {
     emit('submit', input.value.trim(), {
@@ -177,12 +173,11 @@ function submit() {
       model: selectedModel.value,
     })
     input.value = ''
-    if (textareaRef.value) {
-      textareaRef.value.style.height = 'auto'
-    }
+    resetTextarea()
   }
 }
 
+// 监听输入内容变化自动调整高度
 watch(input, autoResize)
 
 // 暴露 selectedModel 供父组件读取

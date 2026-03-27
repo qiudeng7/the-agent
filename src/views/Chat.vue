@@ -117,6 +117,7 @@ import ChatInput from '@/components/Chat/ChatInput.vue'
 import { useChatStore, type Message } from '@/stores/chat'
 import { useAgentStore } from '@/stores/agent'
 import { useSettingsStore } from '@/stores/settings'
+import { useFormatTime } from '@/composables'
 import type { ContentBlock } from '#agent/types'
 
 const route = useRoute()
@@ -124,6 +125,9 @@ const router = useRouter()
 const chatStore = useChatStore()
 const agentStore = useAgentStore()
 const settingsStore = useSettingsStore()
+
+// 使用 composable
+const { formatTime } = useFormatTime()
 
 const sessionId = computed(() => route.params.id as string)
 const session = computed(() => chatStore.sessions.find(s => s.id === sessionId.value))
@@ -143,13 +147,6 @@ function getMessageBlocks(message: Message): ContentBlock[] {
     return [{ type: 'text', text: message.content }]
   }
   return message.content
-}
-
-function formatTime(timestamp: number) {
-  return new Date(timestamp).toLocaleTimeString('zh-CN', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }
 
 async function handleSubmit(input: string, options: { deepThink: boolean; webSearch: boolean; model: string }) {
