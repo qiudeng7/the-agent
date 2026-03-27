@@ -63,7 +63,9 @@
               <div v-else-if="block.type === 'tool_result'" class="tool-result-block">
                 <pre>{{ block.content }}</pre>
               </div>
-              <p v-else-if="block.type === 'text'" class="message-text">{{ block.text }}</p>
+              <div v-else-if="block.type === 'text'" class="message-text">
+              <MarkdownRenderer :content="block.text" />
+            </div>
             </template>
             <span class="message-time">{{ formatTime(message.timestamp) }}</span>
           </div>
@@ -90,7 +92,9 @@
               </div>
               <p class="thinking-text">{{ streamingThinking }}</p>
             </div>
-            <p v-if="streamingText" class="message-text">{{ streamingText }}</p>
+            <div v-if="streamingText" class="message-text">
+              <MarkdownRenderer :content="streamingText" />
+            </div>
             <div v-if="!streamingText && !streamingThinking" class="typing-indicator">
               <span></span><span></span><span></span>
             </div>
@@ -114,6 +118,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ChatInput from '@/components/Chat/ChatInput.vue'
+import MarkdownRenderer from '@/components/Chat/MarkdownRenderer.vue'
 import { useChatStore, type Message } from '@/stores/chat'
 import { useAgentStore } from '@/stores/agent'
 import { useSettingsStore } from '@/stores/settings'
