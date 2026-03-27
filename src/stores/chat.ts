@@ -177,15 +177,24 @@ export const useChatStore = defineStore('chat', () => {
 
   /** 判断思考块是否折叠 */
   function isThinkingCollapsed(key: string, defaultCollapsed: boolean): boolean {
-    if (thinkingExpandedStates.value[key] === undefined) {
+    const current = thinkingExpandedStates.value[key]
+    if (current === undefined) {
       return defaultCollapsed
     }
-    return !thinkingExpandedStates.value[key]
+    // 存储的是"是否展开"，所以折叠 = !展开
+    return !current
   }
 
   /** 切换思考块的折叠状态 */
-  function toggleThinking(key: string): void {
-    thinkingExpandedStates.value[key] = !thinkingExpandedStates.value[key]
+  function toggleThinking(key: string, defaultCollapsed: boolean): void {
+    const current = thinkingExpandedStates.value[key]
+    if (current === undefined) {
+      // 第一次切换：从默认状态翻转
+      // 如果默认折叠，展开它；如果默认展开，折叠它
+      thinkingExpandedStates.value[key] = defaultCollapsed ? true : false
+    } else {
+      thinkingExpandedStates.value[key] = !current
+    }
   }
 
   return {

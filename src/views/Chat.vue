@@ -194,7 +194,7 @@ function isThinkingCollapsed(messageId: string, blockIdx: number): boolean {
 /** 切换思考块的折叠状态 */
 function toggleThinking(messageId: string, blockIdx: number): void {
   const key = `${messageId}-${blockIdx}`
-  chatStore.toggleThinking(key)
+  chatStore.toggleThinking(key, settingsStore.collapseThinking)
 }
 
 /** 格式化思考统计信息（时间 + 字数） */
