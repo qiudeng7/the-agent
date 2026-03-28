@@ -6,25 +6,34 @@
  * 依赖注入（通过 Vue inject）：
  * - agentTransport: IAgentTransportClient
  *
- * 模块拆分：
- * - types.ts: 内部类型定义
- * - stream-buffer.ts: 流式输出缓冲区管理
- * - event-handler.ts: Agent 事件处理
- * - task-runner.ts: 任务调度逻辑
- *
  * 事件解耦：
- * - done 时 emit 'agent:done'，由 messages store 监听处理
+ * - result 时 emit 'agent:done'，由 messages store 监听处理
  * - error 时 emit 'agent:error'，由 messages store 监听处理
+ * - system.init 时 emit 'agent:init'，记录 SDK 会话 ID
  *
  * @layer state
  */
 import { defineStore } from 'pinia'
 import { ref, computed, inject } from 'vue'
-import type { AgentEvent, ContentBlock } from '#agent/types'
+import type { ContentBlock } from '#agent/types'
+import type { ClaudeEvent, PermissionMode, McpServerConfig } from '#claude/types'
 import { AGENT_TRANSPORT_KEY, type IAgentTransportClient } from '@/di/interfaces'
 import { emitter } from '@/events'
-import type { StreamBuffer } from './types'
-import { createEmptyBuffer } from './types'
+
+/** 流式输出缓冲区 */
+interface StreamBuffer {
+  content: ContentBlock[]
+  /** 思考开始时间（毫秒），用于计算思考耗时 */
+  thinkingStartTime: number | null
+}
+
+/** 创建空的缓冲区 */
+function createEmptyBuffer(): StreamBuffer {
+  return {
+    content: [],
+    thinkingStartTime: null,
+  }
+}
 
 export const useAgentStore = defineStore('agent', () => {
   // ── 依赖注入 ────────────────────────────────────────────────────────────────
@@ -33,21 +42,22 @@ export const useAgentStore = defineStore('agent', () => {
   // ── State ──────────────────────────────────────────────────────────────────
   const currentTaskId = ref<string | null>(null)
   const currentSessionId = ref<string | null>(null)
+  const sdkSessionId = ref<string | null>(null)
   const currentModelId = ref<string | null>(null)
   const isGenerating = ref(false)
   const buffer = ref<StreamBuffer>(createEmptyBuffer())
   const error = ref<string | null>(null)
+  const lastResult = ref<string | null>(null)
 
   // ── Getters ────────────────────────────────────────────────────────────────
-  const currentText = computed(() => buffer.value.text)
-  const currentThinking = computed(() => buffer.value.thinking)
+  const currentContent = computed(() => buffer.value.content)
 
   // ── 事件订阅 ───────────────────────────────────────────────────────────────
   let unsubscribe: (() => void) | null = null
 
   function ensureSubscribed() {
     if (unsubscribe) return
-    unsubscribe = transport.onEvent(handleAgentEvent)
+    unsubscribe = transport.onEvent(handleClaudeEvent)
   }
 
   function setupEventListeners() {
@@ -66,24 +76,36 @@ export const useAgentStore = defineStore('agent', () => {
     resetState()
   }
 
-  function handleAgentEvent(event: AgentEvent) {
+  /**
+   * 处理 Claude SDK 流式事件
+   */
+  function handleClaudeEvent(event: ClaudeEvent) {
     if (event.taskId !== currentTaskId.value) return
 
     switch (event.type) {
-      case 'text_delta':
-        buffer.value.text += event.delta
+      case 'system':
+        if (event.subtype === 'init') {
+          sdkSessionId.value = event.sessionId
+          console.log('[Claude] Session initialized:', event.sessionId)
+          const sessionId = currentSessionId.value
+          if (sessionId) {
+            emitter.emit('agent:init', { sessionId, sdkSessionId: event.sessionId })
+          }
+        }
         break
 
-      case 'thinking_delta':
-        if (!buffer.value.thinkingStartTime) {
-          buffer.value.thinkingStartTime = Date.now()
-        }
-        buffer.value.thinking += event.delta
+      case 'assistant':
+        // 追加内容到缓冲区
+        buffer.value.content.push(...event.content)
+        break
+
+      case 'user':
+        // SDK 回放用户消息，一般用于多轮对话
+        console.log('[Claude] User message replay:', event.content)
         break
 
       case 'tool_use':
-        flushTextToBlocks()
-        buffer.value.blocks.push({
+        buffer.value.content.push({
           type: 'tool_use',
           id: event.toolUseId,
           name: event.toolName,
@@ -92,7 +114,7 @@ export const useAgentStore = defineStore('agent', () => {
         break
 
       case 'tool_result':
-        buffer.value.blocks.push({
+        buffer.value.content.push({
           type: 'tool_result',
           toolUseId: event.toolUseId,
           content: event.result,
@@ -100,15 +122,23 @@ export const useAgentStore = defineStore('agent', () => {
         })
         break
 
-      case 'done': {
-        console.log('[Agent] Done, blocks:', event.message.content)
-        flushTextToBlocks()
+      case 'result': {
+        console.log('[Claude] Result:', event.result)
+        lastResult.value = event.result
+
         // 触发事件，由 messages store 处理
         const sessionId = currentSessionId.value
         if (sessionId) {
           emitter.emit('agent:done', {
             sessionId,
-            message: { role: 'assistant', content: buffer.value.blocks },
+            message: { role: 'assistant', content: buffer.value.content },
+            stats: {
+              costUsd: event.costUsd,
+              durationMs: event.durationMs,
+              durationApiMs: event.durationApiMs,
+              numTurns: event.numTurns,
+              totalTokens: event.totalTokens,
+            },
           })
         }
         resetState()
@@ -116,7 +146,7 @@ export const useAgentStore = defineStore('agent', () => {
       }
 
       case 'error': {
-        console.error('[Agent] Error:', event.error, event.code)
+        console.error('[Claude] Error:', event.error, event.code)
         error.value = event.error
         isGenerating.value = false
         // 触发错误事件
@@ -134,26 +164,10 @@ export const useAgentStore = defineStore('agent', () => {
     }
   }
 
-  function flushTextToBlocks() {
-    const { text, thinking, blocks, thinkingStartTime } = buffer.value
-    if (thinking) {
-      blocks.push({
-        type: 'thinking',
-        thinking,
-        durationMs: thinkingStartTime ? Date.now() - thinkingStartTime : undefined,
-      })
-      buffer.value.thinking = ''
-      buffer.value.thinkingStartTime = null
-    }
-    if (text) {
-      blocks.push({ type: 'text', text })
-      buffer.value.text = ''
-    }
-  }
-
   function resetState() {
     currentTaskId.value = null
     currentSessionId.value = null
+    sdkSessionId.value = null
     currentModelId.value = null
     isGenerating.value = false
     buffer.value = createEmptyBuffer()
@@ -167,7 +181,7 @@ export const useAgentStore = defineStore('agent', () => {
    * @param sessionId 会话 ID
    * @param userInput 用户输入
    * @param messages 历史消息（由外部提供）
-   * @param options 可选参数（model、systemPrompt、apiKey、baseURL）
+   * @param options 可选参数
    */
   async function runAgent(
     sessionId: string,
@@ -178,6 +192,16 @@ export const useAgentStore = defineStore('agent', () => {
       systemPrompt?: string
       apiKey?: string
       baseURL?: string
+      /** 权限模式 */
+      permissionMode?: PermissionMode
+      /** 允许使用的工具列表 */
+      allowedTools?: string[]
+      /** MCP 服务器配置 */
+      mcpServers?: Record<string, McpServerConfig>
+      /** 恢复会话 ID */
+      resume?: string
+      /** 调试模式 */
+      debug?: boolean
     },
   ) {
     ensureSubscribed()
@@ -192,6 +216,7 @@ export const useAgentStore = defineStore('agent', () => {
     isGenerating.value = true
     buffer.value = createEmptyBuffer()
     error.value = null
+    lastResult.value = null
 
     // 触发开始事件（让 messages store 添加用户消息）
     emitter.emit('agent:start', { sessionId, taskId })
@@ -205,8 +230,19 @@ export const useAgentStore = defineStore('agent', () => {
       systemPrompt: options?.systemPrompt,
       apiKey: options?.apiKey,
       baseURL: options?.baseURL,
+      permissionMode: options?.permissionMode,
+      allowedTools: options?.allowedTools,
+      mcpServers: options?.mcpServers,
+      resume: options?.resume,
+      debug: options?.debug,
     }
-    console.log('[Agent] Running with model:', requestOptions.model, 'baseURL:', requestOptions.baseURL)
+    console.log('[Claude] Running with options:', {
+      model: requestOptions.model,
+      baseURL: requestOptions.baseURL,
+      permissionMode: requestOptions.permissionMode,
+      allowedTools: requestOptions.allowedTools,
+      resume: requestOptions.resume,
+    })
     await transport.run(requestOptions)
   }
 
@@ -220,11 +256,12 @@ export const useAgentStore = defineStore('agent', () => {
   return {
     currentTaskId,
     currentSessionId,
+    sdkSessionId,
     currentModelId,
     isGenerating,
-    currentText,
-    currentThinking,
+    currentContent,
     error,
+    lastResult,
     runAgent,
     abort,
     teardown,

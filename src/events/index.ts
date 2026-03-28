@@ -15,6 +15,17 @@ import mitt from 'mitt'
 import type { AgentMessage } from '#agent/types'
 
 /**
+ * Agent 结果统计信息
+ */
+export interface AgentResultStats {
+  costUsd?: number
+  durationMs?: number
+  durationApiMs?: number
+  numTurns?: number
+  totalTokens?: number
+}
+
+/**
  * 应用事件类型定义
  */
 export type AppEvents = {
@@ -26,11 +37,13 @@ export type AppEvents = {
 
   // ── Agent 事件 ────────────────────────────────────────────────────────────────
   /** Agent 完成一轮对话 */
-  'agent:done': { sessionId: string; message: AgentMessage }
+  'agent:done': { sessionId: string; message: AgentMessage; stats?: AgentResultStats }
   /** Agent 出错 */
   'agent:error': { sessionId: string; error: string; code?: string }
   /** Agent 开始生成 */
   'agent:start': { sessionId: string; taskId: string }
+  /** Agent 会话初始化（来自 Claude SDK） */
+  'agent:init': { sessionId: string; sdkSessionId: string }
 
   // ── 设置事件 ────────────────────────────────────────────────────────────────
   /** 设置变更（已同步到服务器） */

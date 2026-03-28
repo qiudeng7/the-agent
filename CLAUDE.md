@@ -12,6 +12,21 @@ pnpm run make     # 构建 macos arm
 pnpm run make:win # 构建 windows x86
 ```
 
+## 开发流程注意事项
+
+**启动开发环境前必须先运行类型检查**，确保代码无类型错误：
+
+```bash
+# 先终止已有的 Electron 进程
+pkill -9 -f "Electron" 2>/dev/null; pkill -9 -f "electron" 2>/dev/null
+
+# 运行类型检查
+npx tsc --noEmit --project tsconfig.node.json
+
+# 类型检查通过后再启动开发服务器
+pnpm run dev
+```
+
 ## Chrome DevTools MCP 集成
 
 开发模式下 (`pnpm run dev`)，Electron 会自动启动远程调试端口 **9223**。

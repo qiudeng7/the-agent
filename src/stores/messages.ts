@@ -138,7 +138,7 @@ export function createMessagesModule() {
 
       // 可选：更新会话标题
       if (options?.updateTitle) {
-        const detail = await backend.fetchSession(sessionId)
+        await backend.fetchSession(sessionId)
         // 标题更新由 session-list 处理
       }
     } catch (err) {
@@ -159,11 +159,11 @@ export function createMessagesModule() {
 
   // ── 事件处理 ──────────────────────────────────────────────────────────────
 
-  function handleAgentDone(event: { sessionId: string; message: { role: 'assistant'; content: string | ContentBlock[] } }) {
+  function handleAgentDone(event: { sessionId: string; message: { role: 'user' | 'assistant'; content: string | ContentBlock[] }; stats?: { costUsd?: number; durationMs?: number } }) {
     const { sessionId, message } = event
     addMessage(sessionId, {
       id: Date.now().toString(),
-      role: 'assistant',
+      role: message.role,
       content: message.content,
       timestamp: Date.now(),
     })
@@ -179,8 +179,7 @@ export function createMessagesModule() {
     })
   }
 
-  function handleAgentStart(event: { sessionId: string; taskId: string }) {
-    const { sessionId, taskId } = event
+  function handleAgentStart(_event: { sessionId: string; taskId: string }) {
     // 用户消息需要在 runAgent 调用前由外部添加
     // 这里只标记开始
   }

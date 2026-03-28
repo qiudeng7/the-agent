@@ -11,13 +11,13 @@
  * @layer di
  */
 
-import type { AgentEvent, AgentRunOptions } from '#agent/types'
+import type { ClaudeRunOptions, ClaudeEvent } from '#claude/types'
 
 /** Agent 传输接口（渲染进程端） */
 export interface IAgentTransportClient {
-  run(options: Omit<AgentRunOptions, 'toolExecutor'>): Promise<void>
+  run(options: ClaudeRunOptions): Promise<void>
   abort(taskId: string): Promise<void>
-  onEvent(handler: (event: AgentEvent) => void): () => void
+  onEvent(handler: (event: ClaudeEvent) => void): () => void
 }
 
 /** 存储接口 */

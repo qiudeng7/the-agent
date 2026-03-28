@@ -1,7 +1,7 @@
 /**
  * @module electron/main
  * @description Electron 主进程入口，负责创建 BrowserWindow、注册 IPC 处理器，
- *              并组装 AgentRunner（provider + registry + transport）。
+ *              并组装 ClaudeRunner（provider + transport）。
  *
  *              IPC 处理器：
  *                - get-app-version / get-platform：返回应用信息
@@ -14,7 +14,7 @@
  */
 import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'path'
-import { ClaudeProvider, AgentRunner, ToolRegistry } from '#agent'
+import { ClaudeAgentProvider, ClaudeRunner } from '#claude'
 import { ElectronAgentTransport } from '#electron/agent-transport'
 
 let mainWindow: BrowserWindow | null = null
@@ -26,16 +26,15 @@ app.commandLine.appendSwitch('remote-debugging-port', '9223')
 // Agent 组装（延迟到 app.whenReady，确保 IPC 可用）
 // ─────────────────────────────────────────────────────────────────────────────
 
-let runner: AgentRunner | null = null
+let runner: ClaudeRunner | null = null
 
 function setupAgent() {
-  console.log('[Agent] Setting up agent runner...')
+  console.log('[Claude] Setting up claude runner...')
   const transport = new ElectronAgentTransport(() => mainWindow)
-  const provider = new ClaudeProvider()
-  const registry = new ToolRegistry()
-  runner = new AgentRunner(provider, registry, transport)
+  const provider = new ClaudeAgentProvider()
+  runner = new ClaudeRunner(provider, transport)
   runner.start()
-  console.log('[Agent] Agent runner started')
+  console.log('[Claude] Claude runner started')
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

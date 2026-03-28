@@ -10,14 +10,18 @@
     "paths": {
       "@/*": ["src/*"],
       "#agent/*": ["agent/*"],
-      "#agent": ["agent/index.ts"]
+      "#agent": ["agent/index.ts"],
+      "#claude/*": ["claude/*"],
+      "#claude": ["claude/index.ts"]
     }
   },
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
     "src/**/*.vue",
-    "electron/electron.d.ts"
+    "electron/electron.d.ts",
+    "agent/**/*.ts",
+    "claude/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }

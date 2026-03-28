@@ -6,7 +6,7 @@
  * @layer types
  */
 
-import type { AgentEvent, AgentRunOptions } from '#agent/types'
+import type { ClaudeRunOptions, ClaudeEvent } from '#claude/types'
 
 export interface IElectronAPI {
   // ── 系统 API ────────────────────────────────────────────────────────────
@@ -18,12 +18,12 @@ export interface IElectronAPI {
   maximizeWindow: () => Promise<void>
 
   // ── Agent API ───────────────────────────────────────────────────────────
-  /** 发起 agent 任务（toolExecutor 由主进程注入，此处不需要传入） */
-  agentRun: (options: Omit<AgentRunOptions, 'toolExecutor'>) => Promise<void>
+  /** 发起 agent 任务 */
+  agentRun: (options: ClaudeRunOptions) => Promise<void>
   /** 取消指定任务 */
   agentAbort: (taskId: string) => Promise<void>
   /** 订阅流式事件，返回取消订阅函数 */
-  onAgentEvent: (handler: (event: AgentEvent) => void) => () => void
+  onAgentEvent: (handler: (event: ClaudeEvent) => void) => () => void
 }
 
 declare global {
