@@ -4,7 +4,13 @@
   "description": "Electron + Vite + Vue Agent Application",
   "main": "dist-electron/main/index.js",
   "pnpm": {
-    "onlyBuiltDependencies": ["bcrypt", "better-sqlite3", "electron", "electron-winstaller", "esbuild"]
+    "onlyBuiltDependencies": [
+      "bcrypt",
+      "better-sqlite3",
+      "electron",
+      "electron-winstaller",
+      "esbuild"
+    ]
   },
   "scripts": {
     "dev": "vite",
@@ -41,6 +47,7 @@
     "wait-on": "^8.0.3"
   },
   "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.86",
     "@anthropic-ai/sdk": "^0.80.0",
     "@vueuse/core": "^14.2.1",
     "marked": "^17.0.5",

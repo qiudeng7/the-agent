@@ -15,12 +15,17 @@
 
 import type { AgentEvent, AgentRunOptions } from '../types'
 
+/**
+ * 通用事件类型，支持不同 provider 的流式事件。
+ */
+export type TransportEvent = AgentEvent | import('#claude/types').ClaudeEvent
+
 export interface IAgentTransportServer {
   /**
    * 向外部（渲染进程 / HTTP 客户端）推送一个流式事件。
    * 调用者保证在 onRun 的 handler 返回前，send 始终可用。
    */
-  send(event: AgentEvent): void
+  send(event: TransportEvent): void
 
   /**
    * 监听来自外部的任务启动请求。

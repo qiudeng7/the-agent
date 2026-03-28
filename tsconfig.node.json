@@ -11,14 +11,17 @@
       "#electron": ["electron/index.ts"],
       "#electron/*": ["electron/*"],
       "#agent": ["agent/index.ts"],
-      "#agent/*": ["agent/*"]
+      "#agent/*": ["agent/*"],
+      "#claude": ["claude/index.ts"],
+      "#claude/*": ["claude/*"]
     }
   },
   "include": [
     "vite.config.ts",
     "forge.config.ts",
     "electron/**/*.ts",
-    "agent/**/*.ts"
+    "agent/**/*.ts",
+    "claude/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }
