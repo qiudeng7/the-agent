@@ -71,6 +71,7 @@ import {
   createAnalyzeIcon,
   createCodeIcon,
 } from '@/utils/icons'
+import type { PermissionMode } from '#claude/types'
 
 const router = useRouter()
 const chatStore = useChatStore()
@@ -141,7 +142,7 @@ async function handleSuggestion(text: string) {
   })
 }
 
-async function handleSubmit(input: string, options: { deepThink: boolean; webSearch: boolean; model: string }) {
+async function handleSubmit(input: string, options: { model: string; permissionMode: PermissionMode }) {
   const session = await chatStore.createSession(input)
   // 设置会话的当前模型
   if (options.model) {

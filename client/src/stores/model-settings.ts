@@ -1,11 +1,12 @@
 /**
  * @module stores/model-settings
  * @description 模型设置状态管理。
- *              管理模型配置、启用列表、默认模型等 Agent 相关设置。
+ *              管理模型配置、启用列表、默认模型、权限模式等 Agent 相关设置。
  *              只管理状态，数据同步由聚合层 (settings.ts) 处理。
  * @layer state
  */
 import { ref, computed } from 'vue'
+import type { PermissionMode } from '#claude/types'
 
 /** 内置模型定义 */
 export interface BundleModel {
@@ -86,6 +87,7 @@ export function createModelSettingsModule() {
   const enabledModels = ref<string[]>([])
   const defaultModel = ref<string>('')
   const isLoading = ref(false)
+  const permissionMode = ref<PermissionMode>('default')
 
   // ── Getters ────────────────────────────────────────────────────────────────
   const availableModels = computed<AvailableModel[]>(() => {
@@ -187,10 +189,15 @@ export function createModelSettingsModule() {
     }
   }
 
+  function setPermissionMode(mode: PermissionMode) {
+    permissionMode.value = mode
+  }
+
   function clear() {
     customModelConfigs.value = []
     enabledModels.value = []
     defaultModel.value = ''
+    permissionMode.value = 'default'
   }
 
   function initializeDefaults() {
@@ -209,6 +216,7 @@ export function createModelSettingsModule() {
     enabledModels,
     defaultModel,
     isLoading,
+    permissionMode,
     availableModels,
     enabledAvailableModels,
     getModelConfig,
@@ -217,6 +225,7 @@ export function createModelSettingsModule() {
     removeCustomModelConfig,
     updateCustomModelConfig,
     setDefaultModel,
+    setPermissionMode,
     clear,
     initializeDefaults,
   }

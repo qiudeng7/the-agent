@@ -202,11 +202,18 @@ export const useAgentStore = defineStore('agent', () => {
         break
 
       case 'assistant':
-        // 启用流式输出时，忽略 assistant 事件
-        // 内容已经通过 stream_event 增量构建，assistant 会重复
-        // 仅在 buffer 为空时处理（兜底）
-        if (buffer.value.content.length === 0) {
-          buffer.value.content.push(...event.content)
+        // 启用流式输出时，assistant 事件可能包含 tool_result blocks
+        // stream_event 只增量构建 text/thinking/tool_use，tool_result 需要从 assistant 合入
+        for (const block of event.content) {
+          if (block.type === 'tool_result') {
+            // 检查是否已存在（避免重复）
+            const exists = buffer.value.content.some(
+              b => b.type === 'tool_result' && b.toolUseId === block.toolUseId,
+            )
+            if (!exists) {
+              buffer.value.content.push(block)
+            }
+          }
         }
         break
 

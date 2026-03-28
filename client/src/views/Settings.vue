@@ -118,6 +118,20 @@
           </select>
         </div>
 
+        <div class="setting-item">
+          <div class="setting-info">
+            <span class="setting-label">权限模式</span>
+            <span class="setting-desc">控制 Agent 对工具和文件的操作权限</span>
+          </div>
+          <select v-model="settingsStore.permissionMode" class="select">
+            <option value="default">默认（交互式确认）</option>
+            <option value="auto">自动决策</option>
+            <option value="acceptEdits">自动编辑</option>
+            <option value="bypassPermissions">跳过权限（危险）</option>
+            <option value="plan">规划模式</option>
+          </select>
+        </div>
+
         <!-- 内置模型 -->
         <div class="model-section">
           <h3 class="section-title">内置模型</h3>

@@ -2,39 +2,16 @@
   @component ChatInput
   @description 聊天输入区域，被首页（Home）和对话页（Chat）复用。
                包含：
-               - 模型选择下拉框（默认模型 / DeepSeek / GPT-4 / Claude）
                - 自动伸缩 textarea（最高 200px，Enter 提交，Shift+Enter 换行）
-               - 工具栏：深度思考开关、联网搜索开关、扩展工具按钮
-               - ChatToolsPanel：点击"工具"时展开的扩展面板（上传/导出/设置）
-               - 右侧：添加内容按钮 + 提交按钮（input 为空时禁用）
-  @emits submit(input, { deepThink, webSearch, model }) - 用户提交消息时触发
+               - 工具栏：模型选择器 + 权限模式选择器（左侧）+ 提交/停止按钮（右侧）
+  @emits submit(input, { model, permissionMode }) - 用户提交消息时触发
+  @emits stop - 用户点击停止按钮时触发
   @layer component
 -->
 <template>
   <div class="chat-input-container">
     <div class="chat-input-wrapper">
-      <!-- Model Selector -->
-      <div class="model-selector">
-        <template v-if="settingsStore.enabledAvailableModels.length > 0">
-          <select v-model="selectedModel" class="model-select" name="model" aria-label="选择模型">
-            <option v-for="model in settingsStore.enabledAvailableModels" :key="model.id" :value="model.id">
-              {{ model.name }}
-            </option>
-          </select>
-        </template>
-        <template v-else>
-          <router-link to="/settings" class="no-model-hint">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="12" y1="8" x2="12" y2="12"/>
-              <line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-            请先在设置中启用模型
-          </router-link>
-        </template>
-      </div>
-
-      <!-- Input Area -->
+      <!-- Input Box -->
       <div class="input-box">
         <textarea
           ref="textareaRef"
@@ -43,8 +20,10 @@
           class="input-field"
           name="message"
           aria-label="输入消息"
-          @keydown.enter.exact.prevent="submit"
+          @keydown.enter.exact="handleKeyDown"
           @input="autoResize"
+          @compositionstart="isComposing = true"
+          @compositionend="isComposing = false"
           rows="1"
         />
       </div>
@@ -52,53 +31,50 @@
       <!-- Tools Bar -->
       <div class="tools-bar">
         <div class="tools-left">
-          <label class="tool-toggle" :class="{ active: deepThink }">
-            <input type="checkbox" v-model="deepThink" class="toggle-checkbox" name="deepThink" />
-            <span class="toggle-slider"></span>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/>
-              <path d="M12 6v2M12 16v2M8 12h2M14 12h2"/>
-            </svg>
-            <span class="tool-label">深度思考</span>
-          </label>
+          <!-- Model Selector -->
+          <template v-if="settingsStore.enabledAvailableModels.length > 0">
+            <select v-model="selectedModel" class="model-select" name="model" aria-label="选择模型">
+              <option v-for="model in settingsStore.enabledAvailableModels" :key="model.id" :value="model.id">
+                {{ model.name }}
+              </option>
+            </select>
+          </template>
+          <template v-else>
+            <router-link to="/settings" class="no-model-hint">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              请先在设置中启用模型
+            </router-link>
+          </template>
 
-          <label class="tool-toggle" :class="{ active: webSearch }">
-            <input type="checkbox" v-model="webSearch" class="toggle-checkbox" name="webSearch" />
-            <span class="toggle-slider"></span>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-            </svg>
-            <span class="tool-label">联网搜索</span>
-          </label>
-
-          <button class="tools-more" @click="showMoreTools = !showMoreTools">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="1"/>
-              <circle cx="19" cy="12" r="1"/>
-              <circle cx="5" cy="12" r="1"/>
-            </svg>
-            <span>工具</span>
-          </button>
+          <!-- Permission Mode Selector -->
+          <select v-model="selectedPermissionMode" class="permission-select" name="permissionMode" aria-label="权限模式">
+            <option value="default">默认</option>
+            <option value="auto">自动</option>
+            <option value="acceptEdits">自动编辑</option>
+            <option value="bypassPermissions">跳过权限</option>
+            <option value="plan">规划模式</option>
+          </select>
         </div>
 
         <div class="tools-right">
-          <button class="add-btn" title="添加内容">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 5v14M5 12h14"/>
+          <!-- Stop Button (shown when generating) -->
+          <button v-if="isGenerating" class="stop-btn" @click="stop" title="停止生成">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="6" width="12" height="12" rx="2"/>
             </svg>
           </button>
-
-          <button class="submit-btn" @click="submit" :disabled="!input.trim() || settingsStore.enabledAvailableModels.length === 0">
+          <!-- Submit Button (shown when not generating) -->
+          <button v-else class="submit-btn" @click="submit" :disabled="!input.trim() || settingsStore.enabledAvailableModels.length === 0">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
               <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
             </svg>
           </button>
         </div>
       </div>
-
-      <!-- More Tools Panel -->
-      <ChatToolsPanel v-if="showMoreTools" />
     </div>
 
     <p class="disclaimer">内容由 AI 生成，仅供参考</p>
@@ -107,29 +83,33 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import ChatToolsPanel from './ChatToolsPanel.vue'
 import { useSettingsStore } from '@/stores/settings'
 import { useAutoResize } from '@/composables'
+import type { PermissionMode } from '#claude/types'
 
 const settingsStore = useSettingsStore()
 
 const props = defineProps<{
   /** 初始模型 ID（从会话恢复） */
   initialModel?: string
+  /** 是否正在生成 */
+  isGenerating?: boolean
 }>()
 
 const emit = defineEmits<{
-  submit: [input: string, options: { deepThink: boolean; webSearch: boolean; model: string }]
+  submit: [input: string, options: { model: string; permissionMode: PermissionMode }]
   /** 模型切换时触发 */
   modelChange: [modelId: string]
+  /** 停止生成 */
+  stop: []
 }>()
 
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const input = ref('')
 const selectedModel = ref('')
-const deepThink = ref(false)
-const webSearch = ref(false)
-const showMoreTools = ref(false)
+const selectedPermissionMode = ref<PermissionMode>('default')
+/** 是否正在使用输入法组合输入 */
+const isComposing = ref(false)
 
 // 使用 composable
 const { resize: autoResize, reset: resetTextarea } = useAutoResize(textareaRef, { maxHeight: 200 })
@@ -146,8 +126,14 @@ function initSelectedModel() {
   }
 }
 
+// 初始化 selectedPermissionMode：从 settingsStore 读取
+function initSelectedPermissionMode() {
+  selectedPermissionMode.value = settingsStore.permissionMode || 'default'
+}
+
 // 初始化
 initSelectedModel()
+initSelectedPermissionMode()
 
 // 监听 initialModel 变化（切换会话时），仅在 initialModel 有效时更新
 watch(() => props.initialModel, (newModel) => {
@@ -165,16 +151,34 @@ watch(selectedModel, (newModel) => {
   }
 })
 
+// 监听 selectedPermissionMode 变化，保存到 settingsStore
+watch(selectedPermissionMode, (newMode) => {
+  settingsStore.setPermissionMode(newMode)
+})
+
 function submit() {
   if (input.value.trim() && settingsStore.enabledAvailableModels.length > 0 && selectedModel.value) {
     emit('submit', input.value.trim(), {
-      deepThink: deepThink.value,
-      webSearch: webSearch.value,
       model: selectedModel.value,
+      permissionMode: selectedPermissionMode.value,
     })
     input.value = ''
     resetTextarea()
   }
+}
+
+function stop() {
+  emit('stop')
+}
+
+/** 处理 Enter 键按下，考虑输入法状态 */
+function handleKeyDown(event: KeyboardEvent) {
+  // 如果正在使用输入法组合输入，不处理
+  if (isComposing.value) return
+
+  // 阻止默认换行行为，执行提交
+  event.preventDefault()
+  submit()
 }
 
 // 监听输入内容变化自动调整高度
@@ -196,54 +200,6 @@ defineExpose({
 
 .chat-input-wrapper {
   position: relative;
-}
-
-/* Model Selector */
-.model-selector {
-  margin-bottom: 12px;
-}
-
-.model-select {
-  appearance: none;
-  padding: 8px 32px 8px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-  background: var(--color-background) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2378786C' d='M6 8L1 3h10z'/%3E%3C/svg%3E") no-repeat right 12px center;
-  background-size: 12px;
-  font-family: var(--font-body);
-  font-size: 0.8125rem;
-  color: var(--color-foreground);
-  cursor: pointer;
-  transition: var(--transition-gentle);
-}
-
-.model-select:hover {
-  border-color: var(--color-primary);
-}
-
-.model-select:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary)/10;
-}
-
-.no-model-hint {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-  background: var(--color-muted);
-  color: var(--color-muted-foreground);
-  font-size: 0.8125rem;
-  text-decoration: none;
-  transition: var(--transition-gentle);
-}
-
-.no-model-hint:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
 }
 
 /* Input Box */
@@ -296,88 +252,74 @@ defineExpose({
   gap: 8px;
 }
 
-/* Tool Toggle */
-.tool-toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+/* Model Select */
+.model-select {
+  appearance: none;
+  padding: 8px 32px 8px 14px;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
+  background: var(--color-background) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2378786C' d='M6 8L1 3h10z'/%3E%3C/svg%3E") no-repeat right 12px center;
+  background-size: 12px;
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  color: var(--color-foreground);
   cursor: pointer;
   transition: var(--transition-gentle);
+}
+
+.model-select:hover {
+  border-color: var(--color-primary);
+}
+
+.model-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary)/10;
+}
+
+.no-model-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-muted);
   color: var(--color-muted-foreground);
   font-size: 0.8125rem;
-  font-weight: 500;
+  text-decoration: none;
+  transition: var(--transition-gentle);
 }
 
-.tool-toggle:hover {
-  background: var(--color-muted);
-  color: var(--color-foreground);
-}
-
-.tool-toggle.active {
-  background: var(--color-primary)/10;
+.no-model-hint:hover {
+  border-color: var(--color-primary);
   color: var(--color-primary);
 }
 
-.toggle-checkbox {
-  display: none;
-}
-
-.toggle-slider {
-  width: 36px;
-  height: 20px;
-  background: var(--color-muted);
+/* Permission Select */
+.permission-select {
+  appearance: none;
+  padding: 8px 32px 8px 14px;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
-  position: relative;
-  transition: var(--transition-gentle);
-}
-
-.toggle-slider::after {
-  content: '';
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 14px;
-  height: 14px;
-  background: white;
-  border-radius: var(--radius-full);
-  box-shadow: var(--shadow-soft);
-  transition: var(--transition-gentle);
-}
-
-.tool-toggle.active .toggle-slider {
-  background: var(--color-primary);
-}
-
-.tool-toggle.active .toggle-slider::after {
-  transform: translateX(16px);
-}
-
-.tool-label {
-  font-family: var(--font-body);
-}
-
-/* Tools More Button */
-.tools-more {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border: none;
-  background: transparent;
-  border-radius: var(--radius-full);
-  cursor: pointer;
-  transition: var(--transition-gentle);
-  color: var(--color-muted-foreground);
+  background: var(--color-background) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2378786C' d='M6 8L1 3h10z'/%3E%3C/svg%3E") no-repeat right 12px center;
+  background-size: 12px;
   font-family: var(--font-body);
   font-size: 0.8125rem;
-  font-weight: 500;
+  color: var(--color-muted-foreground);
+  cursor: pointer;
+  transition: var(--transition-gentle);
 }
 
-.tools-more:hover {
-  background: var(--color-muted);
+.permission-select:hover {
+  border-color: var(--color-primary);
   color: var(--color-foreground);
+}
+
+.permission-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary)/10;
 }
 
 /* Submit Button */
@@ -406,24 +348,25 @@ defineExpose({
   cursor: not-allowed;
 }
 
-/* Add Button */
-.add-btn {
-  width: 36px;
-  height: 36px;
+/* Stop Button */
+.stop-btn {
+  width: 40px;
+  height: 40px;
   border: none;
-  background: transparent;
+  background: var(--color-destructive);
   border-radius: var(--radius-full);
-  color: var(--color-muted-foreground);
+  color: white;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: var(--transition-gentle);
+  box-shadow: var(--shadow-soft);
 }
 
-.add-btn:hover {
-  background: var(--color-muted);
-  color: var(--color-foreground);
+.stop-btn:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-lift);
 }
 
 /* Disclaimer */

@@ -41,7 +41,7 @@
             </div>
           </div>
           <div class="message-content">
-            <template v-for="(block, idx) in getMessageBlocks(message)" :key="idx">
+            <template v-for="(block, idx) in getMessageContentBlocks(message)" :key="idx">
               <div v-if="block.type === 'thinking'" class="thinking-block" :class="{ collapsed: isThinkingCollapsed(message.id, idx) }">
                 <div class="thinking-header" @click="toggleThinking(message.id, idx)">
                   <div class="thinking-header-left">
@@ -64,7 +64,7 @@
                   <p class="thinking-text">{{ block.thinking }}</p>
                 </div>
               </div>
-              <div v-else-if="block.type === 'tool_use'" class="tool-block" :class="{ expanded: isToolExpanded(block.id) }">
+              <div v-else-if="block.type === 'tool_use'" class="tool-block" :class="{ expanded: isToolExpanded(block.id), error: getMessageToolStatus(message, block.id) === 'error' }">
                 <div class="tool-header" @click="toggleToolExpand(block.id)">
                   <div class="tool-header-left">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -72,27 +72,36 @@
                     </svg>
                     <span class="tool-name">{{ block.name }}</span>
                     <span v-if="getToolInputSummary(block.input)" class="tool-summary">{{ getToolInputSummary(block.input) }}</span>
+                    <span class="tool-status" :class="getMessageToolStatus(message, block.id)">{{ getToolStatusText(getMessageToolStatus(message, block.id)) }}</span>
                   </div>
                   <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="6 9 12 15 18 9"/>
                   </svg>
                 </div>
                 <div class="tool-detail" v-show="isToolExpanded(block.id)">
-                  <pre>{{ formatToolInputDetail(block.input) }}</pre>
-                </div>
-              </div>
-              <div v-else-if="block.type === 'tool_result'" class="tool-result-block" :class="{ expanded: isToolExpanded(`result-${block.toolUseId}`) }">
-                <div class="tool-result-header" @click="toggleToolExpand(`result-${block.toolUseId}`)">
-                  <div class="tool-result-header-left">
-                    <span class="tool-result-label">执行结果</span>
-                    <span v-if="block.isError" class="tool-result-error">错误</span>
+                  <!-- Tab 切换 -->
+                  <div class="tool-tabs">
+                    <button
+                      class="tool-tab"
+                      :class="{ active: getToolActiveTab(block.id) === 'input' }"
+                      @click.stop="setToolActiveTab(block.id, 'input')"
+                    >
+                      参数
+                    </button>
+                    <button
+                      v-if="getMessageToolResult(message, block.id)"
+                      class="tool-tab"
+                      :class="{ active: getToolActiveTab(block.id) === 'result' }"
+                      @click.stop="setToolActiveTab(block.id, 'result')"
+                    >
+                      结果
+                    </button>
                   </div>
-                  <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="6 9 12 15 18 9"/>
-                  </svg>
-                </div>
-                <div class="tool-result-content" v-show="isToolExpanded(`result-${block.toolUseId}`)">
-                  <pre>{{ block.content }}</pre>
+                  <!-- Tab 内容 -->
+                  <div class="tool-tab-content">
+                    <pre v-if="getToolActiveTab(block.id) === 'input'">{{ formatToolInputDetail(block.input) }}</pre>
+                    <pre v-else-if="getMessageToolResult(message, block.id)">{{ getMessageToolResult(message, block.id)!.content }}</pre>
+                  </div>
                 </div>
               </div>
               <div v-else-if="block.type === 'text'" class="message-text">
@@ -104,7 +113,7 @@
         </div>
 
         <!-- 流式生成中的 assistant 消息 -->
-        <div v-if="isGenerating" class="message assistant streaming">
+        <div v-if="isCurrentSessionGenerating" class="message assistant streaming">
           <div class="message-avatar">
             <div class="ai-avatar">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -114,32 +123,82 @@
             </div>
           </div>
           <div class="message-content">
-            <div v-if="streamingThinking" class="thinking-block" :class="{ collapsed: isStreamingThinkingCollapsed }">
-              <div class="thinking-header" @click="isStreamingThinkingCollapsed = !isStreamingThinkingCollapsed">
-                <div class="thinking-header-left">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <path d="M12 6v6l4 2"/>
-                  </svg>
-                  <span>思考中...</span>
+            <!-- 按原始顺序显示所有内容块 -->
+            <template v-for="(block, idx) in streamingContentBlocks" :key="`streaming-${idx}`">
+              <!-- thinking 块 -->
+              <div v-if="block.type === 'thinking'" class="thinking-block" :class="{ collapsed: isStreamingThinkingCollapsed }">
+                <div class="thinking-header" @click="isStreamingThinkingCollapsed = !isStreamingThinkingCollapsed">
+                  <div class="thinking-header-left">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M12 6v6l4 2"/>
+                    </svg>
+                    <span>思考中...</span>
+                  </div>
+                  <div class="thinking-header-right">
+                    <span class="thinking-stats">
+                      {{ block.thinking.length }} 字
+                    </span>
+                    <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </div>
                 </div>
-                <div class="thinking-header-right">
-                  <span class="thinking-stats">
-                    {{ streamingThinking.length }} 字
-                  </span>
+                <div class="thinking-content" v-show="!isStreamingThinkingCollapsed">
+                  <p class="thinking-text">{{ block.thinking }}</p>
+                </div>
+              </div>
+
+              <!-- tool_use 块（包含对应的 tool_result） -->
+              <div v-else-if="block.type === 'tool_use'" class="tool-block" :class="{ expanded: isToolExpanded(block.id), error: getToolStatus(block.id) === 'error' }">
+                <div class="tool-header" @click="toggleToolExpand(block.id)">
+                  <div class="tool-header-left">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                    </svg>
+                    <span class="tool-name">{{ block.name }}</span>
+                    <span v-if="getToolInputSummary(block.input)" class="tool-summary">{{ getToolInputSummary(block.input) }}</span>
+                    <span class="tool-status" :class="getToolStatus(block.id)">{{ getToolStatusText(getToolStatus(block.id)) }}</span>
+                  </div>
                   <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="6 9 12 15 18 9"/>
                   </svg>
                 </div>
+                <div class="tool-detail" v-show="isToolExpanded(block.id)">
+                  <!-- Tab 切换 -->
+                  <div class="tool-tabs">
+                    <button
+                      class="tool-tab"
+                      :class="{ active: getToolActiveTab(block.id) === 'input' }"
+                      @click.stop="setToolActiveTab(block.id, 'input')"
+                    >
+                      参数
+                    </button>
+                    <button
+                      v-if="getToolResult(block.id)"
+                      class="tool-tab"
+                      :class="{ active: getToolActiveTab(block.id) === 'result' }"
+                      @click.stop="setToolActiveTab(block.id, 'result')"
+                    >
+                      结果
+                    </button>
+                  </div>
+                  <!-- Tab 内容 -->
+                  <div class="tool-tab-content">
+                    <pre v-if="getToolActiveTab(block.id) === 'input'">{{ formatToolInputDetail(block.input) }}</pre>
+                    <pre v-else-if="getToolResult(block.id)">{{ getToolResult(block.id)!.content }}</pre>
+                  </div>
+                </div>
               </div>
-              <div class="thinking-content" v-show="!isStreamingThinkingCollapsed">
-                <p class="thinking-text">{{ streamingThinking }}</p>
+
+              <!-- text 块 -->
+              <div v-else-if="block.type === 'text'" class="message-text">
+                <MarkdownRenderer :content="block.text" />
               </div>
-            </div>
-            <div v-if="streamingText" class="message-text">
-              <MarkdownRenderer :content="streamingText" />
-            </div>
-            <div v-if="!streamingText && !streamingThinking" class="typing-indicator">
+            </template>
+
+            <!-- 无内容时显示打字指示器 -->
+            <div v-if="streamingContentBlocks.length === 0" class="typing-indicator">
               <span></span><span></span><span></span>
             </div>
           </div>
@@ -151,7 +210,9 @@
     <div class="chat-input-wrapper">
       <ChatInput
         :initial-model="sessionModel"
+        :is-generating="isGenerating"
         @submit="handleSubmit"
+        @stop="handleStop"
         @model-change="handleModelChange"
       />
     </div>
@@ -166,7 +227,7 @@ import MarkdownRenderer from '@/components/Chat/MarkdownRenderer.vue'
 import { useChatStore, type Message } from '@/stores/chat'
 import { useAgentStore } from '@/stores/agent'
 import { useSettingsStore } from '@/stores/settings'
-import type { ContentBlock } from '#claude/types'
+import type { ContentBlock, PermissionMode } from '#claude/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -184,15 +245,61 @@ const messagesContainerRef = ref<HTMLElement | null>(null)
 /** 展开的工具详情 ID 集合 */
 const expandedTools = ref<Set<string>>(new Set())
 
+/** 工具详情激活的 tab */
+const toolActiveTab = ref<Record<string, 'input' | 'result'>>({})
+
 /** 会话当前模型（优先从会话获取，其次从最后消息推断，最后使用默认模型） */
 const sessionModel = ref<string>('')
 
 /** 流式思考是否折叠 */
 const isStreamingThinkingCollapsed = ref(settingsStore.collapseThinking)
 
-/** 流式内容（来自 agentStore） */
-const streamingText = computed(() => agentStore.currentText)
-const streamingThinking = computed(() => agentStore.currentThinking)
+/** 当前 session 是否正在生成（检查 session ID 匹配） */
+const isCurrentSessionGenerating = computed(() => {
+  return agentStore.isGenerating && agentStore.currentSessionId === sessionId.value
+})
+
+/** 流式内容（来自 agentStore，仅当前 session） */
+const streamingText = computed(() => {
+  if (!isCurrentSessionGenerating.value) return ''
+  return agentStore.currentText
+})
+
+const streamingThinking = computed(() => {
+  if (!isCurrentSessionGenerating.value) return ''
+  return agentStore.currentThinking
+})
+
+/** 流式内容块（按原始顺序，排除 tool_result 单独显示） */
+const streamingContentBlocks = computed(() => {
+  if (!isCurrentSessionGenerating.value) return []
+  // 过滤掉 tool_result，它们会配对到 tool_use 中显示
+  return agentStore.currentContent.filter(b => b.type !== 'tool_result')
+})
+
+/** 获取 tool_use 对应的 tool_result */
+function getToolResult(toolUseId: string): ContentBlock | undefined {
+  return agentStore.currentContent.find(b => b.type === 'tool_result' && b.toolUseId === toolUseId)
+}
+
+/** 获取工具执行状态 */
+function getToolStatus(toolUseId: string): 'pending' | 'running' | 'done' | 'error' {
+  const result = getToolResult(toolUseId)
+  if (!result) return 'running'
+  if (result.isError) return 'error'
+  return 'done'
+}
+
+/** 获取工具状态显示文本 */
+function getToolStatusText(status: 'pending' | 'running' | 'done' | 'error'): string {
+  switch (status) {
+    case 'pending': return '等待中'
+    case 'running': return '执行中...'
+    case 'done': return '已完成'
+    case 'error': return '失败'
+  }
+}
+
 const isGenerating = computed(() => agentStore.isGenerating)
 
 /** 滚动到底部 */
@@ -216,6 +323,16 @@ function toggleToolExpand(toolId: string) {
 /** 判断工具是否展开 */
 function isToolExpanded(toolId: string): boolean {
   return expandedTools.value.has(toolId)
+}
+
+/** 获取工具激活的 tab */
+function getToolActiveTab(toolId: string): 'input' | 'result' {
+  return toolActiveTab.value[toolId] || 'input'
+}
+
+/** 设置工具激活的 tab */
+function setToolActiveTab(toolId: string, tab: 'input' | 'result') {
+  toolActiveTab.value[toolId] = tab
 }
 
 /** 获取工具输入的缩略显示 */
@@ -256,6 +373,27 @@ function getMessageBlocks(message: Message): ContentBlock[] {
   return message.content
 }
 
+/** 获取已完成消息中的 tool_result（用于配对显示） */
+function getMessageToolResult(message: Message, toolUseId: string): ContentBlock | undefined {
+  const blocks = getMessageBlocks(message)
+  return blocks.find(b => b.type === 'tool_result' && b.toolUseId === toolUseId)
+}
+
+/** 获取已完成消息中工具的状态 */
+function getMessageToolStatus(message: Message, toolUseId: string): 'running' | 'done' | 'error' {
+  const result = getMessageToolResult(message, toolUseId)
+  if (!result) return 'running'
+  if (result.isError) return 'error'
+  return 'done'
+}
+
+/** 获取已完成消息的内容块（排除单独的 tool_result） */
+function getMessageContentBlocks(message: Message): ContentBlock[] {
+  const blocks = getMessageBlocks(message)
+  // 过滤掉 tool_result，它们会配对到 tool_use 中显示
+  return blocks.filter(b => b.type !== 'tool_result')
+}
+
 /** 判断思考块是否折叠 */
 function isThinkingCollapsed(messageId: string, blockIdx: number): boolean {
   const key = `${messageId}-${blockIdx}`
@@ -290,7 +428,7 @@ function formatThinkingStats(block: ContentBlock): string {
   return parts.join(' · ')
 }
 
-async function handleSubmit(input: string, options: { deepThink: boolean; webSearch: boolean; model: string }) {
+async function handleSubmit(input: string, options: { model: string; permissionMode: PermissionMode }) {
   if (!sessionId.value || isGenerating.value) return
 
   const modelId = options.model || settingsStore.defaultModel
@@ -319,6 +457,7 @@ async function handleSubmit(input: string, options: { deepThink: boolean; webSea
       model: modelId,
       apiKey: modelConfig.apiKey,
       baseURL: modelConfig.baseURL,
+      permissionMode: options.permissionMode,
     },
   )
 
@@ -334,6 +473,11 @@ function handleModelChange(modelId: string) {
   if (sessionId.value) {
     chatStore.setSessionModel(sessionId.value, modelId)
   }
+}
+
+/** 停止生成 */
+function handleStop() {
+  agentStore.abort()
 }
 
 /** 初始化会话模型 */
@@ -380,9 +524,8 @@ onMounted(async () => {
   const model = route.query.model
   if (q && typeof q === 'string') {
     handleSubmit(q, {
-      deepThink: false,
-      webSearch: false,
       model: typeof model === 'string' ? model : sessionModel.value,
+      permissionMode: settingsStore.permissionMode,
     })
     router.replace({ name: 'chat', params: { id: sessionId.value } })
   }
@@ -648,6 +791,45 @@ onMounted(async () => {
   white-space: nowrap;
 }
 
+/* Tool Status */
+.tool-status {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  margin-left: 4px;
+}
+
+.tool-status.running {
+  background: var(--color-primary)/10;
+  color: var(--color-primary);
+}
+
+.tool-status.done {
+  background: var(--color-success)/10;
+  color: var(--color-success);
+}
+
+.tool-status.error {
+  background: var(--color-destructive)/10;
+  color: var(--color-destructive);
+}
+
+.tool-status.pending {
+  background: var(--color-muted);
+  color: var(--color-muted-foreground);
+}
+
+/* Tool Block Error State */
+.tool-block.error {
+  border-color: var(--color-destructive)/30;
+  background: var(--color-destructive)/5;
+}
+
+.tool-block.error .tool-header {
+  color: var(--color-destructive);
+}
+
 .tool-block .collapse-icon {
   transition: transform 0.2s;
   color: var(--color-muted-foreground);
@@ -658,18 +840,54 @@ onMounted(async () => {
 }
 
 .tool-detail {
-  padding: 0 14px 12px 14px;
   border-top: 1px solid var(--color-border);
   background: var(--color-background);
 }
 
-.tool-detail pre {
-  margin: 12px 0 0 0;
+/* Tool Tabs */
+.tool-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tool-tab {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--color-muted-foreground);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-gentle);
+  border-bottom: 2px solid transparent;
+}
+
+.tool-tab:hover {
+  color: var(--color-foreground);
+  background: var(--color-muted);
+}
+
+.tool-tab.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* Tool Tab Content */
+.tool-tab-content {
+  padding: 12px 14px;
+}
+
+.tool-tab-content pre {
+  margin: 0;
   font-family: monospace;
   font-size: 0.8125rem;
   white-space: pre-wrap;
   word-break: break-word;
   color: var(--color-foreground);
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 /* Tool Result Block */

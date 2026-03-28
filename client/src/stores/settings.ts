@@ -19,7 +19,7 @@ import { createModelSettingsModule, type BundleModel, type CustomModelConfig, ty
 
 // 重导出类型
 export type { Language, Theme }
-export type { BundleModel, CustomModelConfig, AvailableModel }
+export type { BundleModel, CustomModelConfig, AvailableModel, PermissionMode }
 export { BUNDLE_MODELS }
 
 export const useSettingsStore = defineStore('settings', () => {
@@ -38,6 +38,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const customModelConfigs = model.customModelConfigs
   const enabledModels = model.enabledModels
   const defaultModel = model.defaultModel
+  const permissionMode = model.permissionMode
   const availableModels = model.availableModels
   const enabledAvailableModels = model.enabledAvailableModels
   const isLoading = model.isLoading
@@ -73,6 +74,7 @@ export const useSettingsStore = defineStore('settings', () => {
       model.customModelConfigs.value = (settings.customModelConfigs as CustomModelConfig[]) ?? []
       model.enabledModels.value = settings.enabledModels ?? []
       model.defaultModel.value = settings.defaultModel ?? ''
+      model.permissionMode.value = settings.permissionMode ?? 'default'
 
       // 如果服务器没有数据，初始化默认值
       if (model.enabledModels.value.length === 0) {
@@ -105,6 +107,7 @@ export const useSettingsStore = defineStore('settings', () => {
         customModelConfigs: customModelConfigs.value,
         enabledModels: enabledModels.value,
         defaultModel: defaultModel.value,
+        permissionMode: permissionMode.value,
       })
       emitter.emit('settings:changed')
     } catch (err) {
@@ -133,7 +136,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
     // 监听状态变化，自动同步到服务器
     watch(
-      [language, theme, customModelConfigs, enabledModels, defaultModel],
+      [language, theme, customModelConfigs, enabledModels, defaultModel, permissionMode],
       () => debouncedSave(),
       { deep: true },
     )
@@ -159,6 +162,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const removeCustomModelConfig = model.removeCustomModelConfig
   const updateCustomModelConfig = model.updateCustomModelConfig
   const setDefaultModel = model.setDefaultModel
+  const setPermissionMode = model.setPermissionMode
 
   return {
     // UI 设置
@@ -178,6 +182,7 @@ export const useSettingsStore = defineStore('settings', () => {
     availableModels,
     enabledAvailableModels,
     defaultModel,
+    permissionMode,
     isLoading,
     getModelConfig,
     toggleModel,
@@ -185,6 +190,7 @@ export const useSettingsStore = defineStore('settings', () => {
     removeCustomModelConfig,
     updateCustomModelConfig,
     setDefaultModel,
+    setPermissionMode,
 
     // 兼容旧版本
     apiKey,
