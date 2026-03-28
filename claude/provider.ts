@@ -387,6 +387,22 @@ export class ClaudeAgentProvider implements IClaudeProvider {
           }
         }
 
+        if (event.type === 'message_start') {
+          return {
+            type: 'stream_event',
+            subtype: 'message_start',
+            taskId,
+          }
+        }
+
+        if (event.type === 'message_stop') {
+          return {
+            type: 'stream_event',
+            subtype: 'message_stop',
+            taskId,
+          }
+        }
+
         return null
       }
 

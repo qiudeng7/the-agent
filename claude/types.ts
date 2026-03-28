@@ -262,6 +262,20 @@ export interface StreamContentBlockStopEvent {
   index: number
 }
 
+/** 流式消息开始事件 */
+export interface StreamMessageStartEvent {
+  type: 'stream_event'
+  subtype: 'message_start'
+  taskId: string
+}
+
+/** 流式消息结束事件 */
+export interface StreamMessageStopEvent {
+  type: 'stream_event'
+  subtype: 'message_stop'
+  taskId: string
+}
+
 /**
  * Claude Agent SDK 流式事件类型。
  */
@@ -278,3 +292,5 @@ export type ClaudeEvent =
   | StreamToolInputDeltaEvent
   | StreamContentBlockStartEvent
   | StreamContentBlockStopEvent
+  | StreamMessageStartEvent
+  | StreamMessageStopEvent

@@ -24,6 +24,10 @@ interface StreamBuffer {
   content: ContentBlock[]
   /** 思考开始时间（毫秒），用于计算思考耗时 */
   thinkingStartTime: number | null
+  /** 当前消息的块索引偏移（每条新消息重置） */
+  blockIndexOffset: number
+  /** 当前消息中已处理的块数量 */
+  currentMessageBlocks: number
 }
 
 /** 创建空的缓冲区 */
@@ -31,6 +35,8 @@ function createEmptyBuffer(): StreamBuffer {
   return {
     content: [],
     thinkingStartTime: null,
+    blockIndexOffset: 0,
+    currentMessageBlocks: 0,
   }
 }
 
@@ -94,61 +100,70 @@ export const useAgentStore = defineStore('agent', () => {
     if (event.type !== 'stream_event') return
 
     switch (event.subtype) {
-      case 'content_block_start':
-        // 开始新的内容块
-        if (event.blockType === 'text') {
-          buffer.value.content.push({ type: 'text', text: '' })
-        } else if (event.blockType === 'thinking') {
-          buffer.value.content.push({ type: 'thinking', thinking: '' })
+      case 'message_start': {
+        // 新消息开始，重置当前消息的索引偏移
+        buffer.value.blockIndexOffset = buffer.value.content.length
+        buffer.value.currentMessageBlocks = 0
+        break
+      }
+
+      case 'content_block_start': {
+        // 开始新的内容块，push 到 buffer 末尾
+        const newBlock: ContentBlock = event.blockType === 'text'
+          ? { type: 'text', text: '' }
+          : event.blockType === 'thinking'
+            ? { type: 'thinking', thinking: '' }
+            : { type: 'tool_use', id: event.toolUseId ?? '', name: event.toolName ?? '', input: {} }
+
+        buffer.value.content.push(newBlock)
+        buffer.value.currentMessageBlocks++
+
+        if (event.blockType === 'thinking') {
           buffer.value.thinkingStartTime = Date.now()
-        } else if (event.blockType === 'tool_use') {
-          buffer.value.content.push({
-            type: 'tool_use',
-            id: event.toolUseId ?? '',
-            name: event.toolName ?? '',
-            input: {},
-          })
         }
         break
+      }
 
-      case 'text_delta':
-        // 增量追加文本
-        const textBlock = buffer.value.content[event.index]
+      case 'text_delta': {
+        // 计算实际索引：当前消息中第 N 个块
+        const actualIndex = buffer.value.blockIndexOffset + event.index
+        const textBlock = buffer.value.content[actualIndex]
         if (textBlock && textBlock.type === 'text') {
           textBlock.text += event.text
         }
         break
+      }
 
-      case 'thinking_delta':
-        // 增量追加思考
-        const thinkingBlock = buffer.value.content[event.index]
+      case 'thinking_delta': {
+        const actualIndex = buffer.value.blockIndexOffset + event.index
+        const thinkingBlock = buffer.value.content[actualIndex]
         if (thinkingBlock && thinkingBlock.type === 'thinking') {
           thinkingBlock.thinking += event.thinking
         }
         break
+      }
 
-      case 'input_json_delta':
-        // 增量追加工具输入 JSON
-        const toolUseBlock = buffer.value.content[event.index]
+      case 'input_json_delta': {
+        const actualIndex = buffer.value.blockIndexOffset + event.index
+        const toolUseBlock = buffer.value.content[actualIndex] as ContentBlock & { _partialJson?: string }
         if (toolUseBlock && toolUseBlock.type === 'tool_use') {
-          // 累积 JSON 字符串，等待 content_block_stop 时解析
           if (!toolUseBlock._partialJson) {
             toolUseBlock._partialJson = ''
           }
           toolUseBlock._partialJson += event.partialJson
         }
         break
+      }
 
-      case 'content_block_stop':
-        // 内容块结束，计算思考耗时或解析工具输入
-        const block = buffer.value.content[event.index]
+      case 'content_block_stop': {
+        const actualIndex = buffer.value.blockIndexOffset + event.index
+        const block = buffer.value.content[actualIndex] as ContentBlock & { _partialJson?: string }
         if (block) {
           if (block.type === 'thinking' && buffer.value.thinkingStartTime) {
             block.durationMs = Date.now() - buffer.value.thinkingStartTime
             buffer.value.thinkingStartTime = null
           }
           if (block.type === 'tool_use' && block._partialJson) {
-            // 解析累积的 JSON 字符串
             try {
               block.input = JSON.parse(block._partialJson)
             } catch {
@@ -158,6 +173,13 @@ export const useAgentStore = defineStore('agent', () => {
           }
         }
         break
+      }
+
+      case 'message_stop': {
+        // 消息结束，更新偏移量
+        buffer.value.blockIndexOffset = buffer.value.content.length
+        break
+      }
     }
   }
 
@@ -180,8 +202,12 @@ export const useAgentStore = defineStore('agent', () => {
         break
 
       case 'assistant':
-        // 追加内容到缓冲区
-        buffer.value.content.push(...event.content)
+        // 启用流式输出时，忽略 assistant 事件
+        // 内容已经通过 stream_event 增量构建，assistant 会重复
+        // 仅在 buffer 为空时处理（兜底）
+        if (buffer.value.content.length === 0) {
+          buffer.value.content.push(...event.content)
+        }
         break
 
       case 'user':

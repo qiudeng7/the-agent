@@ -10,7 +10,7 @@
 <template>
   <div class="chat-view">
     <!-- Messages -->
-    <div class="messages-container">
+    <div class="messages-container" ref="messagesContainerRef">
       <div v-if="messages.length === 0" class="messages-empty">
         <div class="empty-state">
           <div class="empty-icon">
@@ -64,16 +64,36 @@
                   <p class="thinking-text">{{ block.thinking }}</p>
                 </div>
               </div>
-              <div v-else-if="block.type === 'tool_use'" class="tool-block">
-                <div class="tool-header">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+              <div v-else-if="block.type === 'tool_use'" class="tool-block" :class="{ expanded: isToolExpanded(block.id) }">
+                <div class="tool-header" @click="toggleToolExpand(block.id)">
+                  <div class="tool-header-left">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                    </svg>
+                    <span class="tool-name">{{ block.name }}</span>
+                    <span v-if="getToolInputSummary(block.input)" class="tool-summary">{{ getToolInputSummary(block.input) }}</span>
+                  </div>
+                  <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"/>
                   </svg>
-                  <span>{{ block.name }}</span>
+                </div>
+                <div class="tool-detail" v-show="isToolExpanded(block.id)">
+                  <pre>{{ formatToolInputDetail(block.input) }}</pre>
                 </div>
               </div>
-              <div v-else-if="block.type === 'tool_result'" class="tool-result-block">
-                <pre>{{ block.content }}</pre>
+              <div v-else-if="block.type === 'tool_result'" class="tool-result-block" :class="{ expanded: isToolExpanded(`result-${block.toolUseId}`) }">
+                <div class="tool-result-header" @click="toggleToolExpand(`result-${block.toolUseId}`)">
+                  <div class="tool-result-header-left">
+                    <span class="tool-result-label">执行结果</span>
+                    <span v-if="block.isError" class="tool-result-error">错误</span>
+                  </div>
+                  <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </div>
+                <div class="tool-result-content" v-show="isToolExpanded(`result-${block.toolUseId}`)">
+                  <pre>{{ block.content }}</pre>
+                </div>
               </div>
               <div v-else-if="block.type === 'text'" class="message-text">
               <MarkdownRenderer :content="block.text" />
@@ -139,7 +159,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ChatInput from '@/components/Chat/ChatInput.vue'
 import MarkdownRenderer from '@/components/Chat/MarkdownRenderer.vue'
@@ -158,6 +178,12 @@ const sessionId = computed(() => route.params.id as string)
 const session = computed(() => chatStore.sessions.find(s => s.id === sessionId.value))
 const messages = computed(() => session.value?.messages ?? [])
 
+/** 消息列表容器引用 */
+const messagesContainerRef = ref<HTMLElement | null>(null)
+
+/** 展开的工具详情 ID 集合 */
+const expandedTools = ref<Set<string>>(new Set())
+
 /** 会话当前模型（优先从会话获取，其次从最后消息推断，最后使用默认模型） */
 const sessionModel = ref<string>('')
 
@@ -168,6 +194,51 @@ const isStreamingThinkingCollapsed = ref(settingsStore.collapseThinking)
 const streamingText = computed(() => agentStore.currentText)
 const streamingThinking = computed(() => agentStore.currentThinking)
 const isGenerating = computed(() => agentStore.isGenerating)
+
+/** 滚动到底部 */
+function scrollToBottom() {
+  nextTick(() => {
+    if (messagesContainerRef.value) {
+      messagesContainerRef.value.scrollTop = messagesContainerRef.value.scrollHeight
+    }
+  })
+}
+
+/** 切换工具详情展开状态 */
+function toggleToolExpand(toolId: string) {
+  if (expandedTools.value.has(toolId)) {
+    expandedTools.value.delete(toolId)
+  } else {
+    expandedTools.value.add(toolId)
+  }
+}
+
+/** 判断工具是否展开 */
+function isToolExpanded(toolId: string): boolean {
+  return expandedTools.value.has(toolId)
+}
+
+/** 获取工具输入的缩略显示 */
+function getToolInputSummary(input: Record<string, unknown>): string {
+  const keys = Object.keys(input)
+  if (keys.length === 0) return ''
+
+  // 常见工具的简化显示
+  const firstKey = keys[0]
+  const value = input[firstKey]
+
+  if (typeof value === 'string') {
+    // 截断长字符串
+    return value.length > 50 ? value.slice(0, 50) + '...' : value
+  }
+
+  return `${keys.length} 个参数`
+}
+
+/** 格式化工具输入详情 */
+function formatToolInputDetail(input: Record<string, unknown>): string {
+  return JSON.stringify(input, null, 2)
+}
 
 /** 格式化时间戳 */
 function formatTime(timestamp: number) {
@@ -279,8 +350,23 @@ watch(sessionId, async (id) => {
     // 加载消息
     await chatStore.loadSessionMessages(id)
     initSessionModel()
+    scrollToBottom()
   }
 }, { immediate: true })
+
+// 监听消息变化，滚动到底部（用户消息和最终回复）
+watch(messages, (newMessages, oldMessages) => {
+  if (newMessages.length !== oldMessages?.length) {
+    scrollToBottom()
+  }
+}, { deep: true })
+
+// 监听生成状态变化，生成完成时滚动
+watch(isGenerating, (generating, wasGenerating) => {
+  if (wasGenerating && !generating) {
+    scrollToBottom()
+  }
+})
 
 // 处理来自首页"推荐问题"点击的初始消息
 onMounted(async () => {
@@ -289,6 +375,7 @@ onMounted(async () => {
     await chatStore.loadSessionMessages(id)
   }
   initSessionModel()
+  scrollToBottom()
   const q = route.query.q
   const model = route.query.model
   if (q && typeof q === 'string') {
@@ -518,33 +605,138 @@ onMounted(async () => {
   background: var(--color-secondary)/10;
   border: 1px solid var(--color-secondary)/30;
   border-radius: var(--radius-lg);
-  padding: 10px 14px;
   margin-bottom: 8px;
   font-size: 0.875rem;
+  overflow: hidden;
 }
 
 .tool-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   color: var(--color-secondary);
   font-weight: 500;
+  padding: 10px 14px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
 }
 
-.tool-result-block {
-  background: var(--color-muted);
-  border-radius: var(--radius-md);
-  padding: 10px 14px;
-  margin-bottom: 8px;
+.tool-header:hover {
+  background: var(--color-secondary)/5;
+}
+
+.tool-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.tool-name {
+  flex-shrink: 0;
+}
+
+.tool-summary {
+  color: var(--color-muted-foreground);
+  font-weight: 400;
+  font-size: 0.8125rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tool-block .collapse-icon {
+  transition: transform 0.2s;
+  color: var(--color-muted-foreground);
+}
+
+.tool-block.expanded .collapse-icon {
+  transform: rotate(180deg);
+}
+
+.tool-detail {
+  padding: 0 14px 12px 14px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-background);
+}
+
+.tool-detail pre {
+  margin: 12px 0 0 0;
   font-family: monospace;
   font-size: 0.8125rem;
-  overflow-x: auto;
-}
-
-.tool-result-block pre {
-  margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
+  color: var(--color-foreground);
+}
+
+/* Tool Result Block */
+.tool-result-block {
+  background: var(--color-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 8px;
+  font-size: 0.875rem;
+  overflow: hidden;
+}
+
+.tool-result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
+}
+
+.tool-result-header:hover {
+  background: var(--color-background);
+}
+
+.tool-result-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tool-result-label {
+  color: var(--color-muted-foreground);
+  font-weight: 500;
+}
+
+.tool-result-error {
+  background: var(--color-destructive)/10;
+  color: var(--color-destructive);
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.tool-result-block .collapse-icon {
+  transition: transform 0.2s;
+  color: var(--color-muted-foreground);
+}
+
+.tool-result-block.expanded .collapse-icon {
+  transform: rotate(180deg);
+}
+
+.tool-result-content {
+  padding: 0 14px 12px 14px;
+  border-top: 1px solid var(--color-border);
+}
+
+.tool-result-content pre {
+  margin: 12px 0 0 0;
+  font-family: monospace;
+  font-size: 0.8125rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: auto;
 }
 
 /* Typing Indicator */
