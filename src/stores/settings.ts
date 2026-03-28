@@ -52,6 +52,10 @@ export const useSettingsStore = defineStore('settings', () => {
   const isInitialized = ref(false)
   /** 防抖保存定时器 */
   let saveTimer: ReturnType<typeof setTimeout> | null = null
+  /** 保存错误状态 */
+  const saveError = ref<string | null>(null)
+  /** 是否正在保存 */
+  const isSaving = ref(false)
 
   // ── 聚合 Actions ──────────────────────────────────────────────────────────
 
@@ -93,6 +97,8 @@ export const useSettingsStore = defineStore('settings', () => {
 
   async function saveToServer() {
     try {
+      isSaving.value = true
+      saveError.value = null
       await backend.updateSettings({
         language: language.value,
         theme: theme.value,
@@ -103,6 +109,16 @@ export const useSettingsStore = defineStore('settings', () => {
       emitter.emit('settings:changed')
     } catch (err) {
       console.error('[Settings] Failed to save:', err)
+      saveError.value = err instanceof Error ? err.message : '保存失败'
+    } finally {
+      isSaving.value = false
+    }
+  }
+
+  /** 重试保存 */
+  async function retrySave() {
+    if (saveError.value) {
+      await saveToServer()
     }
   }
 
@@ -173,6 +189,11 @@ export const useSettingsStore = defineStore('settings', () => {
     // 兼容旧版本
     apiKey,
     baseURL,
+
+    // 同步状态
+    saveError,
+    isSaving,
+    retrySave,
 
     // 生命周期
     fetch,

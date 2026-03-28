@@ -70,7 +70,12 @@ router.beforeEach(async (to, _from, next) => {
 
   // 如果有 token 但没有用户信息，尝试初始化
   if (authStore.token && !authStore.user) {
-    await authStore.init()
+    try {
+      await authStore.init()
+    } catch (err) {
+      console.error('[Router] Auth init failed:', err)
+      // init 失败时会自动 logout，继续导航
+    }
   }
 
   // 检查是否需要登录

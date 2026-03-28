@@ -29,16 +29,34 @@ export function createLocalStorage(): IStorage {
 export function createThemeDetector(): IThemeDetector {
   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
   const callbacks = new Set<(isDark: boolean) => void>()
+  let abortController: AbortController | null = null
 
-  mediaQuery.addEventListener('change', (e) => {
-    callbacks.forEach(cb => cb(e.matches))
-  })
+  function startListener() {
+    if (abortController) return
+    abortController = new AbortController()
+    mediaQuery.addEventListener('change', (e) => {
+      callbacks.forEach(cb => cb(e.matches))
+    }, { signal: abortController.signal })
+  }
+
+  function stopListener() {
+    if (abortController) {
+      abortController.abort()
+      abortController = null
+    }
+  }
 
   return {
     get isDark() { return mediaQuery.matches },
     onChange: (callback) => {
       callbacks.add(callback)
-      return () => callbacks.delete(callback)
+      startListener()
+      return () => {
+        callbacks.delete(callback)
+        if (callbacks.size === 0) {
+          stopListener()
+        }
+      }
     },
   }
 }

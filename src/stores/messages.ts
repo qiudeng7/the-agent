@@ -158,6 +158,12 @@ export function createMessagesModule() {
     messagesBySession[sessionId] = messages
   }
 
+  /** 标记会话消息已加载（用于新会话） */
+  function markSessionLoaded(sessionId: string) {
+    messagesBySession[sessionId] = messagesBySession[sessionId] ?? []
+    loadedSessions.add(sessionId)
+  }
+
   // ── 事件处理 ──────────────────────────────────────────────────────────────
 
   function handleAgentDone(event: { sessionId: string; message: { role: 'user' | 'assistant'; content: string | ContentBlock[] }; stats?: { costUsd?: number; durationMs?: number } }) {
@@ -236,6 +242,7 @@ export function createMessagesModule() {
     loadMessages,
     addMessage,
     addLocalMessage,
+    markSessionLoaded,
     clear,
     setupEventListeners,
     teardownEventListeners,

@@ -21,9 +21,16 @@ export class ElectronAgentTransport implements IClaudeTransportServer {
   private _getWindow: () => BrowserWindow | null
   private _runHandler: ((options: ClaudeRunOptions) => void) | null = null
   private _abortHandler: ((taskId: string) => void) | null = null
+  private _isRegistered = false
 
   constructor(getWindow: () => BrowserWindow | null) {
     this._getWindow = getWindow
+    this._registerHandlers()
+  }
+
+  private _registerHandlers() {
+    if (this._isRegistered) return
+    this._isRegistered = true
 
     // 一次性注册 IPC 处理器
     console.log('[ElectronAgentTransport] Registering IPC handlers...')
@@ -37,6 +44,16 @@ export class ElectronAgentTransport implements IClaudeTransportServer {
       this._abortHandler?.(taskId)
     })
     console.log('[ElectronAgentTransport] IPC handlers registered')
+  }
+
+  /** 清理 IPC handlers（应用退出时调用） */
+  destroy() {
+    if (this._isRegistered) {
+      ipcMain.removeHandler('agent:run')
+      ipcMain.removeHandler('agent:abort')
+      this._isRegistered = false
+      console.log('[ElectronAgentTransport] IPC handlers removed')
+    }
   }
 
   /** 向渲染进程推送流式事件 */

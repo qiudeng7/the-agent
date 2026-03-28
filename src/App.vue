@@ -12,8 +12,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue'
+import { computed, onMounted, onUnmounted, watch } from 'vue'
 import { useSettingsStore } from './stores/settings'
+import { useChatStore } from './stores/chat'
+import { useAgentStore } from './stores/agent'
 
 const settingsStore = useSettingsStore()
 
@@ -33,6 +35,17 @@ onMounted(() => {
   // Initial setup
   const isDark = settingsStore.currentTheme === 'dark'
   document.documentElement.classList.toggle('dark', isDark)
+})
+
+onUnmounted(() => {
+  // 清理 stores 事件监听
+  const chatStore = useChatStore()
+  const agentStore = useAgentStore()
+
+  settingsStore.teardownEventListeners()
+  chatStore.teardownEventListeners()
+  agentStore.teardownEventListeners()
+  settingsStore.ui.stopWatching()
 })
 </script>
 

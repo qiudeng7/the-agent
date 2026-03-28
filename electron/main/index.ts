@@ -27,10 +27,11 @@ app.commandLine.appendSwitch('remote-debugging-port', '9223')
 // ─────────────────────────────────────────────────────────────────────────────
 
 let runner: ClaudeRunner | null = null
+let transport: ElectronAgentTransport | null = null
 
 function setupAgent() {
   console.log('[Claude] Setting up claude runner...')
-  const transport = new ElectronAgentTransport(() => mainWindow)
+  transport = new ElectronAgentTransport(() => mainWindow)
   const provider = new ClaudeAgentProvider()
   runner = new ClaudeRunner(provider, transport)
   runner.start()
@@ -88,6 +89,11 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
+})
+
+app.on('will-quit', () => {
+  transport?.destroy()
+  transport = null
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
