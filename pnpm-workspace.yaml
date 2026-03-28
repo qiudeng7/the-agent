@@ -1,9 +1,0 @@
-packages:
-  - '.'
-  - 'server'
-
-onlyBuiltDependencies:
-  - '*'
-  - electron-winstaller
-  - electron
-  - esbuild
