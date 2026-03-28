@@ -9,6 +9,7 @@
  *              4. 管理 abort 状态
  */
 
+import path from 'path'
 import { query } from '@anthropic-ai/claude-agent-sdk'
 import type { ClaudeRunOptions, ClaudeEvent } from './types'
 import type { IClaudeProvider } from './interfaces/provider'
@@ -39,6 +40,31 @@ interface SdkMessage {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// CLI 路径解析
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * 获取 Claude Agent SDK 的 cli.js 路径。
+ * 在 Electron 打包环境中，SDK 无法通过 import.meta.url 正确定位 cli.js，
+ * 需要通过 require.resolve 找到正确的路径。
+ */
+function getCliPath(): string {
+  try {
+    // 通过 package.json 定位 SDK 包目录
+    const sdkPackagePath = require.resolve('@anthropic-ai/claude-agent-sdk/package.json')
+    return path.join(path.dirname(sdkPackagePath), 'cli.js')
+  } catch {
+    // 回退：尝试直接解析 cli.js
+    try {
+      return require.resolve('@anthropic-ai/claude-agent-sdk/cli.js')
+    } catch {
+      // 最后回退：假设在 node_modules 中
+      return path.join(process.cwd(), 'node_modules', '@anthropic-ai', 'claude-agent-sdk', 'cli.js')
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ClaudeAgentProvider
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -52,14 +78,17 @@ export interface ClaudeProviderOptions {
 export class ClaudeAgentProvider implements IClaudeProvider {
   readonly name = 'claude-agent-sdk'
 
-  private cliPath: string | undefined
+  private cliPath: string
   private defaultModel: string
   /** 正在运行的任务：taskId → AbortController */
   private runningTasks = new Map<string, AbortController>()
 
   constructor(options: ClaudeProviderOptions = {}) {
-    this.cliPath = options.cliPath
+    // 优先使用传入的 cliPath，否则自动检测
+    this.cliPath = options.cliPath ?? getCliPath()
     this.defaultModel = options.defaultModel ?? 'claude-opus-4-6'
+
+    console.log('[ClaudeAgentProvider] CLI path:', this.cliPath)
   }
 
   getVersion(): string {
