@@ -276,7 +276,9 @@ export const useAgentStore = defineStore('agent', () => {
         console.error('[Claude] Error:', event.error, event.code)
         error.value = event.error
         isGenerating.value = false
-        // 触发错误事件
+        // 先保存已生成的内容
+        saveBufferBeforeReset()
+        // 触发错误事件（追加错误消息）
         const sessionId = currentSessionId.value
         if (sessionId) {
           emitter.emit('agent:error', {
@@ -376,8 +378,38 @@ export const useAgentStore = defineStore('agent', () => {
   async function abort() {
     const taskId = currentTaskId.value
     if (!taskId) return
+
+    // 打断时保存已生成的内容（如果有）
+    saveBufferBeforeReset()
+
     await transport.abort(taskId)
     resetState()
+  }
+
+  /** 打断或出错时保存已生成的内容 */
+  function saveBufferBeforeReset() {
+    const sessionId = currentSessionId.value
+    if (!sessionId) return
+
+    const content = buffer.value.content
+    if (content.length === 0) return
+
+    // 过滤掉没有实际内容的空块
+    const meaningfulContent = content.filter(block => {
+      if (block.type === 'text') return block.text.length > 0
+      if (block.type === 'thinking') return block.thinking.length > 0
+      if (block.type === 'tool_use') return block.id && block.name
+      return true // tool_result 保留
+    })
+
+    if (meaningfulContent.length === 0) return
+
+    // 发送打断时的消息
+    emitter.emit('agent:done', {
+      sessionId,
+      message: { role: 'assistant', content: meaningfulContent },
+      stats: undefined, // 打断时没有统计信息
+    })
   }
 
   return {
