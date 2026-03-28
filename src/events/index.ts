@@ -12,7 +12,7 @@
  * @layer infrastructure
  */
 import mitt from 'mitt'
-import type { AgentMessage } from '#agent/types'
+import type { AgentMessage } from '#claude/types'
 
 /**
  * Agent 结果统计信息

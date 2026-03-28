@@ -11,9 +11,8 @@
 
 import path from 'path'
 import { query } from '@anthropic-ai/claude-agent-sdk'
-import type { ClaudeRunOptions, ClaudeEvent } from './types'
+import type { ClaudeRunOptions, ClaudeEvent, ContentBlock } from './types'
 import type { IClaudeProvider } from './interfaces/provider'
-import type { ContentBlock } from '#agent/types'
 import { mapSdkContentBlocks, type SdkContentBlock } from './utils/content-mapper'
 import { detectClaude } from '#claude-installer'
 

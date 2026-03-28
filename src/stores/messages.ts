@@ -14,7 +14,7 @@
  * @layer state
  */
 import { ref } from 'vue'
-import type { ContentBlock } from '#agent/types'
+import type { ContentBlock } from '#claude/types'
 import { emitter } from '@/events'
 import * as backend from '@/services/backend'
 

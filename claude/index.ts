@@ -21,6 +21,7 @@ export type * from './types'
 
 // ── 接口导出 ────────────────────────────────────────────────────────────────
 export type { IClaudeProvider } from './interfaces/provider'
+export type { IClaudeTransportServer } from './interfaces/transport'
 
 // ── 实现导出 ────────────────────────────────────────────────────────────────
 export { ClaudeAgentProvider, type ClaudeProviderOptions } from './provider'

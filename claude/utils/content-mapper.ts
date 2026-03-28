@@ -3,7 +3,7 @@
  * @description SDK content block 与 agent ContentBlock 之间的转换工具。
  */
 
-import type { ContentBlock } from '#agent/types'
+import type { ContentBlock } from '../types'
 
 /**
  * SDK 原始 content block 类型（来自 Claude Agent SDK）。

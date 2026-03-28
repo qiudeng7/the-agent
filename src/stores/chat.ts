@@ -16,7 +16,7 @@
  */
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
-import type { ContentBlock } from '#agent/types'
+import type { ContentBlock } from '#claude/types'
 import { emitter } from '@/events'
 import { createSessionListModule, type SessionSummary, type ChatGroup } from './session-list'
 import { createMessagesModule, type Message } from './messages'

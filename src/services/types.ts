@@ -4,7 +4,7 @@
  *              与后端数据库 schema 对应的数据结构。
  * @layer types
  */
-import type { ContentBlock } from '#agent/types'
+import type { ContentBlock } from '#claude/types'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 用户类型

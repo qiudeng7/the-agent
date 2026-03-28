@@ -15,8 +15,7 @@
  */
 import { defineStore } from 'pinia'
 import { ref, computed, inject } from 'vue'
-import type { ContentBlock } from '#agent/types'
-import type { ClaudeEvent, PermissionMode, McpServerConfig } from '#claude/types'
+import type { ContentBlock, ClaudeEvent, PermissionMode, McpServerConfig } from '#claude/types'
 import { AGENT_TRANSPORT_KEY, type IAgentTransportClient } from '@/di/interfaces'
 import { emitter } from '@/events'
 

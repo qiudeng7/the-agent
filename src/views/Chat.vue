@@ -146,7 +146,7 @@ import MarkdownRenderer from '@/components/Chat/MarkdownRenderer.vue'
 import { useChatStore, type Message } from '@/stores/chat'
 import { useAgentStore } from '@/stores/agent'
 import { useSettingsStore } from '@/stores/settings'
-import type { ContentBlock } from '#agent/types'
+import type { ContentBlock } from '#claude/types'
 
 const route = useRoute()
 const router = useRouter()

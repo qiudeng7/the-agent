@@ -11,14 +11,14 @@
  *              不含任何 SDK 或通信细节，可搭配任意 transport 使用。
  */
 
-import type { IAgentTransportServer } from '#agent/interfaces/transport'
+import type { IClaudeTransportServer } from './interfaces/transport'
 import type { IClaudeProvider } from './interfaces/provider'
 import type { ClaudeRunOptions } from './types'
 
 export class ClaudeRunner {
   constructor(
     private readonly provider: IClaudeProvider,
-    private readonly transport: IAgentTransportServer,
+    private readonly transport: IClaudeTransportServer,
   ) {}
 
   /**

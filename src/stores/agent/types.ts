@@ -4,7 +4,7 @@
  * @layer state
  */
 
-import type { ContentBlock } from '#agent/types'
+import type { ContentBlock } from '#claude/types'
 
 /** 流式输出缓冲区 */
 export interface StreamBuffer {

@@ -4,7 +4,7 @@
  *              直接使用 fetch 与后端通信，不走 Electron IPC。
  * @layer service
  */
-import type { ContentBlock } from '#agent/types'
+import type { ContentBlock } from '#claude/types'
 import type { User, AuthResponse, Session, SessionDetail, Message, Settings } from './types'
 
 // API 基础地址（开发环境使用本地服务器，生产环境使用配置的地址）

@@ -5,17 +5,57 @@
  */
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 复用 agent 模块的基础类型
+// 消息内容块
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type {
-  ContentBlock,
-  TextContent,
-  ThinkingContent,
-  ToolUseContent,
-  ToolResultContent,
-  AgentMessage,
-} from '#agent/types'
+export interface TextContent {
+  type: 'text'
+  text: string
+}
+
+/** 扩展推理模型（如 claude-opus-4-5-thinking）产出的思考过程 */
+export interface ThinkingContent {
+  type: 'thinking'
+  thinking: string
+  /** 部分 provider 要求回传此签名以验证思考内容未被篡改 */
+  signature?: string
+  /** 思考耗时（毫秒），由前端计算并附加 */
+  durationMs?: number
+}
+
+/** AI 发起的工具调用 */
+export interface ToolUseContent {
+  type: 'tool_use'
+  id: string
+  name: string
+  input: Record<string, unknown>
+}
+
+/** 工具执行后回传给 AI 的结果 */
+export interface ToolResultContent {
+  type: 'tool_result'
+  toolUseId: string
+  content: string
+  isError?: boolean
+}
+
+export type ContentBlock =
+  | TextContent
+  | ThinkingContent
+  | ToolUseContent
+  | ToolResultContent
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 对话消息
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type MessageRole = 'user' | 'assistant'
+
+export interface AgentMessage {
+  role: MessageRole
+  /** 纯文本时用 string，含工具调用/结果时用 ContentBlock[] */
+  content: string | ContentBlock[]
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MCP 服务器配置
@@ -66,7 +106,7 @@ export interface ClaudeRunOptions {
   /** 用户输入（作为 prompt） */
   userInput: string
   /** 对话历史（可选，用于多轮对话） */
-  messages?: import('#agent/types').AgentMessage[]
+  messages?: AgentMessage[]
   /** 模型标识符（如 'claude-opus-4-6'） */
   model?: string
   /** API Key（可选，用于覆盖默认配置） */
@@ -92,8 +132,6 @@ export interface ClaudeRunOptions {
 // ─────────────────────────────────────────────────────────────────────────────
 // 流式事件
 // ─────────────────────────────────────────────────────────────────────────────
-
-import type { ContentBlock } from '#agent/types'
 
 /** 会话初始化事件 */
 export interface SystemInitEvent {
