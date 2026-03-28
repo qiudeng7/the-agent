@@ -15,6 +15,7 @@ import type { ClaudeRunOptions, ClaudeEvent } from './types'
 import type { IClaudeProvider } from './interfaces/provider'
 import type { ContentBlock } from '#agent/types'
 import { mapSdkContentBlocks, type SdkContentBlock } from './utils/content-mapper'
+import { detectClaude } from '#claude-installer'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SDK 类型（用于类型安全）
@@ -48,7 +49,7 @@ interface SdkMessage {
  * 在 Electron 打包环境中，SDK 无法通过 import.meta.url 正确定位 cli.js，
  * 需要通过 require.resolve 找到正确的路径。
  */
-function getCliPath(): string {
+function getSdkCliPath(): string {
   try {
     // 通过 package.json 定位 SDK 包目录
     const sdkPackagePath = require.resolve('@anthropic-ai/claude-agent-sdk/package.json')
@@ -69,26 +70,61 @@ function getCliPath(): string {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface ClaudeProviderOptions {
-  /** Claude Code CLI 可执行文件路径 */
-  cliPath?: string
+  /** Claude Code 可执行文件路径（如果已安装） */
+  claudePath?: string
   /** 默认模型 */
   defaultModel?: string
+  /** 进度回调 */
+  onProgress?: (message: string) => void
 }
 
 export class ClaudeAgentProvider implements IClaudeProvider {
   readonly name = 'claude-agent-sdk'
 
-  private cliPath: string
+  private sdkCliPath: string
+  private claudePath: string | null = null
   private defaultModel: string
+  private onProgress?: (message: string) => void
   /** 正在运行的任务：taskId → AbortController */
   private runningTasks = new Map<string, AbortController>()
+  /** 是否已初始化（检测 claude 路径） */
+  private initialized = false
 
   constructor(options: ClaudeProviderOptions = {}) {
-    // 优先使用传入的 cliPath，否则自动检测
-    this.cliPath = options.cliPath ?? getCliPath()
+    this.sdkCliPath = getSdkCliPath()
+    this.claudePath = options.claudePath ?? null
     this.defaultModel = options.defaultModel ?? 'claude-opus-4-6'
+    this.onProgress = options.onProgress
 
-    console.log('[ClaudeAgentProvider] CLI path:', this.cliPath)
+    console.log('[ClaudeAgentProvider] SDK CLI path:', this.sdkCliPath)
+  }
+
+  /**
+   * 初始化：检测 Claude Code 路径。
+   */
+  async initialize(): Promise<void> {
+    if (this.initialized) return
+
+    // 如果已提供路径，直接使用
+    if (this.claudePath) {
+      console.log('[ClaudeAgentProvider] Using provided claude path:', this.claudePath)
+      this.initialized = true
+      return
+    }
+
+    // 检测系统中是否已安装
+    this.onProgress?.('Detecting Claude Code installation...')
+    const detected = await detectClaude()
+    if (detected) {
+      this.claudePath = detected
+      console.log('[ClaudeAgentProvider] Detected claude at:', this.claudePath)
+      this.onProgress?.(`Found Claude Code at: ${this.claudePath}`)
+    } else {
+      console.log('[ClaudeAgentProvider] Claude Code not found, will use SDK cli.js')
+      this.onProgress?.('Claude Code not found in system')
+    }
+
+    this.initialized = true
   }
 
   getVersion(): string {
@@ -105,6 +141,9 @@ export class ClaudeAgentProvider implements IClaudeProvider {
   }
 
   async *run(options: ClaudeRunOptions): AsyncIterable<ClaudeEvent> {
+    // 确保已初始化
+    await this.initialize()
+
     const { taskId } = options
     const ctrl = new AbortController()
     this.runningTasks.set(taskId, ctrl)
@@ -155,7 +194,6 @@ export class ClaudeAgentProvider implements IClaudeProvider {
       mcpServers,
       resume,
       debug,
-      cliPath,
     } = options
 
     // 通过 env 选项传递环境变量给 SDK 子进程
@@ -167,6 +205,11 @@ export class ClaudeAgentProvider implements IClaudeProvider {
       env.ANTHROPIC_BASE_URL = baseURL
     }
 
+    // 确定 pathToClaudeCodeExecutable：
+    // - 如果检测到系统安装的 claude，使用该路径
+    // - 否则使用 SDK 包内的 cli.js
+    const pathToClaudeCodeExecutable = this.claudePath || this.sdkCliPath
+
     return {
       model: model ?? this.defaultModel,
       systemPrompt,
@@ -176,7 +219,7 @@ export class ClaudeAgentProvider implements IClaudeProvider {
       resume,
       debug,
       env: Object.keys(env).length > 0 ? env : undefined,
-      pathToClaudeCodeExecutable: cliPath ?? this.cliPath,
+      pathToClaudeCodeExecutable,
     }
   }
 
