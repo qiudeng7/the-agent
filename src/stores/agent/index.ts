@@ -50,6 +50,22 @@ export const useAgentStore = defineStore('agent', () => {
     unsubscribe = transport.onEvent(handleAgentEvent)
   }
 
+  function setupEventListeners() {
+    emitter.on('auth:logout', teardown)
+  }
+
+  function teardownEventListeners() {
+    emitter.off('auth:logout', teardown)
+  }
+
+  function teardown() {
+    if (unsubscribe) {
+      unsubscribe()
+      unsubscribe = null
+    }
+    resetState()
+  }
+
   function handleAgentEvent(event: AgentEvent) {
     if (event.taskId !== currentTaskId.value) return
 
@@ -211,6 +227,9 @@ export const useAgentStore = defineStore('agent', () => {
     error,
     runAgent,
     abort,
+    teardown,
+    setupEventListeners,
+    teardownEventListeners,
   }
 })
 

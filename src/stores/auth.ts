@@ -14,6 +14,9 @@ import { emitter } from '@/events'
 export const useAuthStore = defineStore('auth', () => {
   // ── 依赖注入 ────────────────────────────────────────────────────────────────
   const storage = inject<IStorage>(STORAGE_KEY)!
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  const token = ref<string | null>(storage.getItem('token'))
   const user = ref<backend.User | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)

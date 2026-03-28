@@ -1,65 +1,17 @@
 /**
  * @module services/backend
- * @description 后端 API 服务封装
- *              直接使用 fetch 与后端通信，不走 Electron IPC
+ * @description 后端 API 服务封装。
+ *              直接使用 fetch 与后端通信，不走 Electron IPC。
+ * @layer service
  */
 import type { ContentBlock } from '#agent/types'
+import type { User, AuthResponse, Session, SessionDetail, Message, Settings } from './types'
 
 // API 基础地址（开发环境使用本地服务器，生产环境使用配置的地址）
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 类型定义
-// ─────────────────────────────────────────────────────────────────────────────
-
-export interface User {
-  id: string
-  email: string
-  nickname: string | null
-  createdAt: number
-}
-
-export interface AuthResponse {
-  token: string
-  user: User
-}
-
-export interface Session {
-  id: string
-  title: string
-  model: string
-  createdAt: number
-  updatedAt: number
-  messageCount: number
-}
-
-export interface SessionDetail {
-  session: {
-    id: string
-    title: string
-    model: string
-    createdAt: number
-    updatedAt: number
-  }
-  messages: Message[]
-}
-
-export interface Message {
-  id: string
-  role: 'user' | 'assistant'
-  content: string | ContentBlock[]
-  model?: string
-  timestamp: number
-}
-
-export interface Settings {
-  language: 'system' | 'zh' | 'ja' | 'en'
-  theme: 'system' | 'light' | 'dark'
-  customModelConfigs: unknown[]
-  enabledModels: string[]
-  defaultModel: string
-  updatedAt?: number
-}
+// 重导出类型（保持兼容性）
+export type { User, AuthResponse, Session, SessionDetail, Message, Settings } from './types'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // API 错误

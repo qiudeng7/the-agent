@@ -68,10 +68,11 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const email = ref('')
@@ -86,7 +87,9 @@ async function handleSubmit() {
     isLoading.value = true
     error.value = ''
     await authStore.login(email.value, password.value)
-    router.push('/')
+    // 登录成功后跳转到之前请求的页面或首页
+    const redirect = route.query.redirect as string
+    router.push(redirect || '/')
   } catch (err) {
     error.value = authStore.error || '登录失败，请重试'
   } finally {

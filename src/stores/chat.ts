@@ -8,6 +8,10 @@
  * - session-list.ts: 会话列表、分组、搜索
  * - messages.ts: 消息管理、思考折叠状态
  *
+ * 子模块访问：
+ * - 通过 sessionList / messages 属性直接访问子模块
+ * - 聚合层提供常用方法的快捷访问
+ *
  * @layer state
  */
 import { defineStore } from 'pinia'
@@ -140,13 +144,6 @@ export const useChatStore = defineStore('chat', () => {
     messages.clear()
   }
 
-  // ── 代理 session-list 方法 ────────────────────────────────────────────────
-  const setSearchQuery = sessionList.setSearchQuery
-  const createGroup = sessionList.createGroup
-  const addSessionToGroup = sessionList.addSessionToGroup
-  const updateSessionTitle = sessionList.updateSessionTitle
-  const fetchAll = sessionList.fetchAll
-
   // ── 生命周期 ──────────────────────────────────────────────────────────────
 
   function setupEventListeners() {
@@ -160,43 +157,42 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   return {
-    // 会话列表
+    // ── 子模块（直接访问）────────────────────────────────────────────────────
+    sessionList,
+    messages,
+
+    // ── 聚合 Getters ────────────────────────────────────────────────────────
     sessions,
     currentSessionId,
     currentSession,
-    groups: sessionList.groups,
-    searchQuery: sessionList.searchQuery,
-    isLoading: sessionList.isLoading,
-    filteredSessions: sessionList.filteredSessions,
     groupedSessions,
 
-    // 消息相关
-    thinkingExpandedStates: messages.thinkingExpandedStates,
-
-    // 会话操作
+    // ── 核心操作 ────────────────────────────────────────────────────────────
     switchSession,
     createSession,
     deleteSession,
     loadSessionMessages,
-    updateSessionTitle,
     setSessionModel,
     getSessionModel,
-
-    // 消息操作
     addMessage,
     isThinkingCollapsed,
     toggleThinking,
-
-    // 搜索和分组
-    setSearchQuery,
-    createGroup,
-    addSessionToGroup,
-
-    // 数据加载
-    fetchAll,
     clear,
 
-    // 生命周期
+    // ── 快捷访问（常用属性）─────────────────────────────────────────────────
+    groups: sessionList.groups,
+    searchQuery: sessionList.searchQuery,
+    isLoading: sessionList.isLoading,
+    filteredSessions: sessionList.filteredSessions,
+    thinkingExpandedStates: messages.thinkingExpandedStates,
+
+    // ── 快捷访问（常用方法）─────────────────────────────────────────────────
+    setSearchQuery: sessionList.setSearchQuery,
+    createGroup: sessionList.createGroup,
+    updateSessionTitle: sessionList.updateSessionTitle,
+    fetchAll: sessionList.fetchAll,
+
+    // ── 生命周期 ────────────────────────────────────────────────────────────
     setupEventListeners,
     teardownEventListeners,
   }

@@ -14,6 +14,7 @@ import { createElectronDependencies } from './di/electron'
 import { useSettingsStore } from './stores/settings'
 import { useAuthStore } from './stores/auth'
 import { useChatStore } from './stores/chat'
+import { useAgentStore } from './stores/agent'
 import './assets/main.css'
 
 // 创建依赖
@@ -34,10 +35,13 @@ app.mount('#app')
 // 初始化 stores
 const settingsStore = useSettingsStore()
 const chatStore = useChatStore()
+const agentStore = useAgentStore()
 
 // 启动事件监听（store 间解耦通信）
 settingsStore.startWatching()
+settingsStore.setupEventListeners()
 chatStore.setupEventListeners()
+agentStore.setupEventListeners()
 
 // Vue 挂载完成后移除 loading
 nextTick(() => {

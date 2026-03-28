@@ -2,12 +2,10 @@
  * @module stores/model-settings
  * @description 模型设置状态管理。
  *              管理模型配置、启用列表、默认模型等 Agent 相关设置。
- *              设置同步到云端，本地作为缓存。
+ *              只管理状态，数据同步由聚合层 (settings.ts) 处理。
  * @layer state
  */
 import { ref, computed } from 'vue'
-import { emitter } from '@/events'
-import * as backend from '@/services/backend'
 
 /** 内置模型定义 */
 export interface BundleModel {
@@ -159,7 +157,7 @@ export function createModelSettingsModule() {
     return {}
   }
 
-  async function toggleModel(modelId: string) {
+  function toggleModel(modelId: string) {
     const index = enabledModels.value.indexOf(modelId)
     if (index !== -1) {
       enabledModels.value.splice(index, 1)
@@ -169,20 +167,18 @@ export function createModelSettingsModule() {
     } else {
       enabledModels.value.push(modelId)
     }
-    await saveToServer()
   }
 
-  async function addCustomModelConfig(config: CustomModelConfig) {
+  function addCustomModelConfig(config: CustomModelConfig) {
     customModelConfigs.value.push(config)
     for (const m of config.models) {
       if (!enabledModels.value.includes(m.id)) {
         enabledModels.value.push(m.id)
       }
     }
-    await saveToServer()
   }
 
-  async function removeCustomModelConfig(configId: string) {
+  function removeCustomModelConfig(configId: string) {
     const index = customModelConfigs.value.findIndex(c => c.id === configId)
     if (index !== -1) {
       const config = customModelConfigs.value[index]
@@ -196,48 +192,19 @@ export function createModelSettingsModule() {
         }
       }
       customModelConfigs.value.splice(index, 1)
-      await saveToServer()
     }
   }
 
-  async function updateCustomModelConfig(config: CustomModelConfig) {
+  function updateCustomModelConfig(config: CustomModelConfig) {
     const index = customModelConfigs.value.findIndex(c => c.id === config.id)
     if (index !== -1) {
       customModelConfigs.value[index] = config
-      await saveToServer()
     }
   }
 
-  async function setDefaultModel(modelId: string) {
+  function setDefaultModel(modelId: string) {
     if (availableModels.value.find(m => m.id === modelId)) {
       defaultModel.value = modelId
-      await saveToServer()
-    }
-  }
-
-  async function saveToServer() {
-    try {
-      await backend.updateSettings({
-        customModelConfigs: customModelConfigs.value,
-        enabledModels: enabledModels.value,
-        defaultModel: defaultModel.value,
-      })
-      emitter.emit('settings:changed')
-    } catch (err) {
-      console.error('[ModelSettings] Failed to save:', err)
-    }
-  }
-
-  async function fetch() {
-    try {
-      isLoading.value = true
-      const settings = await backend.fetchSettings()
-      customModelConfigs.value = (settings.customModelConfigs as CustomModelConfig[]) ?? []
-      enabledModels.value = settings.enabledModels ?? []
-      defaultModel.value = settings.defaultModel ?? ''
-      emitter.emit('settings:loaded')
-    } finally {
-      isLoading.value = false
     }
   }
 
@@ -271,7 +238,6 @@ export function createModelSettingsModule() {
     removeCustomModelConfig,
     updateCustomModelConfig,
     setDefaultModel,
-    fetch,
     clear,
     initializeDefaults,
   }

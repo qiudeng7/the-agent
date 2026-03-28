@@ -2,7 +2,7 @@
  * @module stores/settings
  * @description 应用设置状态管理（Pinia store）。
  *              聚合 UI 设置和模型设置模块。
- *              设置数据同步到云端，本地作为缓存。
+ *              通过 watch 监听子模块状态变化，统一同步到云端。
  *
  * 模块拆分：
  * - ui-settings.ts: 主题、语言、思考折叠状态
@@ -11,7 +11,7 @@
  * @layer state
  */
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { emitter } from '@/events'
 import * as backend from '@/services/backend'
 import { createUISettingsModule, type Language, type Theme } from './ui-settings'
@@ -46,6 +46,13 @@ export const useSettingsStore = defineStore('settings', () => {
   const apiKey = ref('')
   const baseURL = ref('')
 
+  // ── 状态同步控制 ────────────────────────────────────────────────────────────
+
+  /** 是否已完成初始加载（避免加载时触发保存） */
+  const isInitialized = ref(false)
+  /** 防抖保存定时器 */
+  let saveTimer: ReturnType<typeof setTimeout> | null = null
+
   // ── 聚合 Actions ──────────────────────────────────────────────────────────
 
   async function fetch() {
@@ -63,10 +70,25 @@ export const useSettingsStore = defineStore('settings', () => {
       model.enabledModels.value = settings.enabledModels ?? []
       model.defaultModel.value = settings.defaultModel ?? ''
 
+      // 如果服务器没有数据，初始化默认值
+      if (model.enabledModels.value.length === 0) {
+        model.initializeDefaults()
+      }
+
       emitter.emit('settings:loaded')
     } finally {
       isLoading.value = false
+      isInitialized.value = true
     }
+  }
+
+  /** 防抖保存（500ms 后执行，避免频繁请求） */
+  function debouncedSave() {
+    if (!isInitialized.value) return
+    if (saveTimer) clearTimeout(saveTimer)
+    saveTimer = setTimeout(() => {
+      void saveToServer()
+    }, 500)
   }
 
   async function saveToServer() {
@@ -87,15 +109,28 @@ export const useSettingsStore = defineStore('settings', () => {
   function clear() {
     ui.clear()
     model.clear()
+    isInitialized.value = false
   }
 
   function startWatching() {
     ui.startWatching()
-    model.initializeDefaults()
+
+    // 监听状态变化，自动同步到服务器
+    watch(
+      [language, theme, customModelConfigs, enabledModels, defaultModel],
+      () => debouncedSave(),
+      { deep: true },
+    )
   }
 
-  function stopWatching() {
-    ui.stopWatching()
+  function setupEventListeners() {
+    emitter.on('auth:login-success', fetch)
+    emitter.on('auth:logout', clear)
+  }
+
+  function teardownEventListeners() {
+    emitter.off('auth:login-success', fetch)
+    emitter.off('auth:logout', clear)
   }
 
   // 代理方法
@@ -144,6 +179,7 @@ export const useSettingsStore = defineStore('settings', () => {
     saveToServer,
     clear,
     startWatching,
-    stopWatching,
+    setupEventListeners,
+    teardownEventListeners,
   }
 })
