@@ -225,7 +225,13 @@ async function handleSubmit(input: string, options: { deepThink: boolean; webSea
   const modelId = options.model || settingsStore.defaultModel
   const modelConfig = settingsStore.getModelConfig(modelId)
 
-  // 添加用户消息到 chat store
+  // 先构建历史消息（在添加用户消息之前，避免重复）
+  const sessionMessages = session.value?.messages.map(m => ({
+    role: m.role,
+    content: m.content,
+  })) ?? []
+
+  // 添加用户消息到 chat store（用于前端显示）
   await chatStore.addMessage(sessionId.value, {
     id: Date.now().toString() + '-user',
     role: 'user',
@@ -233,13 +239,7 @@ async function handleSubmit(input: string, options: { deepThink: boolean; webSea
     timestamp: Date.now(),
   })
 
-  // 构建历史消息
-  const sessionMessages = session.value?.messages.map(m => ({
-    role: m.role,
-    content: m.content,
-  })) ?? []
-
-  // 调用 agent
+  // 调用 agent（sessionMessages 不包含刚添加的用户消息，避免 prompt 重复）
   await agentStore.runAgent(
     sessionId.value,
     input,

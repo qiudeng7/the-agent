@@ -51,6 +51,18 @@ export const useAgentStore = defineStore('agent', () => {
   // ── Getters ────────────────────────────────────────────────────────────────
   const currentContent = computed(() => buffer.value.content)
 
+  /** 当前文本内容（从 buffer 中提取 text 类型的 block） */
+  const currentText = computed(() => {
+    const textBlocks = buffer.value.content.filter(b => b.type === 'text')
+    return textBlocks.map(b => b.text).join('')
+  })
+
+  /** 当前思考内容（从 buffer 中提取 thinking 类型的 block） */
+  const currentThinking = computed(() => {
+    const thinkingBlocks = buffer.value.content.filter(b => b.type === 'thinking')
+    return thinkingBlocks.map(b => b.thinking).join('')
+  })
+
   // ── 事件订阅 ───────────────────────────────────────────────────────────────
   let unsubscribe: (() => void) | null = null
 
@@ -128,9 +140,14 @@ export const useAgentStore = defineStore('agent', () => {
         // 触发事件，由 messages store 处理
         const sessionId = currentSessionId.value
         if (sessionId) {
+          // 如果 buffer 为空但 result 有内容，创建 text block
+          const content: ContentBlock[] = buffer.value.content.length > 0
+            ? buffer.value.content
+            : [{ type: 'text', text: event.result }]
+
           emitter.emit('agent:done', {
             sessionId,
-            message: { role: 'assistant', content: buffer.value.content },
+            message: { role: 'assistant', content },
             stats: {
               costUsd: event.costUsd,
               durationMs: event.durationMs,
@@ -259,6 +276,8 @@ export const useAgentStore = defineStore('agent', () => {
     currentModelId,
     isGenerating,
     currentContent,
+    currentText,
+    currentThinking,
     error,
     lastResult,
     runAgent,

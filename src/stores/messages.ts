@@ -13,7 +13,7 @@
  *
  * @layer state
  */
-import { ref } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import type { ContentBlock } from '#claude/types'
 import { emitter } from '@/events'
 import * as backend from '@/services/backend'
@@ -44,25 +44,26 @@ export interface SessionDetail {
  */
 export function createMessagesModule() {
   // ── State ──────────────────────────────────────────────────────────────────
-  /** 各会话的消息 Map */
-  const messagesBySession = ref(new Map<string, Message[]>())
-  /** 已加载消息的会话 ID 集合 */
-  const loadedSessions = ref(new Set<string>())
+  /** 各会话的消息（使用 reactive 对象，Vue 可以追踪属性变化） */
+  const messagesBySession = reactive<Record<string, Message[]>>({})
+  /** 已加载消息的会话 ID 集合（使用 reactive Set） */
+  const loadedSessions = reactive(new Set<string>())
   /** 思考块展开状态（key: `${sessionId}-${messageId}-${blockIdx}`） */
   const thinkingExpandedStates = ref<Record<string, boolean>>({})
 
   // ── Getters ────────────────────────────────────────────────────────────────
 
   function getMessages(sessionId: string): Message[] {
-    return messagesBySession.value.get(sessionId) ?? []
+    // 直接访问 reactive 对象属性，Vue 会追踪依赖
+    return messagesBySession[sessionId] ?? []
   }
 
   function isMessagesLoaded(sessionId: string): boolean {
-    return loadedSessions.value.has(sessionId)
+    return loadedSessions.has(sessionId)
   }
 
   function getSessionModel(sessionId: string): string | null {
-    const messages = messagesBySession.value.get(sessionId)
+    const messages = messagesBySession[sessionId]
     if (!messages) return null
 
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -94,19 +95,19 @@ export function createMessagesModule() {
   // ── API Actions ────────────────────────────────────────────────────────────
 
   async function loadMessages(sessionId: string) {
-    if (loadedSessions.value.has(sessionId)) return
+    if (loadedSessions.has(sessionId)) return
 
     try {
       const detail = await backend.fetchSession(sessionId)
-      const messages: Message[] = detail.messages.map(m => ({
+      const msgs: Message[] = detail.messages.map(m => ({
         id: m.id,
         role: m.role,
         content: m.content,
         model: m.model,
         timestamp: m.timestamp,
       }))
-      messagesBySession.value.set(sessionId, messages)
-      loadedSessions.value.add(sessionId)
+      messagesBySession[sessionId] = msgs
+      loadedSessions.add(sessionId)
     } catch (err) {
       console.error('[Messages] Failed to load:', err)
     }
@@ -117,9 +118,9 @@ export function createMessagesModule() {
     message: Message,
     options?: { updateTitle?: boolean },
   ) {
-    const messages = messagesBySession.value.get(sessionId) ?? []
+    const messages = messagesBySession[sessionId] ?? []
     messages.push(message)
-    messagesBySession.value.set(sessionId, messages)
+    messagesBySession[sessionId] = messages
 
     try {
       const saved = await backend.addMessage(sessionId, {
@@ -152,9 +153,9 @@ export function createMessagesModule() {
   }
 
   function addLocalMessage(sessionId: string, message: Message) {
-    const messages = messagesBySession.value.get(sessionId) ?? []
+    const messages = messagesBySession[sessionId] ?? []
     messages.push(message)
-    messagesBySession.value.set(sessionId, messages)
+    messagesBySession[sessionId] = messages
   }
 
   // ── 事件处理 ──────────────────────────────────────────────────────────────
@@ -185,8 +186,8 @@ export function createMessagesModule() {
   }
 
   function handleSessionDeleted(event: { sessionId: string }) {
-    messagesBySession.value.delete(event.sessionId)
-    loadedSessions.value.delete(event.sessionId)
+    delete messagesBySession[event.sessionId]
+    loadedSessions.delete(event.sessionId)
     // 清理思考折叠状态
     const prefix = `${event.sessionId}-`
     for (const key in thinkingExpandedStates.value) {
@@ -197,8 +198,11 @@ export function createMessagesModule() {
   }
 
   function clear() {
-    messagesBySession.value.clear()
-    loadedSessions.value.clear()
+    // 清空 reactive 对象的所有属性
+    for (const key in messagesBySession) {
+      delete messagesBySession[key]
+    }
+    loadedSessions.clear()
     thinkingExpandedStates.value = {}
   }
 

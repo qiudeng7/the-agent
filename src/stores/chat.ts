@@ -84,8 +84,8 @@ export const useChatStore = defineStore('chat', () => {
     const session = await sessionList.createSession(title, model)
     currentSessionId.value = session.id
     // 新会话没有消息，标记为已加载
-    messages.messagesBySession.value.set(session.id, [])
-    messages.loadedSessions.value.add(session.id)
+    messages.messagesBySession[session.id] = []
+    messages.loadedSessions.add(session.id)
     return {
       ...session,
       messages: [],
