@@ -32,4 +32,18 @@ export default {
       },
     },
   },
+  // 开发环境 CORS 配置
+  devServer: {
+    cors: true,
+  },
+  // 生产环境 CORS（通过 routeRules）
+  routeRules: {
+    '/api/**': {
+      cors: {
+        origin: '*',
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        headers: ['Content-Type', 'Authorization'],
+      },
+    },
+  },
 }

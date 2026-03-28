@@ -1,29 +1,28 @@
-globalThis.__nitro_main__ = import.meta.url; import { getRequestURL, defineHandler, HTTPError, H3Core, toRequest, getHeader, createError, defineEventHandler, readBody, getRouterParam, H3 } from 'file:///Users/qiudeng/workspace/the-agent/.claude/worktrees/backend-nitro/node_modules/h3/dist/_entries/node.mjs';
-import { createHooks } from 'file:///Users/qiudeng/workspace/the-agent/.claude/worktrees/backend-nitro/node_modules/nitro/dist/node_modules/hookable/dist/index.mjs';
+globalThis.__nitro_main__ = import.meta.url; import { getRequestURL, defineHandler, HTTPError, defineEventHandler, setResponseHeaders, sendNoContent, H3Core, toRequest, getHeader, createError, readBody, getRouterParam, H3 } from 'file:///Users/qiudeng/workspace/the-agent/node_modules/h3/dist/_entries/node.mjs';
+import { createHooks } from 'file:///Users/qiudeng/workspace/the-agent/node_modules/nitro/dist/node_modules/hookable/dist/index.mjs';
 import { readFile } from 'node:fs/promises';
 import { resolve, dirname, join } from 'node:path';
-import consola from 'file:///Users/qiudeng/workspace/the-agent/.claude/worktrees/backend-nitro/node_modules/consola/dist/index.mjs';
-import { ErrorParser } from 'file:///Users/qiudeng/workspace/the-agent/.claude/worktrees/backend-nitro/node_modules/nitro/dist/node_modules/youch-core/build/index.js';
-import { Youch } from 'file:///Users/qiudeng/workspace/the-agent/.claude/worktrees/backend-nitro/node_modules/nitro/dist/node_modules/youch/build/index.js';
-import { SourceMapConsumer } from 'file:///Users/qiudeng/workspace/the-agent/.claude/worktrees/backend-nitro/node_modules/nitro/dist/node_modules/source-map/source-map.js';
-import { FastResponse, toNodeHandler } from 'file:///Users/qiudeng/workspace/the-agent/.claude/worktrees/backend-nitro/node_modules/srvx/dist/adapters/node.mjs';
+import consola from 'file:///Users/qiudeng/workspace/the-agent/node_modules/consola/dist/index.mjs';
+import { ErrorParser } from 'file:///Users/qiudeng/workspace/the-agent/node_modules/nitro/dist/node_modules/youch-core/build/index.js';
+import { Youch } from 'file:///Users/qiudeng/workspace/the-agent/node_modules/nitro/dist/node_modules/youch/build/index.js';
+import { SourceMapConsumer } from 'file:///Users/qiudeng/workspace/the-agent/node_modules/nitro/dist/node_modules/source-map/source-map.js';
+import { FastResponse, toNodeHandler } from 'file:///Users/qiudeng/workspace/the-agent/node_modules/srvx/dist/adapters/node.mjs';
 import { Server } from 'node:http';
 import nodeCrypto from 'node:crypto';
 import { parentPort, threadId } from 'node:worker_threads';
-import { isSocketSupported, getSocketAddress } from 'file:///Users/qiudeng/workspace/the-agent/.claude/worktrees/backend-nitro/node_modules/nitro/dist/node_modules/get-port-please/dist/index.mjs';
-import { eq, asc, desc } from 'file:///Users/qiudeng/workspace/the-agent/.claude/worktrees/backend-nitro/node_modules/drizzle-orm/index.js';
-import { nanoid } from 'file:///Users/qiudeng/workspace/the-agent/.claude/worktrees/backend-nitro/server/node_modules/nanoid/index.js';
-import bcrypt from 'file:///Users/qiudeng/workspace/the-agent/.claude/worktrees/backend-nitro/node_modules/bcrypt/bcrypt.js';
-import { drizzle } from 'file:///Users/qiudeng/workspace/the-agent/.claude/worktrees/backend-nitro/node_modules/drizzle-orm/d1/index.js';
-import { drizzle as drizzle$1 } from 'file:///Users/qiudeng/workspace/the-agent/.claude/worktrees/backend-nitro/node_modules/drizzle-orm/better-sqlite3/index.js';
-import Database from 'file:///Users/qiudeng/workspace/the-agent/.claude/worktrees/backend-nitro/node_modules/better-sqlite3/lib/index.js';
+import { isSocketSupported, getSocketAddress } from 'file:///Users/qiudeng/workspace/the-agent/node_modules/nitro/dist/node_modules/get-port-please/dist/index.mjs';
+import { eq, asc, desc } from 'file:///Users/qiudeng/workspace/the-agent/node_modules/drizzle-orm/index.js';
+import { nanoid } from 'file:///Users/qiudeng/workspace/the-agent/server/node_modules/nanoid/index.js';
+import { drizzle } from 'file:///Users/qiudeng/workspace/the-agent/node_modules/drizzle-orm/d1/index.js';
+import { drizzle as drizzle$1 } from 'file:///Users/qiudeng/workspace/the-agent/node_modules/drizzle-orm/better-sqlite3/index.js';
+import Database from 'file:///Users/qiudeng/workspace/the-agent/node_modules/better-sqlite3/lib/index.js';
 import { promises, existsSync, mkdirSync } from 'node:fs';
-import { sqliteTable, integer, text } from 'file:///Users/qiudeng/workspace/the-agent/.claude/worktrees/backend-nitro/node_modules/drizzle-orm/sqlite-core/index.js';
-import * as jose from 'file:///Users/qiudeng/workspace/the-agent/.claude/worktrees/backend-nitro/node_modules/jose/dist/node/esm/index.js';
+import { sqliteTable, integer, text } from 'file:///Users/qiudeng/workspace/the-agent/node_modules/drizzle-orm/sqlite-core/index.js';
+import * as jose from 'file:///Users/qiudeng/workspace/the-agent/node_modules/jose/dist/node/esm/index.js';
 import { createStorage } from 'unstorage';
 import unstorage_47drivers_47fs from 'unstorage/drivers/fs';
 import { defineLazyEventHandler, toEventHandler } from 'h3';
-import { decodePath, withLeadingSlash, withoutTrailingSlash, joinURL } from 'file:///Users/qiudeng/workspace/the-agent/.claude/worktrees/backend-nitro/node_modules/nitro/dist/node_modules/ufo/dist/index.mjs';
+import { decodePath, withLeadingSlash, withoutTrailingSlash, joinURL } from 'file:///Users/qiudeng/workspace/the-agent/node_modules/nitro/dist/node_modules/ufo/dist/index.mjs';
 import { fileURLToPath } from 'node:url';
 
 function defineNitroErrorHandler(handler) {
@@ -165,13 +164,19 @@ const plugins = [
     
   ];
 
-const serverAssets = [{"baseName":"server","dir":"/Users/qiudeng/workspace/the-agent/.claude/worktrees/backend-nitro/server/assets"}];
+const serverAssets = [{"baseName":"server","dir":"/Users/qiudeng/workspace/the-agent/server/assets"}];
 
 const assets$1 = createStorage();
 
 for (const asset of serverAssets) {
   assets$1.mount(asset.baseName, unstorage_47drivers_47fs({ base: asset.dir, ignore: (asset?.ignore || []) }));
 }
+
+const headers = ((m) => function headersRouteRule(event) {
+  for (const [key, value] of Object.entries(m.options || {})) {
+    event.res.headers.set(key, value);
+  }
+});
 
 const assets = {};
 
@@ -198,7 +203,7 @@ function getAsset (id) {
 
 const METHODS = /* @__PURE__ */ new Set(["HEAD", "GET"]);
 const EncodingMap = { gzip: ".gz", br: ".br" };
-const _Bqs0Wc = defineHandler((event) => {
+const _MdHaSa = defineHandler((event) => {
   if (event.req.method && !METHODS.has(event.req.method)) {
     return;
   }
@@ -262,26 +267,39 @@ const _Bqs0Wc = defineHandler((event) => {
   return readAsset(id);
 });
 
-const findRouteRules = (m,p)=>{return [];};
+const _fiuglL = defineEventHandler((event) => {
+  const origin = event.node.req.headers.origin || "*";
+  setResponseHeaders(event, {
+    "Access-Control-Allow-Origin": origin === "null" ? "*" : origin,
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Credentials": "true"
+  });
+  if (event.node.req.method === "OPTIONS") {
+    return sendNoContent(event, 204);
+  }
+});
 
-const _lazy_aD9S20 = defineLazyEventHandler(() => Promise.resolve().then(function () { return login_post$1; }));
-const _lazy_CEQ8k1 = defineLazyEventHandler(() => Promise.resolve().then(function () { return me_get$1; }));
-const _lazy_PDnhDc = defineLazyEventHandler(() => Promise.resolve().then(function () { return register_post$1; }));
-const _lazy_UGn9jm = defineLazyEventHandler(() => Promise.resolve().then(function () { return _sessionId__post$1; }));
-const _lazy_g3vljM = defineLazyEventHandler(() => Promise.resolve().then(function () { return _id__delete$1; }));
-const _lazy_8mzOJo = defineLazyEventHandler(() => Promise.resolve().then(function () { return _id__get$1; }));
-const _lazy_hbfOmw = defineLazyEventHandler(() => Promise.resolve().then(function () { return _id__put$1; }));
-const _lazy_ynC30e = defineLazyEventHandler(() => Promise.resolve().then(function () { return index_get$3; }));
-const _lazy_liSQyj = defineLazyEventHandler(() => Promise.resolve().then(function () { return index_post$1; }));
-const _lazy_Pq4GnL = defineLazyEventHandler(() => Promise.resolve().then(function () { return index_get$1; }));
-const _lazy_f6Gyld = defineLazyEventHandler(() => Promise.resolve().then(function () { return index_put$1; }));
-const _lazy_Rf_QTR = defineLazyEventHandler(() => Promise.resolve().then(function () { return devTasks$1; }));
+const findRouteRules = (m,p)=>{let r=[];if(p[p.length-1]==='/')p=p.slice(0,-1)||'/';let s=p.split('/');s.length-1;if(s[1]==="api"){r.unshift({data:[{name:"cors",route:"/api/**",options:{"origin":"*","methods":["GET","POST","PUT","DELETE","OPTIONS"],"headers":["Content-Type","Authorization"]}},{name:"headers",route:"/api/**",handler:headers,options:{"access-control-allow-origin":"*","access-control-allow-methods":"*","access-control-allow-headers":"*","access-control-max-age":"0"}}],params:{"_":s.slice(2).join('/'),}});}return r;};
 
-const findRoute = (m,p)=>{if(p[p.length-1]==='/')p=p.slice(0,-1)||'/';if(p==="/api/auth/login"){if(m==='POST')return {data:{route:"/api/auth/login",method:"post",handler:_lazy_aD9S20}};}if(p==="/api/auth/me"){if(m==='GET')return {data:{route:"/api/auth/me",method:"get",handler:_lazy_CEQ8k1}};}if(p==="/api/auth/register"){if(m==='POST')return {data:{route:"/api/auth/register",method:"post",handler:_lazy_PDnhDc}};}if(p==="/api/sessions"){if(m==='GET')return {data:{route:"/api/sessions",method:"get",handler:_lazy_ynC30e}};if(m==='POST')return {data:{route:"/api/sessions",method:"post",handler:_lazy_liSQyj}};}if(p==="/api/settings"){if(m==='GET')return {data:{route:"/api/settings",method:"get",handler:_lazy_Pq4GnL}};if(m==='PUT')return {data:{route:"/api/settings",method:"put",handler:_lazy_f6Gyld}};}let s=p.split('/'),l=s.length-1;if(s[1]==="api"){if(s[2]==="messages"){if(l===3||l===2){if(m==='POST')if(l>=3)return {data:{route:"/api/messages/:sessionId",method:"post",handler:_lazy_UGn9jm},params:{"sessionId":s[3],}};}}if(s[2]==="sessions"){if(l===3||l===2){if(m==='DELETE')if(l>=3)return {data:{route:"/api/sessions/:id",method:"delete",handler:_lazy_g3vljM},params:{"id":s[3],}};if(m==='GET')if(l>=3)return {data:{route:"/api/sessions/:id",method:"get",handler:_lazy_8mzOJo},params:{"id":s[3],}};if(m==='PUT')if(l>=3)return {data:{route:"/api/sessions/:id",method:"put",handler:_lazy_hbfOmw},params:{"id":s[3],}};}}}if(s[1]==="_nitro"){if(s[2]==="tasks"){return {data:{route:"/_nitro/tasks/**",handler:_lazy_Rf_QTR},params:{"_":s.slice(3).join('/'),}};}}};
+const _lazy_53uuqK = defineLazyEventHandler(() => Promise.resolve().then(function () { return login_post$1; }));
+const _lazy_JVHQH2 = defineLazyEventHandler(() => Promise.resolve().then(function () { return me_get$1; }));
+const _lazy_HjaCqZ = defineLazyEventHandler(() => Promise.resolve().then(function () { return register_post$1; }));
+const _lazy_oObbzB = defineLazyEventHandler(() => Promise.resolve().then(function () { return _sessionId__post$1; }));
+const _lazy_SRzoGV = defineLazyEventHandler(() => Promise.resolve().then(function () { return _id__delete$1; }));
+const _lazy_17nS1r = defineLazyEventHandler(() => Promise.resolve().then(function () { return _id__get$1; }));
+const _lazy_53WYvD = defineLazyEventHandler(() => Promise.resolve().then(function () { return _id__put$1; }));
+const _lazy_o2OkVT = defineLazyEventHandler(() => Promise.resolve().then(function () { return index_get$3; }));
+const _lazy_qbKnp2 = defineLazyEventHandler(() => Promise.resolve().then(function () { return index_post$1; }));
+const _lazy_KUWoYp = defineLazyEventHandler(() => Promise.resolve().then(function () { return index_get$1; }));
+const _lazy_Fm06AE = defineLazyEventHandler(() => Promise.resolve().then(function () { return index_put$1; }));
+const _lazy_M3_BYc = defineLazyEventHandler(() => Promise.resolve().then(function () { return devTasks$1; }));
+
+const findRoute = (m,p)=>{if(p[p.length-1]==='/')p=p.slice(0,-1)||'/';if(p==="/api/auth/login"){if(m==='POST')return {data:{route:"/api/auth/login",method:"post",handler:_lazy_53uuqK}};}if(p==="/api/auth/me"){if(m==='GET')return {data:{route:"/api/auth/me",method:"get",handler:_lazy_JVHQH2}};}if(p==="/api/auth/register"){if(m==='POST')return {data:{route:"/api/auth/register",method:"post",handler:_lazy_HjaCqZ}};}if(p==="/api/sessions"){if(m==='GET')return {data:{route:"/api/sessions",method:"get",handler:_lazy_o2OkVT}};if(m==='POST')return {data:{route:"/api/sessions",method:"post",handler:_lazy_qbKnp2}};}if(p==="/api/settings"){if(m==='GET')return {data:{route:"/api/settings",method:"get",handler:_lazy_KUWoYp}};if(m==='PUT')return {data:{route:"/api/settings",method:"put",handler:_lazy_Fm06AE}};}let s=p.split('/'),l=s.length-1;if(s[1]==="api"){if(s[2]==="messages"){if(l===3||l===2){if(m==='POST')if(l>=3)return {data:{route:"/api/messages/:sessionId",method:"post",handler:_lazy_oObbzB},params:{"sessionId":s[3],}};}}if(s[2]==="sessions"){if(l===3||l===2){if(m==='DELETE')if(l>=3)return {data:{route:"/api/sessions/:id",method:"delete",handler:_lazy_SRzoGV},params:{"id":s[3],}};if(m==='GET')if(l>=3)return {data:{route:"/api/sessions/:id",method:"get",handler:_lazy_17nS1r},params:{"id":s[3],}};if(m==='PUT')if(l>=3)return {data:{route:"/api/sessions/:id",method:"put",handler:_lazy_53WYvD},params:{"id":s[3],}};}}}if(s[1]==="_nitro"){if(s[2]==="tasks"){return {data:{route:"/_nitro/tasks/**",handler:_lazy_M3_BYc},params:{"_":s.slice(3).join('/'),}};}}};
 
 const findRoutedMiddleware = (m,p)=>{return [];};
 
-const globalMiddleware = [toEventHandler(_Bqs0Wc)];
+const globalMiddleware = [toEventHandler(_MdHaSa),toEventHandler(_fiuglL)];
 
 function useNitroApp() {
   return useNitroApp.__instance__ ??= initNitroApp();
@@ -364,9 +382,9 @@ function createH3App(captureError) {
   });
   h3App._findRoute = (event) => findRoute(event.req.method, event.url.pathname);
   h3App._getMiddleware = (event, route) => {
-    event.url.pathname;
-    event.req.method;
-    const { routeRules, routeRuleMiddleware } = getRouteRules();
+    const pathname = event.url.pathname;
+    const method = event.req.method;
+    const { routeRules, routeRuleMiddleware } = getRouteRules(method, pathname);
     event.context.routeRules = routeRules;
     return [
       ...routeRuleMiddleware,
@@ -378,7 +396,7 @@ function createH3App(captureError) {
   return h3App;
 }
 function getRouteRules(method, pathname) {
-  const m = findRouteRules();
+  const m = findRouteRules(method, pathname);
   if (!m?.length) {
     return { routeRuleMiddleware: [] };
   }
@@ -558,10 +576,9 @@ const schema = {
   userSettings
 };
 
-function getDb() {
-  if (globalThis.DB) {
-    return drizzle(globalThis.DB, { schema });
-  }
+let _localDb = null;
+function getLocalDb() {
+  if (_localDb) return _localDb;
   const dbPath = join(process.cwd(), "data", "local.db");
   const dbDir = dirname(dbPath);
   if (!existsSync(dbDir)) {
@@ -569,16 +586,102 @@ function getDb() {
   }
   const sqlite = new Database(dbPath);
   sqlite.pragma("journal_mode = WAL");
-  return drizzle$1(sqlite, { schema });
+  _localDb = drizzle$1(sqlite, { schema });
+  return _localDb;
 }
-const db = getDb();
+function getD1Db() {
+  const env = globalThis.__env__;
+  if (env && env.DB) {
+    return drizzle(env.DB, { schema });
+  }
+  const cfEnv = globalThis.__cf_env__;
+  if (cfEnv && cfEnv.DB) {
+    return drizzle(cfEnv.DB, { schema });
+  }
+  return null;
+}
+function getDb() {
+  const d1Db = getD1Db();
+  if (d1Db) return d1Db;
+  return getLocalDb();
+}
+const db = new Proxy({}, {
+  get(_, prop) {
+    return getDb()[prop];
+  }
+});
 
-const SALT_ROUNDS = 10;
-async function hashPassword(password) {
-  return bcrypt.hash(password, SALT_ROUNDS);
+const ITERATIONS = 1e5;
+const SALT_LENGTH = 16;
+const KEY_LENGTH = 64;
+function bufferToHex(buffer) {
+  return Array.from(new Uint8Array(buffer)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
-async function verifyPassword(password, hash) {
-  return bcrypt.compare(password, hash);
+function hexToBuffer(hex) {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.slice(i, i + 2), 16);
+  }
+  return bytes.buffer;
+}
+async function getCryptoKey(password) {
+  const encoder = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(password),
+    "PBKDF2",
+    false,
+    ["deriveBits"]
+  );
+  return keyMaterial;
+}
+async function hashPassword(password) {
+  const salt = crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
+  const keyMaterial = await getCryptoKey(password);
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      salt,
+      iterations: ITERATIONS,
+      hash: "SHA-512"
+    },
+    keyMaterial,
+    KEY_LENGTH * 8
+  );
+  return `${ITERATIONS}:${bufferToHex(salt)}:${bufferToHex(derivedBits)}`;
+}
+async function verifyPassword(password, storedHash) {
+  const [iterations, saltHex, hashHex] = storedHash.split(":");
+  if (!iterations || !saltHex || !hashHex) {
+    return false;
+  }
+  const salt = hexToBuffer(saltHex);
+  const expectedHash = hexToBuffer(hashHex);
+  try {
+    const keyMaterial = await getCryptoKey(password);
+    const derivedBits = await crypto.subtle.deriveBits(
+      {
+        name: "PBKDF2",
+        salt,
+        iterations: parseInt(iterations, 10),
+        hash: "SHA-512"
+      },
+      keyMaterial,
+      KEY_LENGTH * 8
+    );
+    const derivedArray = new Uint8Array(derivedBits);
+    const expectedArray = new Uint8Array(expectedHash);
+    if (derivedArray.length !== expectedArray.length) {
+      return false;
+    }
+    let result = 0;
+    for (let i = 0; i < derivedArray.length; i++) {
+      result |= derivedArray[i] ^ expectedArray[i];
+    }
+    return result === 0;
+  } catch {
+    return false;
+  }
 }
 
 function getJwtSecret() {

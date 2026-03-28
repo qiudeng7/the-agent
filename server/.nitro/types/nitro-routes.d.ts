@@ -3,6 +3,9 @@ import type { Serialize, Simplify } from "nitro/types";
 declare module "nitro/types" {
   type Awaited<T> = T extends PromiseLike<infer U> ? Awaited<U> : T
   interface InternalApi {
+    '/**': {
+      'default': Simplify<Serialize<Awaited<ReturnType<typeof import('../../middleware/cors').default>>>>
+    }
     '/api/auth/login': {
       'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../api/auth/login.post').default>>>>
     }
@@ -27,6 +30,9 @@ declare module "nitro/types" {
     '/api/settings': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../api/settings/index.get').default>>>>
       'put': Simplify<Serialize<Awaited<ReturnType<typeof import('../../api/settings/index.put').default>>>>
+    }
+    '/_nitro/tasks/**': {
+      'default': Simplify<Serialize<Awaited<ReturnType<typeof import('../../../node_modules/nitro/dist/runtime/internal/routes/dev-tasks').default>>>>
     }
   }
 }
