@@ -15,13 +15,13 @@
 import type { AgentRunOptions } from '#agent/types'
 import type { IAgentProvider } from '#agent/interfaces/provider'
 import type { IToolRegistry, ToolContext } from '#agent/interfaces/tool'
-import type { IAgentTransport } from '#agent/interfaces/transport'
+import type { IAgentTransportServer } from '#agent/interfaces/transport'
 
 export class AgentRunner {
   constructor(
     private readonly provider: IAgentProvider,
     private readonly registry: IToolRegistry,
-    private readonly transport: IAgentTransport,
+    private readonly transport: IAgentTransportServer,
   ) {}
 
   /**

@@ -15,9 +15,9 @@
 import { ipcMain } from 'electron'
 import type { BrowserWindow } from 'electron'
 import type { AgentEvent, AgentRunOptions } from '#agent/types'
-import type { IAgentTransport } from '#agent/interfaces/transport'
+import type { IAgentTransportServer } from '#agent/interfaces/transport'
 
-export class ElectronAgentTransport implements IAgentTransport {
+export class ElectronAgentTransport implements IAgentTransportServer {
   private _getWindow: () => BrowserWindow | null
   private _runHandler: ((options: AgentRunOptions) => void) | null = null
   private _abortHandler: ((taskId: string) => void) | null = null

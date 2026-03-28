@@ -3,16 +3,17 @@
  * @description 认证状态管理（Pinia store）。
  *              管理登录状态、token、用户信息。
  *              必须登录才能使用应用。
+ * @layer state
  */
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, inject } from 'vue'
 import * as backend from '@/services/backend'
-import { useChatStore } from './chat'
-import { useSettingsStore } from './settings'
+import { STORAGE_KEY, type IStorage } from '@/di/interfaces'
+import { emitter } from '@/events'
 
 export const useAuthStore = defineStore('auth', () => {
-  // ── State ──────────────────────────────────────────────────────────────────
-  const token = ref<string | null>(localStorage.getItem('token'))
+  // ── 依赖注入 ────────────────────────────────────────────────────────────────
+  const storage = inject<IStorage>(STORAGE_KEY)!
   const user = ref<backend.User | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
@@ -33,14 +34,8 @@ export const useAuthStore = defineStore('auth', () => {
       isLoading.value = true
       user.value = await backend.getCurrentUser()
 
-      // 拉取初始数据
-      const chatStore = useChatStore()
-      const settingsStore = useSettingsStore()
-
-      await Promise.all([
-        chatStore.fetchAll(),
-        settingsStore.fetch(),
-      ])
+      // 触发事件，让其他 store 自行响应
+      emitter.emit('auth:login-success')
 
       return true
     } catch (err) {
@@ -64,16 +59,10 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await backend.login(email, password)
       token.value = response.token
       user.value = response.user
-      localStorage.setItem('token', response.token)
+      storage.setItem('token', response.token)
 
-      // 拉取初始数据
-      const chatStore = useChatStore()
-      const settingsStore = useSettingsStore()
-
-      await Promise.all([
-        chatStore.fetchAll(),
-        settingsStore.fetch(),
-      ])
+      // 触发事件，让其他 store 自行响应
+      emitter.emit('auth:login-success')
     } catch (err) {
       if (err instanceof backend.ApiError) {
         error.value = err.message
@@ -97,9 +86,10 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await backend.register(email, password, nickname)
       token.value = response.token
       user.value = response.user
-      localStorage.setItem('token', response.token)
+      storage.setItem('token', response.token)
 
-      // 新用户没有数据，直接完成
+      // 新用户没有数据，触发事件即可
+      emitter.emit('auth:login-success')
     } catch (err) {
       if (err instanceof backend.ApiError) {
         error.value = err.message
@@ -118,13 +108,10 @@ export const useAuthStore = defineStore('auth', () => {
   function logout() {
     token.value = null
     user.value = null
-    localStorage.removeItem('token')
+    storage.removeItem('token')
 
-    // 清空本地缓存
-    const chatStore = useChatStore()
-    const settingsStore = useSettingsStore()
-    chatStore.clear()
-    settingsStore.clear()
+    // 触发事件，让其他 store 自行清空
+    emitter.emit('auth:logout')
   }
 
   /**

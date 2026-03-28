@@ -9,10 +9,11 @@ import { createApp, nextTick } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
-import { AGENT_TRANSPORT_KEY, SYSTEM_SERVICE_KEY } from './di/interfaces'
+import { AGENT_TRANSPORT_KEY, SYSTEM_SERVICE_KEY, STORAGE_KEY } from './di/interfaces'
 import { createElectronDependencies } from './di/electron'
 import { useSettingsStore } from './stores/settings'
 import { useAuthStore } from './stores/auth'
+import { useChatStore } from './stores/chat'
 import './assets/main.css'
 
 // 创建依赖
@@ -24,6 +25,7 @@ const pinia = createPinia()
 // 通过 Vue provide 注入依赖
 app.provide(AGENT_TRANSPORT_KEY, deps.agentTransport)
 app.provide(SYSTEM_SERVICE_KEY, deps.systemService)
+app.provide(STORAGE_KEY, deps.storage)
 
 app.use(pinia)
 app.use(router)
@@ -31,7 +33,11 @@ app.mount('#app')
 
 // 初始化 stores
 const settingsStore = useSettingsStore()
+const chatStore = useChatStore()
+
+// 启动事件监听（store 间解耦通信）
 settingsStore.startWatching()
+chatStore.setupEventListeners()
 
 // Vue 挂载完成后移除 loading
 nextTick(() => {

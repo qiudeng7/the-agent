@@ -222,10 +222,39 @@ function formatThinkingStats(block: ContentBlock): string {
 async function handleSubmit(input: string, options: { deepThink: boolean; webSearch: boolean; model: string }) {
   if (!sessionId.value || isGenerating.value) return
 
-  await agentStore.runAgent(sessionId.value, input, {
-    model: options.model || settingsStore.defaultModel,
-    // deepThink / webSearch 可扩展为 thinking 参数或工具
+  const modelId = options.model || settingsStore.defaultModel
+  const modelConfig = settingsStore.getModelConfig(modelId)
+
+  // 添加用户消息到 chat store
+  await chatStore.addMessage(sessionId.value, {
+    id: Date.now().toString() + '-user',
+    role: 'user',
+    content: input,
+    timestamp: Date.now(),
   })
+
+  // 构建历史消息
+  const sessionMessages = session.value?.messages.map(m => ({
+    role: m.role,
+    content: m.content,
+  })) ?? []
+
+  // 调用 agent
+  await agentStore.runAgent(
+    sessionId.value,
+    input,
+    sessionMessages,
+    {
+      model: modelId,
+      apiKey: modelConfig.apiKey,
+      baseURL: modelConfig.baseURL,
+    },
+  )
+
+  // 更新会话模型
+  if (modelId) {
+    chatStore.setSessionModel(sessionId.value, modelId)
+  }
 }
 
 /** 模型切换时更新会话状态 */

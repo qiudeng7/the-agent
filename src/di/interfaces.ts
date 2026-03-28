@@ -4,13 +4,17 @@
  *              Stores 声明这些接口作为外部依赖，
  *              具体实现由 main.ts 通过 provide 注入。
  *
+ *              与 IAgentTransportServer 的区别：
+ *              - Server（主进程）：监听 onRun/onAbort，发送 send
+ *              - Client（渲染进程）：调用 run/abort，监听 onEvent
+ *
  * @layer di
  */
 
 import type { AgentEvent, AgentRunOptions } from '#agent/types'
 
-/** Agent 传输接口 */
-export interface IAgentTransport {
+/** Agent 传输接口（渲染进程端） */
+export interface IAgentTransportClient {
   run(options: Omit<AgentRunOptions, 'toolExecutor'>): Promise<void>
   abort(taskId: string): Promise<void>
   onEvent(handler: (event: AgentEvent) => void): () => void
@@ -43,6 +47,6 @@ export interface ISystemService {
 }
 
 /** Vue provide/inject 的 key */
-export const AGENT_TRANSPORT_KEY = Symbol('agentTransport')
+export const AGENT_TRANSPORT_KEY = Symbol('agentTransportClient')
 export const STORAGE_KEY = Symbol('storage')
 export const SYSTEM_SERVICE_KEY = Symbol('systemService')

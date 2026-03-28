@@ -5,10 +5,10 @@
  * @layer di
  */
 
-import type { IAgentTransport, IStorage, ISystemService, IThemeDetector, ILanguageDetector } from './interfaces'
+import type { IAgentTransportClient, IStorage, ISystemService, IThemeDetector, ILanguageDetector } from './interfaces'
 
-/** Electron Agent 传输 */
-export function createElectronAgentTransport(): IAgentTransport {
+/** Electron Agent 传输（渲染进程端） */
+export function createElectronAgentTransport(): IAgentTransportClient {
   return {
     run: (options) => window.electronAPI.agentRun(options),
     abort: (taskId) => window.electronAPI.agentAbort(taskId),
