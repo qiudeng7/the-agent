@@ -48,27 +48,6 @@ export interface AvailableModel {
  */
 export const BUNDLE_MODELS: BundleModel[] = [
   {
-    id: 'claude-3-opus',
-    name: 'Claude 3 Opus',
-    description: 'Claude Code',
-    baseURL: 'https://api.claudecode.net.cn/api/claudecode',
-    apiKey: 'sk-ant-api03-ZHcf-bBtRYKZNjYcIkTX4QW8LooK5brn0kOiuRjqJ2bOVsaBDmCMd6zDLT5acW69UL2ozvH5PXTL4r8NNkUWNQ',
-  },
-  {
-    id: 'claude-3-sonnet',
-    name: 'Claude 3 Sonnet',
-    description: 'Claude Code',
-    baseURL: 'https://api.claudecode.net.cn/api/claudecode',
-    apiKey: 'sk-ant-api03-ZHcf-bBtRYKZNjYcIkTX4QW8LooK5brn0kOiuRjqJ2bOVsaBDmCMd6zDLT5acW69UL2ozvH5PXTL4r8NNkUWNQ',
-  },
-  {
-    id: 'claude-3-haiku',
-    name: 'Claude 3 Haiku',
-    description: 'Claude Code',
-    baseURL: 'https://api.claudecode.net.cn/api/claudecode',
-    apiKey: 'sk-ant-api03-ZHcf-bBtRYKZNjYcIkTX4QW8LooK5brn0kOiuRjqJ2bOVsaBDmCMd6zDLT5acW69UL2ozvH5PXTL4r8NNkUWNQ',
-  },
-  {
     id: 'qwen3.5-plus',
     name: 'Qwen3.5-Plus',
     description: '通义千问',
