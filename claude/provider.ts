@@ -219,6 +219,7 @@ export class ClaudeAgentProvider implements IClaudeProvider {
       debug,
       env: Object.keys(env).length > 0 ? env : undefined,
       pathToClaudeCodeExecutable,
+      includePartialMessages: true,
     }
   }
 
@@ -324,6 +325,70 @@ export class ClaudeAgentProvider implements IClaudeProvider {
           result: typeof message.content === 'string' ? message.content : JSON.stringify(message.content ?? ''),
           isError: message.is_error ?? false,
         }
+
+      case 'stream_event': {
+        // 处理流式增量事件
+        const streamEvent = message as unknown as { event: { type: string; index?: number; delta?: { type: string; text?: string; thinking?: string; partial_json?: string }; content_block?: { type: string; id?: string; name?: string } } }
+        const event = streamEvent.event
+
+        if (event.type === 'content_block_delta') {
+          const delta = event.delta
+          if (delta?.type === 'text_delta') {
+            return {
+              type: 'stream_event',
+              subtype: 'text_delta',
+              taskId,
+              text: delta.text ?? '',
+              index: event.index ?? 0,
+            }
+          }
+          if (delta?.type === 'thinking_delta') {
+            return {
+              type: 'stream_event',
+              subtype: 'thinking_delta',
+              taskId,
+              thinking: delta.thinking ?? '',
+              index: event.index ?? 0,
+            }
+          }
+          if (delta?.type === 'input_json_delta') {
+            return {
+              type: 'stream_event',
+              subtype: 'input_json_delta',
+              taskId,
+              toolUseId: event.content_block?.id ?? '',
+              partialJson: delta.partial_json ?? '',
+              index: event.index ?? 0,
+            }
+          }
+        }
+
+        if (event.type === 'content_block_start') {
+          const block = event.content_block
+          if (block) {
+            return {
+              type: 'stream_event',
+              subtype: 'content_block_start',
+              taskId,
+              index: event.index ?? 0,
+              blockType: block.type as 'text' | 'thinking' | 'tool_use',
+              toolName: block.name,
+              toolUseId: block.id,
+            }
+          }
+        }
+
+        if (event.type === 'content_block_stop') {
+          return {
+            type: 'stream_event',
+            subtype: 'content_block_stop',
+            taskId,
+            index: event.index ?? 0,
+          }
+        }
+
+        return null
+      }
 
       default:
         // 未处理的消息类型，记录日志但不返回事件

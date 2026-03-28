@@ -88,6 +88,80 @@ export const useAgentStore = defineStore('agent', () => {
   }
 
   /**
+   * 处理流式增量事件
+   */
+  function handleStreamEvent(event: ClaudeEvent) {
+    if (event.type !== 'stream_event') return
+
+    switch (event.subtype) {
+      case 'content_block_start':
+        // 开始新的内容块
+        if (event.blockType === 'text') {
+          buffer.value.content.push({ type: 'text', text: '' })
+        } else if (event.blockType === 'thinking') {
+          buffer.value.content.push({ type: 'thinking', thinking: '' })
+          buffer.value.thinkingStartTime = Date.now()
+        } else if (event.blockType === 'tool_use') {
+          buffer.value.content.push({
+            type: 'tool_use',
+            id: event.toolUseId ?? '',
+            name: event.toolName ?? '',
+            input: {},
+          })
+        }
+        break
+
+      case 'text_delta':
+        // 增量追加文本
+        const textBlock = buffer.value.content[event.index]
+        if (textBlock && textBlock.type === 'text') {
+          textBlock.text += event.text
+        }
+        break
+
+      case 'thinking_delta':
+        // 增量追加思考
+        const thinkingBlock = buffer.value.content[event.index]
+        if (thinkingBlock && thinkingBlock.type === 'thinking') {
+          thinkingBlock.thinking += event.thinking
+        }
+        break
+
+      case 'input_json_delta':
+        // 增量追加工具输入 JSON
+        const toolUseBlock = buffer.value.content[event.index]
+        if (toolUseBlock && toolUseBlock.type === 'tool_use') {
+          // 累积 JSON 字符串，等待 content_block_stop 时解析
+          if (!toolUseBlock._partialJson) {
+            toolUseBlock._partialJson = ''
+          }
+          toolUseBlock._partialJson += event.partialJson
+        }
+        break
+
+      case 'content_block_stop':
+        // 内容块结束，计算思考耗时或解析工具输入
+        const block = buffer.value.content[event.index]
+        if (block) {
+          if (block.type === 'thinking' && buffer.value.thinkingStartTime) {
+            block.durationMs = Date.now() - buffer.value.thinkingStartTime
+            buffer.value.thinkingStartTime = null
+          }
+          if (block.type === 'tool_use' && block._partialJson) {
+            // 解析累积的 JSON 字符串
+            try {
+              block.input = JSON.parse(block._partialJson)
+            } catch {
+              block.input = {}
+            }
+            delete block._partialJson
+          }
+        }
+        break
+    }
+  }
+
+  /**
    * 处理 Claude SDK 流式事件
    */
   function handleClaudeEvent(event: ClaudeEvent) {
@@ -131,6 +205,10 @@ export const useAgentStore = defineStore('agent', () => {
           content: event.result,
           isError: event.isError,
         })
+        break
+
+      case 'stream_event':
+        handleStreamEvent(event)
         break
 
       case 'result': {

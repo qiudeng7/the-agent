@@ -199,6 +199,69 @@ export interface ClaudeErrorEvent {
   code?: string
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 流式增量事件（includePartialMessages: true 时产生）
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 流式文本增量事件 */
+export interface StreamTextDeltaEvent {
+  type: 'stream_event'
+  subtype: 'text_delta'
+  taskId: string
+  /** 文本增量 */
+  text: string
+  /** 内容块索引 */
+  index: number
+}
+
+/** 流式思考增量事件 */
+export interface StreamThinkingDeltaEvent {
+  type: 'stream_event'
+  subtype: 'thinking_delta'
+  taskId: string
+  /** 思考增量 */
+  thinking: string
+  /** 内容块索引 */
+  index: number
+}
+
+/** 流式工具输入增量事件 */
+export interface StreamToolInputDeltaEvent {
+  type: 'stream_event'
+  subtype: 'input_json_delta'
+  taskId: string
+  /** 工具调用 ID */
+  toolUseId: string
+  /** JSON 输入增量 */
+  partialJson: string
+  /** 内容块索引 */
+  index: number
+}
+
+/** 流式内容块开始事件 */
+export interface StreamContentBlockStartEvent {
+  type: 'stream_event'
+  subtype: 'content_block_start'
+  taskId: string
+  /** 内容块索引 */
+  index: number
+  /** 内容块类型：text / thinking / tool_use */
+  blockType: 'text' | 'thinking' | 'tool_use'
+  /** 工具名称（仅 tool_use 时有效） */
+  toolName?: string
+  /** 工具调用 ID（仅 tool_use 时有效） */
+  toolUseId?: string
+}
+
+/** 流式内容块结束事件 */
+export interface StreamContentBlockStopEvent {
+  type: 'stream_event'
+  subtype: 'content_block_stop'
+  taskId: string
+  /** 内容块索引 */
+  index: number
+}
+
 /**
  * Claude Agent SDK 流式事件类型。
  */
@@ -210,3 +273,8 @@ export type ClaudeEvent =
   | ClaudeToolUseEvent
   | ClaudeToolResultEvent
   | ClaudeErrorEvent
+  | StreamTextDeltaEvent
+  | StreamThinkingDeltaEvent
+  | StreamToolInputDeltaEvent
+  | StreamContentBlockStartEvent
+  | StreamContentBlockStopEvent
