@@ -69,11 +69,85 @@ pnpm run dev
 1. 修改 `client/package.json` 中的 `version` 字段
 2. 更新 `docs/5.changelog.md` 添加版本记录
 3. 提交更改并创建 git tag
+4. 推送到 Gitea
 
 ```bash
-# 示例：发布 v0.2.1
+# 示例：发布 v0.9.0
+# 1. 更新版本号和 changelog 后
 git add .
-git commit -m "chore: release v0.2.1"
-git tag v0.2.1
+git commit -m "chore: release v0.9.0"
+git tag v0.9.0
 git push && git push --tags
+
+# 推送到 Gitea（远程名为 gitea）
+git push gitea main && git push gitea --tags
 ```
+
+## 前端架构
+
+### 分层结构
+
+```
+src/
+├── views/           # 页面（Chat、Home、Settings 等）
+├── components/      # 可复用组件
+├── stores/          # Pinia 状态管理
+├── di/              # 依赖注入（接口 + 实现）
+├── events/          # 事件总线（mitt）
+├── services/        # 后端 API 服务
+└── router/          # Vue Router
+```
+
+### 依赖注入
+
+通过 Vue provide/inject 解耦渲染进程与 Electron API：
+
+```
+di/interfaces.ts    ← 定义接口（IAgentTransportClient、IStorage、ISystemService）
+di/electron.ts      ← Electron 环境实现
+main.ts             ← provide 注入依赖
+stores/*.ts         ← inject 获取依赖
+```
+
+**示例**：agent store 注入 transport
+
+```typescript
+// main.ts
+app.provide(AGENT_TRANSPORT_KEY, createElectronAgentTransport())
+
+// stores/agent/index.ts
+const transport = inject<IAgentTransportClient>(AGENT_TRANSPORT_KEY)!
+```
+
+### 事件总线
+
+使用 mitt 实现应用级事件解耦，避免 store 间直接依赖：
+
+```typescript
+// events/index.ts
+export const emitter = mitt<AppEvents>()
+
+// 命名规范：模块名:动作名
+// agent:done - Agent 完成一轮对话
+// auth:logout - 用户登出
+// settings:changed - 设置变更
+```
+
+### IPC 通信
+
+```
+渲染进程                          主进程
+    │                              │
+    │  agentRun(options)           │
+    │─────────────────────────────►│
+    │                              │  ClaudeRunner
+    │                              │      │
+    │  onAgentEvent(handler)       │      ▼
+    │◄─────────────────────────────│  ClaudeAgentProvider
+    │       ClaudeEvent            │      │
+    │                              │      ▼
+    │                              │  SDK query()
+```
+
+- **渲染 → 主进程**：`window.electronAPI.agentRun()`、`window.electronAPI.agentAbort()`
+- **主进程 → 渲染**：`window.electronAPI.onAgentEvent()` 推送流式事件
