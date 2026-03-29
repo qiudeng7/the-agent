@@ -151,3 +151,16 @@ export const emitter = mitt<AppEvents>()
 
 - **渲染 → 主进程**：`window.electronAPI.agentRun()`、`window.electronAPI.agentAbort()`
 - **主进程 → 渲染**：`window.electronAPI.onAgentEvent()` 推送流式事件
+
+## 代码质量检查
+
+当检查代码质量时，重点关注：
+
+**依赖倒置原则**：高层模块不应依赖低层实现，应依赖抽象接口。
+- Store 应通过 inject 获取依赖，而非直接 import 实现
+- 新增外部依赖时，先在 `di/interfaces.ts` 定义接口
+
+**权责边界**：每个模块应只有一个变更理由。
+- Store 只管理状态，不处理 IPC 细节
+- 组件只负责 UI 渲染，业务逻辑放 store 或 service
+- 事件总线用于跨模块通信，避免 store 间直接依赖
