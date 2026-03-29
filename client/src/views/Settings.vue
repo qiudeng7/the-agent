@@ -260,11 +260,6 @@
         </div>
       </div>
     </div>
-
-    <nav class="navbar">
-      <router-link to="/" class="nav-link">首页</router-link>
-      <router-link to="/settings" class="nav-link active">设置</router-link>
-    </nav>
   </div>
 </template>
 
@@ -582,35 +577,6 @@ onMounted(async () => {
 .select:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.navbar {
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  padding: 20px;
-  background: var(--color-muted);
-  border-radius: var(--radius-lg);
-  margin-top: auto;
-  border: 1px solid var(--color-border);
-}
-
-.nav-link {
-  color: var(--color-muted-foreground);
-  text-decoration: none;
-  padding: 10px 20px;
-  border-radius: var(--radius-md);
-  transition: var(--transition-gentle);
-}
-
-.nav-link:hover {
-  color: var(--color-foreground);
-  background: var(--color-background);
-}
-
-.nav-link.active {
-  color: var(--color-primary-foreground);
-  background: var(--color-primary);
 }
 
 /* Model Section */
