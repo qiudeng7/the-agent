@@ -27,7 +27,7 @@
       @back-to-list="backToList"
     />
 
-    <!-- Task and Form -->
+    <!-- Task and Form (Horizontal Layout) -->
     <div v-else-if="currentTask" class="task-content">
       <!-- Success Message -->
       <div v-if="submitted" class="success-message">
@@ -38,31 +38,42 @@
         <p>任务已完成！正在加载下一个任务...</p>
       </div>
 
-      <!-- Task Detail -->
-      <TaskDetail :task="currentTask" />
+      <!-- Two Column Layout -->
+      <div class="two-columns">
+        <!-- Left: Task Detail -->
+        <div class="left-column">
+          <TaskDetail :task="currentTask" />
+        </div>
 
-      <!-- Task Form -->
-      <TaskForm
-        v-if="taskTypeConfig?.requiresForm"
-        :fields="taskTypeConfig?.formFields || []"
-        v-model="formData"
-        :disabled="submitted"
-        :loading="loading || submitted"
-        @submit="handleSubmit"
-      />
+        <!-- Right: Task Form or Submit Button -->
+        <div class="right-column">
+          <TaskForm
+            v-if="taskTypeConfig?.requiresForm"
+            :fields="taskTypeConfig?.formFields || []"
+            v-model="formData"
+            :disabled="submitted"
+            :loading="loading || submitted"
+            @submit="handleSubmit"
+          />
 
-      <!-- Simple Submit Button -->
-      <div v-else class="simple-submit">
-        <button
-          @click="handleSubmit"
-          :disabled="loading || submitted"
-          class="submit-btn"
-        >
-          <svg v-if="submitted || loading" class="spin-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2v4m0 12v4m-10-10h4m12 0h4m-2.93-7.07l-2.83 2.83m-8.48 8.48l-2.83 2.83m0-14.14l2.83 2.83m8.48 8.48l2.83 2.83"/>
-          </svg>
-          {{ submitted ? '已完成' : '完成任务' }}
-        </button>
+          <!-- Simple Submit Button -->
+          <div v-else class="simple-submit">
+            <div class="submit-header">
+              <h3>完成确认</h3>
+              <p>点击下方按钮确认完成此任务</p>
+            </div>
+            <button
+              @click="handleSubmit"
+              :disabled="loading || submitted"
+              class="submit-btn"
+            >
+              <svg v-if="submitted || loading" class="spin-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v4m0 12v4m-10-10h4m12 0h4m-2.93-7.07l-2.83 2.83m-8.48 8.48l-2.83 2.83m0-14.14l2.83 2.83m8.48 8.48l2.83 2.83"/>
+              </svg>
+              {{ submitted ? '已完成' : '完成任务' }}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -205,30 +216,30 @@ onMounted(() => {
 <style scoped>
 .task-category {
   flex: 1;
-  padding: 40px;
-  max-width: 1000px;
+  padding: 32px;
+  max-width: 1200px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 24px;
 }
 
 .page-header {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: baseline;
+  gap: 12px;
 }
 
 .page-header h1 {
   font-family: var(--font-heading);
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--color-foreground);
   letter-spacing: -0.02em;
 }
 
 .subtitle {
-  font-size: 1rem;
+  font-size: 0.875rem;
   color: var(--color-muted-foreground);
 }
 
@@ -259,7 +270,7 @@ onMounted(() => {
 .task-content {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
 }
 
 .success-message {
@@ -278,12 +289,49 @@ onMounted(() => {
   font-weight: 500;
 }
 
+/* Two Column Layout */
+.two-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 800px) {
+  .two-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.left-column,
+.right-column {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Simple Submit Card */
 .simple-submit {
   padding: 24px;
   background: var(--color-background);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sm);
+}
+
+.submit-header {
+  margin-bottom: 20px;
+}
+
+.submit-header h3 {
+  font-family: var(--font-heading);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-foreground);
+  margin-bottom: 4px;
+}
+
+.submit-header p {
+  font-size: 0.8rem;
+  color: var(--color-muted-foreground);
 }
 
 .submit-btn {

@@ -131,7 +131,7 @@ const localData = computed({
 
 <style scoped>
 .task-form {
-  padding: 24px;
+  padding: 20px;
   background: var(--color-background);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
@@ -140,26 +140,26 @@ const localData = computed({
 
 .form-title {
   font-family: var(--font-heading);
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   font-weight: 700;
   color: var(--color-foreground);
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .form-fields {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .form-field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .field-label {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--color-foreground);
 }
@@ -170,12 +170,12 @@ const localData = computed({
 }
 
 .input {
-  height: 44px;
-  padding: 0 16px;
+  height: 40px;
+  padding: 0 14px;
   background: var(--color-background);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-  font-size: 0.875rem;
+  border-radius: var(--radius-lg);
+  font-size: 0.8rem;
   color: var(--color-foreground);
   transition: var(--transition-gentle);
 }
@@ -183,7 +183,7 @@ const localData = computed({
 .input:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary)/20;
+  box-shadow: 0 0 0 2px var(--color-primary)/20;
 }
 
 .input:disabled {
@@ -192,11 +192,11 @@ const localData = computed({
 }
 
 .textarea {
-  padding: 16px;
+  padding: 12px;
   background: var(--color-background);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: var(--color-foreground);
   resize: none;
   transition: var(--transition-gentle);
@@ -205,7 +205,7 @@ const localData = computed({
 .textarea:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary)/20;
+  box-shadow: 0 0 0 2px var(--color-primary)/20;
 }
 
 .textarea:disabled {
@@ -214,12 +214,12 @@ const localData = computed({
 }
 
 .select {
-  height: 44px;
-  padding: 0 16px;
+  height: 40px;
+  padding: 0 14px;
   background: var(--color-background);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-  font-size: 0.875rem;
+  border-radius: var(--radius-lg);
+  font-size: 0.8rem;
   color: var(--color-foreground);
   cursor: pointer;
   transition: var(--transition-gentle);
@@ -228,7 +228,7 @@ const localData = computed({
 .select:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary)/20;
+  box-shadow: 0 0 0 2px var(--color-primary)/20;
 }
 
 .select:disabled {
@@ -243,8 +243,8 @@ const localData = computed({
 }
 
 .checkbox {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   accent-color: var(--color-primary);
@@ -257,27 +257,27 @@ const localData = computed({
 }
 
 .checkbox-label {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: var(--color-foreground);
 }
 
 .form-actions {
-  margin-top: 24px;
+  margin-top: 16px;
 }
 
 .submit-btn {
   width: 100%;
-  height: 44px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 0 24px;
+  padding: 0 20px;
   background: var(--color-primary);
   color: var(--color-primary-foreground);
   border: none;
-  border-radius: var(--radius-full);
-  font-size: 0.875rem;
+  border-radius: var(--radius-lg);
+  font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
   transition: var(--transition-gentle);
@@ -289,7 +289,7 @@ const localData = computed({
 
 .submit-btn:focus {
   outline: none;
-  box-shadow: 0 0 0 3px var(--color-primary)/20;
+  box-shadow: 0 0 0 2px var(--color-primary)/20;
 }
 
 .submit-btn:disabled {

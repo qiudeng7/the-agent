@@ -5,48 +5,39 @@
 -->
 <template>
   <div class="employee-tasks">
-    <!-- Page Header -->
-    <header class="page-header">
-      <h1>我的任务</h1>
-      <p class="subtitle">查看和执行分配给你的任务</p>
-    </header>
-
-    <!-- Task Types Grid -->
-    <div class="task-types">
-      <h2 class="section-title">任务类型</h2>
-      <div class="types-grid">
-        <router-link
-          v-for="taskType in EMPLOYEE_TASK_TYPES"
-          :key="taskType.category"
-          :to="taskType.route"
-          class="type-card"
-        >
-          <div class="type-inner">
+    <!-- Left Sidebar: Task Types + Filters -->
+    <aside class="sidebar">
+      <!-- Task Types -->
+      <div class="task-types">
+        <h2 class="sidebar-title">任务类型</h2>
+        <div class="types-list">
+          <router-link
+            v-for="taskType in EMPLOYEE_TASK_TYPES"
+            :key="taskType.category"
+            :to="taskType.route"
+            class="type-item"
+          >
             <div class="type-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path :d="taskType.icon"/>
               </svg>
             </div>
-            <div class="type-content">
-              <h3>{{ taskType.name }}</h3>
-              <p v-if="taskType.description">{{ taskType.description }}</p>
+            <div class="type-info">
+              <span class="type-name">{{ taskType.name }}</span>
+              <span v-if="taskType.description" class="type-desc">{{ taskType.description }}</span>
             </div>
-            <div class="type-arrow">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
-            </div>
-          </div>
-        </router-link>
+            <svg class="type-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </router-link>
+        </div>
       </div>
-    </div>
 
-    <!-- Filters -->
-    <div class="filters-section">
-      <h2 class="section-title">所有任务</h2>
-      <div class="filters-card">
-        <div class="filters-grid">
-          <div class="filter-item">
+      <!-- Filters -->
+      <div class="filters-section">
+        <h2 class="sidebar-title">筛选条件</h2>
+        <div class="filters-form">
+          <div class="filter-group">
             <label class="filter-label">状态</label>
             <select
               v-model="filters.status"
@@ -58,74 +49,77 @@
               </option>
             </select>
           </div>
-          <div class="filter-item">
+          <div class="filter-group">
             <label class="filter-label">搜索</label>
             <input
               v-model="filters.search"
               @keyup.enter="loadTasks"
               type="text"
-              placeholder="搜索标题或描述"
+              placeholder="搜索标题..."
               class="filter-input"
             />
           </div>
-          <div class="filter-item">
-            <button @click="loadTasks" class="search-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"/>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-              搜索
-            </button>
+          <button @click="loadTasks" class="search-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            搜索
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content: Task List -->
+    <main class="main-content">
+      <header class="content-header">
+        <h1>我的任务</h1>
+        <p class="subtitle">共 {{ taskStore.total }} 个任务</p>
+      </header>
+
+      <!-- Task List Card -->
+      <div class="task-list-card">
+        <!-- Loading -->
+        <div v-if="taskStore.loading" class="loading-state">
+          <svg class="spin-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2v4m0 12v4m-10-10h4m12 0h4m-2.93-7.07l-2.83 2.83m-8.48 8.48l-2.83 2.83m0-14.14l2.83 2.83m8.48 8.48l2.83 2.83"/>
+          </svg>
+          <p>加载中...</p>
+        </div>
+
+        <!-- Empty -->
+        <div v-else-if="taskStore.tasks.length === 0" class="empty-state">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+          </svg>
+          <p>暂无任务</p>
+        </div>
+
+        <!-- Task List -->
+        <div v-else class="task-list">
+          <div
+            v-for="task in taskStore.tasks"
+            :key="task.id"
+            @click="openDetailModal(task)"
+            class="task-row"
+          >
+            <div class="task-main">
+              <h3 class="task-title">{{ task.title }}</h3>
+              <p v-if="task.description" class="task-desc">{{ task.description }}</p>
+            </div>
+            <div class="task-side">
+              <span class="task-status" :class="statusClass(task.status)">
+                {{ getStatusLabel(task.status) }}
+              </span>
+              <span v-if="task.category" class="task-category">{{ task.category }}</span>
+            </div>
+            <div class="task-meta">
+              <span class="task-date">{{ formatDate(task.createdAt) }}</span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Task List -->
-    <div class="task-list-card">
-      <!-- Loading -->
-      <div v-if="taskStore.loading" class="loading-state">
-        <svg class="spin-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 2v4m0 12v4m-10-10h4m12 0h4m-2.93-7.07l-2.83 2.83m-8.48 8.48l-2.83 2.83m0-14.14l2.83 2.83m8.48 8.48l2.83 2.83"/>
-        </svg>
-        <p>加载中...</p>
-      </div>
-
-      <!-- Empty -->
-      <div v-else-if="taskStore.tasks.length === 0" class="empty-state">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-        </svg>
-        <p>暂无任务</p>
-      </div>
-
-      <!-- Task Grid -->
-      <div v-else class="task-grid">
-        <div
-          v-for="task in taskStore.tasks"
-          :key="task.id"
-          @click="openDetailModal(task)"
-          class="task-card"
-        >
-          <div class="task-card-header">
-            <h3 class="task-card-title">{{ task.title }}</h3>
-            <span class="task-status" :class="statusClass(task.status)">
-              {{ getStatusLabel(task.status) }}
-            </span>
-          </div>
-          <p v-if="task.description" class="task-card-desc">{{ task.description }}</p>
-          <div class="task-card-footer">
-            <span v-if="task.category" class="task-category">{{ task.category }}</span>
-            <span class="task-date">{{ task.createdAt }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Pagination -->
-      <div class="pagination">
-        <p class="pagination-info">共 {{ taskStore.total }} 个任务</p>
-      </div>
-    </div>
+    </main>
 
     <!-- Task Detail Modal -->
     <div v-if="showDetailModal && selectedTask" class="modal-overlay" @click="closeDetailModal">
@@ -140,26 +134,26 @@
           </button>
         </div>
         <div class="modal-body">
-          <div class="detail-item">
-            <span class="detail-label">状态：</span>
+          <div class="detail-row">
+            <span class="detail-label">状态</span>
             <span class="task-status" :class="statusClass(selectedTask.status)">
               {{ getStatusLabel(selectedTask.status) }}
             </span>
           </div>
-          <div v-if="selectedTask.category" class="detail-item">
-            <span class="detail-label">分类：</span>
+          <div v-if="selectedTask.category" class="detail-row">
+            <span class="detail-label">分类</span>
             <span class="detail-value">{{ selectedTask.category }}</span>
           </div>
-          <div v-if="selectedTask.tag" class="detail-item">
-            <span class="detail-label">标签：</span>
+          <div v-if="selectedTask.tag" class="detail-row">
+            <span class="detail-label">标签</span>
             <span class="detail-value">{{ selectedTask.tag }}</span>
           </div>
-          <div class="detail-item">
-            <span class="detail-label">创建时间：</span>
-            <span class="detail-value">{{ selectedTask.createdAt }}</span>
+          <div class="detail-row">
+            <span class="detail-label">创建时间</span>
+            <span class="detail-value">{{ formatDate(selectedTask.createdAt) }}</span>
           </div>
           <div v-if="selectedTask.description" class="detail-description">
-            <span class="detail-label">描述：</span>
+            <span class="detail-label">描述</span>
             <p class="description-text">{{ selectedTask.description }}</p>
           </div>
         </div>
@@ -227,6 +221,16 @@ function statusClass(status: TaskStatus) {
   return classes[status] || 'muted'
 }
 
+function formatDate(dateString: string) {
+  const date = new Date(dateString)
+  return date.toLocaleDateString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
 onMounted(() => {
   loadTasks()
 })
@@ -235,162 +239,139 @@ onMounted(() => {
 <style scoped>
 .employee-tasks {
   flex: 1;
-  padding: 40px;
-  max-width: 1200px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
+  padding: 32px;
+  display: grid;
+  grid-template-columns: 280px 1fr;
   gap: 32px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
-.page-header {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.page-header h1 {
-  font-family: var(--font-heading);
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--color-foreground);
-  letter-spacing: -0.02em;
-}
-
-.subtitle {
-  font-size: 1rem;
-  color: var(--color-muted-foreground);
-}
-
-.section-title {
-  font-family: var(--font-heading);
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--color-foreground);
-}
-
-/* Task Types */
-.task-types {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.types-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-}
-
-.type-card {
-  display: block;
-  background: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  text-decoration: none;
-  transition: var(--transition-gentle);
-}
-
-.type-card:hover {
-  box-shadow: var(--shadow-lift);
-}
-
-.type-inner {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px;
-}
-
-.type-icon {
-  width: 48px;
-  height: 48px;
-  background: var(--color-primary)/10;
-  border-radius: var(--radius-lg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-primary);
-  flex-shrink: 0;
-}
-
-.type-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.type-content h3 {
-  font-family: var(--font-heading);
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--color-foreground);
-  margin-bottom: 4px;
-}
-
-.type-content p {
-  font-size: 0.75rem;
-  color: var(--color-muted-foreground);
-  line-height: 1.4;
-}
-
-.type-arrow {
-  color: var(--color-primary);
-  opacity: 0;
-  transition: var(--transition-gentle);
-}
-
-.type-card:hover .type-arrow {
-  opacity: 1;
-  transform: translateX(4px);
-}
-
-/* Filters */
-.filters-section {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.filters-card {
-  padding: 24px;
-  background: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
-}
-
-.filters-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr auto;
-  gap: 16px;
-}
-
-@media (max-width: 640px) {
-  .filters-grid {
+@media (max-width: 900px) {
+  .employee-tasks {
     grid-template-columns: 1fr;
   }
 }
 
-.filter-item {
+/* Sidebar */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sidebar-title {
+  font-family: var(--font-heading);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-muted-foreground);
+  margin-bottom: 12px;
+}
+
+/* Task Types */
+.task-types {
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 16px;
+}
+
+.types-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.filter-label {
+.type-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--color-muted)/30;
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  transition: var(--transition-gentle);
+}
+
+.type-item:hover {
+  background: var(--color-primary)/10;
+}
+
+.type-icon {
+  width: 36px;
+  height: 36px;
+  background: var(--color-primary)/10;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+}
+
+.type-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.type-name {
+  display: block;
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--color-foreground);
+}
+
+.type-desc {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--color-muted-foreground);
+  margin-top: 2px;
+}
+
+.type-arrow {
+  color: var(--color-muted-foreground);
+  opacity: 0;
+  transition: var(--transition-gentle);
+}
+
+.type-item:hover .type-arrow {
+  opacity: 1;
+  transform: translateX(2px);
+}
+
+/* Filters */
+.filters-section {
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 16px;
+}
+
+.filters-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-muted-foreground);
 }
 
 .filter-select,
 .filter-input {
-  height: 44px;
-  padding: 0 16px;
+  height: 36px;
+  padding: 0 12px;
   background: var(--color-background);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-  font-size: 0.875rem;
+  border-radius: var(--radius-lg);
+  font-size: 0.8rem;
   color: var(--color-foreground);
   transition: var(--transition-gentle);
 }
@@ -399,21 +380,21 @@ onMounted(() => {
 .filter-input:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary)/20;
+  box-shadow: 0 0 0 2px var(--color-primary)/20;
 }
 
 .search-btn {
-  height: 44px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 0 20px;
+  gap: 6px;
+  padding: 0 16px;
   background: var(--color-primary);
   color: var(--color-primary-foreground);
   border: none;
-  border-radius: var(--radius-full);
-  font-size: 0.875rem;
+  border-radius: var(--radius-lg);
+  font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
   transition: var(--transition-gentle);
@@ -423,7 +404,33 @@ onMounted(() => {
   box-shadow: var(--shadow-lift);
 }
 
-/* Task List */
+/* Main Content */
+.main-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.content-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.content-header h1 {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-foreground);
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  font-size: 0.875rem;
+  color: var(--color-muted-foreground);
+}
+
+/* Task List Card */
 .task-list-card {
   background: var(--color-background);
   border: 1px solid var(--color-border);
@@ -458,51 +465,61 @@ onMounted(() => {
   to { transform: rotate(360deg); }
 }
 
-.task-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-  padding: 24px;
+/* Task List (Table-like rows) */
+.task-list {
+  display: flex;
+  flex-direction: column;
 }
 
-.task-card {
-  padding: 20px;
-  background: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+.task-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 16px;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border)/50;
   cursor: pointer;
   transition: var(--transition-gentle);
 }
 
-.task-card:hover {
-  box-shadow: var(--shadow-lift);
-  transform: translateY(-2px);
+.task-row:last-child {
+  border-bottom: none;
 }
 
-.task-card-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
+.task-row:hover {
+  background: var(--color-muted)/30;
 }
 
-.task-card-title {
-  font-size: 0.95rem;
+.task-main {
+  min-width: 0;
+}
+
+.task-title {
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--color-foreground);
-  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.task-desc {
+  font-size: 0.75rem;
+  color: var(--color-muted-foreground);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.task-side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .task-status {
   padding: 4px 10px;
   border-radius: var(--radius-full);
   font-size: 0.7rem;
-  font-weight: 700;
-  flex-shrink: 0;
+  font-weight: 600;
 }
 
 .task-status.warning {
@@ -530,26 +547,6 @@ onMounted(() => {
   color: var(--color-muted-foreground);
 }
 
-.task-card-desc {
-  font-size: 0.8rem;
-  color: var(--color-muted-foreground);
-  line-height: 1.5;
-  margin-bottom: 12px;
-  height: 40px;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.task-card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 12px;
-  border-top: 1px solid var(--color-border)/50;
-}
-
 .task-category {
   padding: 4px 10px;
   background: var(--color-muted)/50;
@@ -559,19 +556,12 @@ onMounted(() => {
   color: var(--color-foreground);
 }
 
+.task-meta {
+  text-align: right;
+}
+
 .task-date {
   font-size: 0.7rem;
-  color: var(--color-muted-foreground);
-}
-
-.pagination {
-  padding: 16px 24px;
-  background: var(--color-muted)/30;
-  border-top: 1px solid var(--color-border);
-}
-
-.pagination-info {
-  font-size: 0.875rem;
   color: var(--color-muted-foreground);
 }
 
@@ -601,20 +591,20 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24px;
+  padding: 20px;
   border-bottom: 1px solid var(--color-border);
 }
 
 .modal-title {
   font-family: var(--font-heading);
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   font-weight: 700;
   color: var(--color-foreground);
 }
 
 .modal-close {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -632,27 +622,27 @@ onMounted(() => {
 }
 
 .modal-body {
-  padding: 24px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
-.detail-item {
+.detail-row {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
 .detail-label {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--color-muted-foreground);
-  width: 80px;
+  width: 70px;
 }
 
 .detail-value {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: var(--color-foreground);
 }
 
@@ -662,29 +652,29 @@ onMounted(() => {
 
 .description-text {
   margin-top: 8px;
-  padding: 16px;
+  padding: 12px;
   background: var(--color-muted)/30;
   border-radius: var(--radius-lg);
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: var(--color-foreground);
   white-space: pre-wrap;
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
 .modal-footer {
-  padding: 16px 24px;
+  padding: 12px 20px;
   background: var(--color-muted)/30;
   display: flex;
   justify-content: flex-end;
 }
 
 .close-btn {
-  padding: 10px 24px;
+  padding: 8px 20px;
   background: var(--color-primary);
   color: var(--color-primary-foreground);
   border: none;
   border-radius: var(--radius-full);
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
   transition: var(--transition-gentle);

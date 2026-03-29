@@ -9,7 +9,6 @@
       <h2 class="task-title">{{ task.title }}</h2>
       <div class="task-tags">
         <span v-if="task.category" class="tag category">{{ task.category }}</span>
-        <span v-if="task.tag" class="tag tag-label">{{ task.tag }}</span>
         <span class="tag status" :class="statusClass">{{ statusLabel }}</span>
       </div>
     </div>
@@ -22,14 +21,26 @@
       </div>
     </div>
 
-    <!-- Meta Information -->
+    <!-- Meta Information - Horizontal Layout -->
     <div class="task-meta">
-      <div class="meta-item">
-        <span class="meta-label">创建时间</span>
+      <div class="meta-row">
+        <span class="meta-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </span>
+        <span class="meta-label">创建</span>
         <span class="meta-value">{{ formatDate(task.createdAt) }}</span>
       </div>
-      <div class="meta-item">
-        <span class="meta-label">更新时间</span>
+      <div class="meta-row">
+        <span class="meta-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        </span>
+        <span class="meta-label">更新</span>
         <span class="meta-value">{{ formatDate(task.updatedAt) }}</span>
       </div>
     </div>
@@ -79,7 +90,7 @@ function formatDate(dateString: string) {
 
 <style scoped>
 .task-detail {
-  padding: 24px;
+  padding: 20px;
   background: var(--color-background);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
@@ -89,12 +100,12 @@ function formatDate(dateString: string) {
 .task-header {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .task-title {
   font-family: var(--font-heading);
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   font-weight: 700;
   color: var(--color-foreground);
 }
@@ -102,27 +113,22 @@ function formatDate(dateString: string) {
 .task-tags {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .tag {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
+  padding: 3px 8px;
   border-radius: var(--radius-full);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
 }
 
 .tag.category {
   background: var(--color-primary)/10;
   color: var(--color-primary);
-}
-
-.tag.tag-label {
-  background: var(--color-muted);
-  color: var(--color-muted-foreground);
 }
 
 .tag.status.warning {
@@ -151,50 +157,54 @@ function formatDate(dateString: string) {
 }
 
 .task-description {
-  margin-top: 16px;
+  margin-top: 12px;
 }
 
 .label {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--color-muted-foreground);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .description-content {
   background: var(--color-muted)/30;
   border-radius: var(--radius-lg);
-  padding: 16px;
+  padding: 12px;
 }
 
 .description-content p {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: var(--color-foreground);
   white-space: pre-wrap;
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
 .task-meta {
-  margin-top: 16px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.meta-item {
+  margin-top: 12px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
+}
+
+.meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.meta-icon {
+  color: var(--color-muted-foreground);
 }
 
 .meta-label {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--color-muted-foreground);
 }
 
 .meta-value {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: var(--color-foreground);
 }
 </style>
