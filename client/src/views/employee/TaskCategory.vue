@@ -2,7 +2,7 @@
   @component EmployeeTaskCategory
   @description 员工端任务执行页面
     - 左侧固定：任务队列（不受侧栏收起影响）
-    - 右侧：任务详情 + 表单
+    - 右侧：任务详情 Tab + Agent Tab
     - 支持任务进度追踪
   @layer view
 -->
@@ -45,7 +45,7 @@
         @back-to-list="backToList"
       />
 
-      <!-- Task Detail -->
+      <!-- Task Content with Tabs -->
       <template v-else-if="currentTask">
         <!-- Success Message -->
         <div v-if="justSubmitted" class="success-message">
@@ -56,47 +56,88 @@
           <p>任务已完成！</p>
         </div>
 
-        <!-- Task Detail -->
-        <TaskDetail :task="currentTask" />
-
-        <!-- Task Form with Progress -->
-        <div class="form-section">
-          <div class="form-header">
-            <h3>完成任务</h3>
-            <div class="progress-indicator">
-              <div class="progress-bar">
-                <div
-                  class="progress-fill"
-                  :style="{ width: progress + '%' }"
-                  :class="{ complete: progress === 100 }"
-                />
-              </div>
-              <span class="progress-label">{{ progress }}%</span>
-            </div>
+        <!-- Tabs -->
+        <div class="tabs-container">
+          <div class="tabs-header">
+            <button
+              class="tab-btn"
+              :class="{ active: activeTab === 'detail' }"
+              @click="activeTab = 'detail'"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+              </svg>
+              任务详情
+            </button>
+            <button
+              class="tab-btn"
+              :class="{ active: activeTab === 'agent' }"
+              @click="activeTab = 'agent'"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+              Agent
+            </button>
           </div>
 
-          <TaskForm
-            v-if="taskTypeConfig?.requiresForm"
-            :fields="taskTypeConfig?.formFields || []"
-            v-model="currentFormData"
-            :disabled="submitting"
-            :loading="submitting"
-            @submit="handleSubmit"
-            @field-change="handleFieldChange"
-          />
+          <div class="tabs-content">
+            <!-- Detail Tab -->
+            <div v-show="activeTab === 'detail'" class="tab-panel">
+              <!-- Task Detail -->
+              <TaskDetail :task="currentTask" />
 
-          <!-- Simple Submit Button -->
-          <div v-else class="simple-submit">
-            <button
-              @click="handleSubmit"
-              :disabled="submitting"
-              class="submit-btn"
-            >
-              <svg v-if="submitting" class="spin-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 2v4m0 12v4m-10-10h4m12 0h4m-2.93-7.07l-2.83 2.83m-8.48 8.48l-2.83 2.83m0-14.14l2.83 2.83m8.48 8.48l2.83 2.83"/>
-              </svg>
-              {{ submitting ? '提交中...' : '完成任务' }}
-            </button>
+              <!-- Task Form with Progress -->
+              <div class="form-section">
+                <div class="form-header">
+                  <h3>完成任务</h3>
+                  <div class="progress-indicator">
+                    <div class="progress-bar">
+                      <div
+                        class="progress-fill"
+                        :style="{ width: progress + '%' }"
+                        :class="{ complete: progress === 100 }"
+                      />
+                    </div>
+                    <span class="progress-label">{{ progress }}%</span>
+                  </div>
+                </div>
+
+                <TaskForm
+                  v-if="taskTypeConfig?.requiresForm"
+                  :fields="taskTypeConfig?.formFields || []"
+                  v-model="currentFormData"
+                  :disabled="submitting"
+                  :loading="submitting"
+                  @submit="handleSubmit"
+                  @field-change="handleFieldChange"
+                />
+
+                <!-- Simple Submit Button -->
+                <div v-else class="simple-submit">
+                  <button
+                    @click="handleSubmit"
+                    :disabled="submitting"
+                    class="submit-btn"
+                  >
+                    <svg v-if="submitting" class="spin-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 2v4m0 12v4m-10-10h4m12 0h4m-2.93-7.07l-2.83 2.83m-8.48 8.48l-2.83 2.83m0-14.14l2.83 2.83m8.48 8.48l2.83 2.83"/>
+                    </svg>
+                    {{ submitting ? '提交中...' : '完成任务' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Agent Tab -->
+            <div v-show="activeTab === 'agent'" class="tab-panel agent-panel">
+              <TaskAgentTab :task="currentTask" />
+            </div>
           </div>
         </div>
       </template>
@@ -126,6 +167,7 @@ import type { Task, TaskListParams, FormField } from '@/services/types'
 import TaskQueue from './_components/TaskQueue.vue'
 import TaskDetail from './_components/TaskDetail.vue'
 import TaskForm from './_components/TaskForm.vue'
+import TaskAgentTab from './_components/TaskAgentTab.vue'
 import TaskCompletionMessage from './_components/TaskCompletionMessage.vue'
 
 const route = useRoute()
@@ -145,6 +187,9 @@ const queueLeft = computed(() => {
 
 const category = computed(() => route.params.category as string)
 const taskTypeConfig = computed(() => EMPLOYEE_TASK_TYPES.find(t => t.category === category.value))
+
+// Tab 状态
+const activeTab = ref<'detail' | 'agent'>('detail')
 
 // 任务列表状态
 const tasks = ref<Task[]>([])
@@ -248,6 +293,9 @@ function selectTask(task: Task) {
   } else {
     initProgress()
   }
+
+  // 重置 tab
+  activeTab.value = 'detail'
 }
 
 // 处理字段变化
@@ -339,6 +387,7 @@ watch(category, () => {
     allCompleted.value = false
     initialLoading.value = true
     currentPage = 1
+    activeTab.value = 'detail'
 
     loadTasks()
   }
@@ -356,7 +405,7 @@ watch(category, () => {
 /* Fixed Task Queue */
 .task-queue-panel {
   position: fixed;
-  top: 32px; /* below drag region */
+  top: 32px;
   bottom: 0;
   width: 280px;
   background: var(--color-background);
@@ -441,6 +490,67 @@ watch(category, () => {
 .success-message p {
   font-size: 0.8rem;
   font-weight: 500;
+}
+
+/* Tabs */
+.tabs-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.tabs-header {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--color-muted)/30;
+  border-radius: var(--radius-lg);
+  margin-bottom: 16px;
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-muted-foreground);
+  cursor: pointer;
+  transition: var(--transition-gentle);
+}
+
+.tab-btn:hover {
+  color: var(--color-foreground);
+}
+
+.tab-btn.active {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  box-shadow: var(--shadow-sm);
+}
+
+.tabs-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.agent-panel {
+  min-height: 400px;
 }
 
 /* Form Section with Progress */
