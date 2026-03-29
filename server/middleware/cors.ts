@@ -10,7 +10,7 @@ export default defineEventHandler((event) => {
   // 设置 CORS 头
   setResponseHeaders(event, {
     'Access-Control-Allow-Origin': origin === 'null' ? '*' : origin,
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Credentials': 'true',
   })
