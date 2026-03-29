@@ -5,13 +5,19 @@
  * @layer service
  */
 import type { ContentBlock } from '#claude/types'
-import type { User, AuthResponse, MeResponse, Session, SessionDetail, Message, Settings } from './types'
+import type {
+  User, AuthResponse, MeResponse, Session, SessionDetail, Message, Settings,
+  Task, TaskListParams, TaskListApiResponse, TaskApiResponse, TaskStatsApiResponse,
+} from './types'
 
 // API 基础地址（开发环境使用本地服务器，生产环境使用配置的地址）
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000'
 
 // 重导出类型（保持兼容性）
-export type { User, AuthResponse, MeResponse, Session, SessionDetail, Message, Settings } from './types'
+export type {
+  User, AuthResponse, MeResponse, Session, SessionDetail, Message, Settings,
+  Task, TaskListParams, TaskListApiResponse, TaskApiResponse, TaskStatsApiResponse,
+} from './types'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // API 错误
@@ -160,5 +166,87 @@ export async function updateSettings(settings: Partial<Settings>): Promise<Setti
   return request('/api/settings', {
     method: 'PUT',
     body: JSON.stringify(settings),
+  })
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 任务 API
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 获取任务列表 */
+export async function fetchTasks(params: TaskListParams = {}): Promise<TaskListApiResponse> {
+  const query = new URLSearchParams()
+  if (params.page) query.set('page', String(params.page))
+  if (params.pageSize) query.set('pageSize', String(params.pageSize))
+  if (params.status) query.set('status', params.status)
+  if (params.category) query.set('category', params.category)
+  if (params.search) query.set('search', params.search)
+
+  const queryString = query.toString()
+  return request(`/api/tasks${queryString ? `?${queryString}` : ''}`)
+}
+
+/** 获取单个任务 */
+export async function fetchTask(id: number): Promise<TaskApiResponse> {
+  return request(`/api/tasks/${id}`)
+}
+
+/** 创建任务 */
+export async function createTask(taskData: Partial<Task>): Promise<TaskApiResponse> {
+  return request('/api/tasks', {
+    method: 'POST',
+    body: JSON.stringify(taskData),
+  })
+}
+
+/** 更新任务 */
+export async function updateTask(id: number, taskData: Partial<Task>): Promise<TaskApiResponse> {
+  return request(`/api/tasks/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(taskData),
+  })
+}
+
+/** 删除任务 */
+export async function deleteTask(id: number): Promise<{ success: boolean }> {
+  return request(`/api/tasks/${id}`, {
+    method: 'DELETE',
+  })
+}
+
+/** 获取任务统计 */
+export async function fetchTaskStats(): Promise<TaskStatsApiResponse> {
+  return request('/api/tasks/stats')
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 管理端 API
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 获取数据库表数据 */
+export async function fetchDatabaseTable(tableName: string): Promise<{ success: boolean; data?: any[]; error?: string }> {
+  return request(`/api/admin/database/${tableName}`)
+}
+
+/** 创建数据库记录 */
+export async function createDatabaseRecord(tableName: string, data: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+  return request(`/api/admin/database/${tableName}`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+/** 更新数据库记录 */
+export async function updateDatabaseRecord(tableName: string, id: number, data: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+  return request(`/api/admin/database/${tableName}/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+/** 删除数据库记录 */
+export async function deleteDatabaseRecord(tableName: string, id: number): Promise<{ success: boolean; error?: string }> {
+  return request(`/api/admin/database/${tableName}/${id}`, {
+    method: 'DELETE',
   })
 }

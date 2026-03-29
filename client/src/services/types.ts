@@ -85,3 +85,53 @@ export interface Settings {
   permissionMode?: PermissionMode
   updatedAt?: number
 }
+
+// ─────────────────────────────────────────────────────────────────────────────────────
+// 任务类型
+// ─────────────────────────────────────────────────────────────────────────────────────
+
+export type TaskStatus = 'todo' | 'in_progress' | 'in_review' | 'done' | 'cancelled'
+
+export interface Task {
+  id: number
+  title: string
+  category: string | null
+  tag: string | null
+  description: string | null
+  status: TaskStatus
+  createdByUserId: number
+  assignedToUserId: number | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface TaskListParams {
+  page?: number
+  pageSize?: number
+  status?: TaskStatus
+  category?: string
+  search?: string
+}
+
+export interface TaskListResponse {
+  tasks: Task[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+export interface TaskStats {
+  byStatus: Record<string, number>
+  byCategory: Record<string, number>
+  byAssignee: Record<number, number>
+  total: number
+}
+
+/** 任务列表 API 响应 */
+export type TaskListApiResponse = ApiResponse<TaskListResponse>
+
+/** 单个任务 API 响应 */
+export type TaskApiResponse = ApiResponse<{ task: Task }>
+
+/** 任务统计 API 响应 */
+export type TaskStatsApiResponse = ApiResponse<TaskStats>
