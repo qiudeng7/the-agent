@@ -206,7 +206,7 @@ onMounted(() => {
 .task-category {
   flex: 1;
   padding: 40px;
-  max-width: 800px;
+  max-width: 1000px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
