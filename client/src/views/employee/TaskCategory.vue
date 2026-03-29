@@ -377,6 +377,11 @@ watch(category, () => {
   gap: 16px;
   min-height: 0;
   overflow-y: auto;
+  align-content: flex-start;
+}
+
+.task-content > * {
+  flex-shrink: 0;
 }
 
 .page-header {
