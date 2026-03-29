@@ -496,8 +496,6 @@ watch(category, () => {
 .tabs-container {
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  flex: 1;
 }
 
 .tabs-header {
@@ -534,15 +532,11 @@ watch(category, () => {
 }
 
 .tabs-content {
-  flex: 1;
-  min-height: 0;
   display: flex;
   flex-direction: column;
 }
 
 .tab-panel {
-  flex: 1;
-  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -558,7 +552,6 @@ watch(category, () => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sm);
-  overflow: hidden;
 }
 
 .form-header {

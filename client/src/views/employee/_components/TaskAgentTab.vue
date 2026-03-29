@@ -86,6 +86,14 @@ async function handleSubmit(input: string, options: { model: string; permissionM
     sessionCreated.value = true
   }
 
+  // 添加用户消息到 chat store（用于前端显示）
+  await chatStore.addMessage(sessionId.value, {
+    id: Date.now().toString() + '-user',
+    role: 'user',
+    content: input,
+    timestamp: Date.now(),
+  })
+
   // 构建历史消息（从 messages 中提取）
   const historyMessages: AgentMessage[] = messages.value.map(m => ({
     role: m.role,
