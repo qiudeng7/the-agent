@@ -274,6 +274,7 @@ export class ClaudeAgentProvider {
       case 'user': {
         const userMsg = msg as SDKUserMessage
         const content = userMsg.message.content
+        console.log('[ClaudeAgentProvider] User message:', { type: typeof content, content })
         // SDKUserMessage.message.content 可以是 string 或 ContentBlockParam[]
         if (typeof content === 'string') {
           return {
@@ -282,10 +283,12 @@ export class ClaudeAgentProvider {
             content: [{ type: 'text', text: content }],
           }
         }
+        const mappedContent = this._mapContentParamArray(content as unknown[])
+        console.log('[ClaudeAgentProvider] Mapped user content:', mappedContent)
         return {
           type: 'user',
           taskId,
-          content: this._mapContentParamArray(content as unknown[]),
+          content: mappedContent,
         }
       }
 

@@ -242,8 +242,8 @@ const messages = computed(() => session.value?.messages ?? [])
 /** 消息列表容器引用 */
 const messagesContainerRef = ref<HTMLElement | null>(null)
 
-/** 展开的工具详情 ID 集合 */
-const expandedTools = ref<Set<string>>(new Set())
+/** 展开的工具详情 ID（使用响应式对象） */
+const expandedTools = ref<Record<string, boolean>>({})
 
 /** 工具详情激活的 tab */
 const toolActiveTab = ref<Record<string, 'input' | 'result'>>({})
@@ -313,16 +313,12 @@ function scrollToBottom() {
 
 /** 切换工具详情展开状态 */
 function toggleToolExpand(toolId: string) {
-  if (expandedTools.value.has(toolId)) {
-    expandedTools.value.delete(toolId)
-  } else {
-    expandedTools.value.add(toolId)
-  }
+  expandedTools.value[toolId] = !expandedTools.value[toolId]
 }
 
 /** 判断工具是否展开 */
 function isToolExpanded(toolId: string): boolean {
-  return expandedTools.value.has(toolId)
+  return expandedTools.value[toolId] ?? false
 }
 
 /** 获取工具激活的 tab */
