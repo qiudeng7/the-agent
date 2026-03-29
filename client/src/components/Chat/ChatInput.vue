@@ -151,11 +151,6 @@ watch(selectedModel, (newModel) => {
   }
 })
 
-// 监听 selectedPermissionMode 变化，保存到 settingsStore
-watch(selectedPermissionMode, (newMode) => {
-  settingsStore.setPermissionMode(newMode)
-})
-
 function submit() {
   if (input.value.trim() && settingsStore.enabledAvailableModels.length > 0 && selectedModel.value) {
     emit('submit', input.value.trim(), {
