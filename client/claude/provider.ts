@@ -10,7 +10,7 @@
  */
 
 import path from 'path'
-import { query } from '@anthropic-ai/claude-agent-sdk'
+import { query, type Query } from '@anthropic-ai/claude-agent-sdk'
 import type {
   SDKMessage,
   SDKAssistantMessage,
@@ -21,7 +21,8 @@ import type {
   SDKToolUseSummaryMessage,
 } from '@anthropic-ai/claude-agent-sdk'
 import type { BetaRawMessageStreamEvent, BetaContentBlock, BetaTextBlock, BetaThinkingBlock, BetaToolUseBlock } from '@anthropic-ai/sdk/resources/beta/messages/messages'
-import type { ClaudeRunOptions, ClaudeEvent, ContentBlock } from './types'
+import type { ClaudeRunOptions, ClaudeEvent, ContentBlock, AskUserQuestionAnswerPayload, AskUserQuestionItem } from './types'
+import type { AskUserQuestionRequest, AskUserQuestionResponse, IClaudeTransportServer } from './interfaces/transport'
 import { detectClaude } from '#claude-installer'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -60,6 +61,8 @@ export interface ClaudeProviderOptions {
   defaultModel?: string
   /** 进度回调，用于在初始化过程中向用户显示进度信息 */
   onProgress?: (message: string) => void
+  /** Transport 用于发送 AskUserQuestion 请求给前端 */
+  transport?: IClaudeTransportServer
 }
 
 export class ClaudeAgentProvider {
@@ -69,8 +72,16 @@ export class ClaudeAgentProvider {
   private claudePath: string | null = null
   private defaultModel: string
   private onProgress?: (message: string) => void
+  /** Transport 用于发送 AskUserQuestion 请求 */
+  private transport?: IClaudeTransportServer
   /** 正在运行的任务：taskId → AbortController */
   private runningTasks = new Map<string, AbortController>()
+  /** 当前运行的 Query 对象：taskId → Query */
+  private runningQueries = new Map<string, Query>()
+  /** 待处理的答案队列：taskId → AskUserQuestionAnswerPayload[] */
+  private pendingAnswers = new Map<string, AskUserQuestionAnswerPayload[]>()
+  /** 答案等待的 Promise resolve 函数 */
+  private answerResolvers = new Map<string, (answer: AskUserQuestionAnswerPayload) => void>()
   /** 是否已初始化（检测 claude 路径） */
   private initialized = false
 
@@ -79,6 +90,7 @@ export class ClaudeAgentProvider {
     this.claudePath = options.claudePath ?? null
     this.defaultModel = options.defaultModel ?? 'claude-opus-4-6'
     this.onProgress = options.onProgress
+    this.transport = options.transport
 
     console.log('[ClaudeAgentProvider] SDK CLI path:', this.sdkCliPath)
   }
@@ -117,6 +129,37 @@ export class ClaudeAgentProvider {
       ctrl.abort()
       this.runningTasks.delete(taskId)
     }
+    // 清理 Query 和答案队列
+    this.runningQueries.delete(taskId)
+    this.pendingAnswers.delete(taskId)
+    this.answerResolvers.delete(taskId)
+  }
+
+  /**
+   * 提交 AskUserQuestion 答案。
+   * 答案会被发送到正在运行的 Query 的 streamInput。
+   */
+  submitAnswer(payload: AskUserQuestionAnswerPayload): void {
+    const { taskId } = payload
+    const queryObj = this.runningQueries.get(taskId)
+
+    if (!queryObj) {
+      console.warn('[ClaudeAgentProvider] No running query for taskId:', taskId)
+      return
+    }
+
+    // 如果有等待的 resolver，直接调用
+    const resolver = this.answerResolvers.get(taskId)
+    if (resolver) {
+      resolver(payload)
+      this.answerResolvers.delete(taskId)
+      return
+    }
+
+    // 否则放入队列
+    const queue = this.pendingAnswers.get(taskId) || []
+    queue.push(payload)
+    this.pendingAnswers.set(taskId, queue)
   }
 
   async *run(options: ClaudeRunOptions): AsyncIterable<ClaudeEvent> {
@@ -127,6 +170,9 @@ export class ClaudeAgentProvider {
     const ctrl = new AbortController()
     this.runningTasks.set(taskId, ctrl)
 
+    // 初始化答案队列
+    this.pendingAnswers.set(taskId, [])
+
     try {
       // 构建 SDK options
       const sdkOptions = this._buildSdkOptions(options)
@@ -134,8 +180,16 @@ export class ClaudeAgentProvider {
       // 构建 prompt（支持多轮对话）
       const prompt = this._buildPrompt(options)
 
-      // 调用 SDK query()
-      for await (const message of query({ prompt, options: sdkOptions })) {
+      // 创建 Query 对象并保存引用
+      const queryObj = query({ prompt, options: sdkOptions })
+      this.runningQueries.set(taskId, queryObj)
+
+      // 创建答案流并启动 streamInput
+      const answerStream = this._createAnswerStream(taskId)
+      queryObj.streamInput(answerStream)
+
+      // 迭代 Query 产出事件
+      for await (const message of queryObj) {
         if (ctrl.signal.aborted) {
           yield { type: 'error', taskId, error: 'Task aborted', code: 'aborted' }
           return
@@ -155,6 +209,112 @@ export class ClaudeAgentProvider {
       }
     } finally {
       this.runningTasks.delete(taskId)
+      this.runningQueries.delete(taskId)
+      this.pendingAnswers.delete(taskId)
+      this.answerResolvers.delete(taskId)
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 内部：创建答案流
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * 创建用于 streamInput 的答案流。
+   * 当前端提交答案时，流会 yield SDKUserMessage。
+   */
+  private _createAnswerStream(taskId: string): AsyncIterable<SDKUserMessage> {
+    const self = this
+
+    return {
+      [Symbol.asyncIterator]() {
+        return {
+          async next(): Promise<IteratorResult<SDKUserMessage>> {
+            // 等待答案
+            const answer = await self._waitForAnswer(taskId)
+            if (!answer) {
+              return { done: true, value: undefined }
+            }
+
+            // 构建 SDKUserMessage
+            const userMessage = self._buildAnswerUserMessage(answer)
+            return { done: false, value: userMessage }
+          },
+        }
+      },
+    }
+  }
+
+  /**
+   * 等待答案提交。
+   * 先检查队列，如果没有则等待 resolver 被调用。
+   */
+  private _waitForAnswer(taskId: string): Promise<AskUserQuestionAnswerPayload | null> {
+    return new Promise((resolve) => {
+      // 先检查队列
+      const queue = this.pendingAnswers.get(taskId)
+      if (queue && queue.length > 0) {
+        const answer = queue.shift()!
+        resolve(answer)
+        return
+      }
+
+      // 设置 resolver，等待 submitAnswer 调用
+      this.answerResolvers.set(taskId, (answer: AskUserQuestionAnswerPayload) => {
+        resolve(answer)
+      })
+    })
+  }
+
+  /** AskUserQuestion 问题等待的 resolver */
+  private askQuestionResolvers = new Map<string, (answers: { answers: Record<string, string>; annotations?: Record<string, { notes?: string; preview?: string }> } | null) => void>()
+
+  /**
+   * 等待前端处理 AskUserQuestion 并返回答案。
+   * 通过事件通知前端显示对话框，然后等待答案。
+   */
+  private async _waitForAskUserQuestionAnswers(
+    taskId: string,
+    toolUseId: string,
+    input: { questions: AskUserQuestionItem[] },
+  ): Promise<{ answers: Record<string, string>; annotations?: Record<string, { notes?: string; preview?: string }> } | null> {
+    // 使用 transport 发送请求给前端
+    if (this.transport?.sendAskUserQuestion) {
+      const response = await this.transport.sendAskUserQuestion({
+        taskId,
+        toolUseId,
+        questions: input.questions,
+      })
+      return response
+    }
+
+    // 如果 transport 不支持，返回 null（取消）
+    console.warn('[ClaudeAgentProvider] Transport does not support sendAskUserQuestion')
+    return null
+  }
+
+  /**
+   * 构建包含 tool_result 的 SDKUserMessage。
+   */
+  private _buildAnswerUserMessage(payload: AskUserQuestionAnswerPayload): SDKUserMessage {
+    const { toolUseId, answers, annotations } = payload
+
+    // 构建 tool_result 内容
+    const toolResultContent = JSON.stringify({ answers, annotations })
+
+    return {
+      type: 'user',
+      message: {
+        role: 'user',
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: toolUseId,
+            content: toolResultContent,
+          },
+        ],
+      },
+      parent_tool_use_id: toolUseId,
     }
   }
 
@@ -200,6 +360,41 @@ export class ClaudeAgentProvider {
       env: Object.keys(env).length > 0 ? env : undefined,
       pathToClaudeCodeExecutable,
       includePartialMessages: true,
+      // 添加 canUseTool 回调来拦截 AskUserQuestion
+      canUseTool: async (toolName, input, canUseToolOptions) => {
+        if (toolName === 'AskUserQuestion') {
+          console.log('[ClaudeAgentProvider] Intercepting AskUserQuestion tool')
+          const toolUseId = canUseToolOptions.toolUseID
+
+          // 等待前端处理并返回答案
+          const answers = await this._waitForAskUserQuestionAnswers(
+            options.taskId,
+            toolUseId,
+            input as { questions: AskUserQuestionItem[] },
+          )
+
+          if (answers) {
+            // 返回 allow 并提供答案作为 updatedInput
+            return {
+              behavior: 'allow' as const,
+              updatedInput: {
+                questions: (input as { questions: AskUserQuestionItem[] }).questions,
+                answers: answers.answers,
+                annotations: answers.annotations,
+              },
+            }
+          } else {
+            // 用户取消
+            return {
+              behavior: 'deny' as const,
+              message: 'User cancelled the question',
+            }
+          }
+        }
+
+        // 其他工具使用默认行为
+        return { behavior: 'allow' as const }
+      },
     }
   }
 

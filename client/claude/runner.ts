@@ -7,13 +7,14 @@
  *              2. 调用 provider.run() 驱动 SDK query()
  *              3. 将产出的每条 ClaudeEvent 通过 transport.send() 推送给外部
  *              4. 监听 transport.onAbort()，取消正在运行的任务
+ *              5. 监听 transport.onAnswer()，将答案转发给 provider
  *
  *              不含任何 SDK 或通信细节，可搭配任意 transport 使用。
  */
 
 import type { IClaudeTransportServer } from './interfaces/transport'
 import { ClaudeAgentProvider } from './provider'
-import type { ClaudeRunOptions } from './types'
+import type { ClaudeRunOptions, AskUserQuestionAnswerPayload } from './types'
 
 export class ClaudeRunner {
   constructor(
@@ -35,9 +36,14 @@ export class ClaudeRunner {
       this.provider.abort(taskId)
     })
 
+    const stopAnswer = this.transport.onAnswer?.((payload: AskUserQuestionAnswerPayload) => {
+      this.provider.submitAnswer(payload)
+    })
+
     return () => {
       stopRun()
       stopAbort()
+      stopAnswer?.()
     }
   }
 

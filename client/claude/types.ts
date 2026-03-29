@@ -200,6 +200,38 @@ export interface ClaudeErrorEvent {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// AskUserQuestion 工具相关类型
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** AskUserQuestion 工具的问题选项 */
+export interface AskUserQuestionOption {
+  label: string
+  description?: string
+  preview?: string
+}
+
+/** AskUserQuestion 工具的问题 */
+export interface AskUserQuestionItem {
+  header: string
+  multiSelect: boolean
+  options: AskUserQuestionOption[]
+  question: string
+}
+
+/** AskUserQuestion 工具的输入 */
+export interface AskUserQuestionInput {
+  questions: AskUserQuestionItem[]
+}
+
+/** 提交 AskUserQuestion 答案的 payload */
+export interface AskUserQuestionAnswerPayload {
+  taskId: string
+  toolUseId: string
+  answers: Record<string, string>
+  annotations?: Record<string, { notes?: string; preview?: string }>
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 流式增量事件（includePartialMessages: true 时产生）
 // ─────────────────────────────────────────────────────────────────────────────
 

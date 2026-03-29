@@ -84,22 +84,31 @@
         @model-change="handleModelChange"
       />
     </div>
+
+    <!-- AskUserQuestion Dialog -->
+    <AskUserQuestionDialog
+      :visible="showAskDialog"
+      :questions="askQuestions"
+      @submit="handleAskSubmit"
+      @cancel="handleAskCancel"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch, nextTick } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ChatInput from '@/components/Chat/ChatInput.vue'
 import MarkdownRenderer from '@/components/Chat/MarkdownRenderer.vue'
 import MessageItem from '@/components/Chat/MessageItem.vue'
 import ThinkingBlock from '@/components/Chat/ThinkingBlock.vue'
 import ToolBlock from '@/components/Chat/ToolBlock.vue'
+import AskUserQuestionDialog from '@/components/Chat/AskUserQuestionDialog.vue'
 import { useChatStore } from '@/stores/chat'
 import { useAgentStore } from '@/stores/agent'
 import { useSettingsStore } from '@/stores/settings'
 import { useChatSubmit } from '@/composables'
-import type { ContentBlock, ToolResultContent, PermissionMode } from '#claude/types'
+import type { ContentBlock, ToolResultContent, PermissionMode, AskUserQuestionItem } from '#claude/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -189,6 +198,29 @@ function handleStop() {
   agentStore.abort()
 }
 
+// ── AskUserQuestion 对话框 ──────────────────────────────────────────────────────
+const showAskDialog = ref(false)
+const askQuestions = ref<AskUserQuestionItem[]>([])
+const currentAskToolUseId = ref('')
+let unsubscribeAskQuestion: (() => void) | null = null
+
+function handleAskQuestion(request: { taskId: string; toolUseId: string; questions: AskUserQuestionItem[] }) {
+  currentAskToolUseId.value = request.toolUseId
+  askQuestions.value = request.questions
+  showAskDialog.value = true
+}
+
+async function handleAskSubmit(answers: Record<string, string>) {
+  showAskDialog.value = false
+  await window.electronAPI.answerAskQuestion(currentAskToolUseId.value, { answers })
+}
+
+function handleAskCancel() {
+  showAskDialog.value = false
+  // 用户取消时，发送 null 让 SDK 继续
+  window.electronAPI.answerAskQuestion(currentAskToolUseId.value, null)
+}
+
 // ── 生命周期 ──────────────────────────────────────────────────────────────────
 watch(sessionId, async (id) => {
   if (id) {
@@ -226,6 +258,13 @@ onMounted(async () => {
     })
     router.replace({ name: 'chat', params: { id: sessionId.value } })
   }
+
+  // 监听 AskUserQuestion 请求
+  unsubscribeAskQuestion = window.electronAPI.onAskQuestion(handleAskQuestion)
+})
+
+onUnmounted(() => {
+  unsubscribeAskQuestion?.()
 })
 </script>
 

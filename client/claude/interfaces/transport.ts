@@ -13,7 +13,20 @@
  *              - Client（渲染进程）：调用 run/abort，监听 onEvent
  */
 
-import type { ClaudeEvent, ClaudeRunOptions } from '../types'
+import type { ClaudeEvent, ClaudeRunOptions, AskUserQuestionAnswerPayload, AskUserQuestionItem } from '../types'
+
+/** AskUserQuestion 请求 */
+export interface AskUserQuestionRequest {
+  taskId: string
+  toolUseId: string
+  questions: AskUserQuestionItem[]
+}
+
+/** AskUserQuestion 响应 */
+export interface AskUserQuestionResponse {
+  answers: Record<string, string>
+  annotations?: Record<string, { notes?: string; preview?: string }>
+}
 
 export interface IClaudeTransportServer {
   /**
@@ -35,4 +48,19 @@ export interface IClaudeTransportServer {
    * @returns 取消监听的函数（cleanup）
    */
   onAbort(handler: (taskId: string) => void): () => void
+
+  /**
+   * 监听来自外部的 AskUserQuestion 答案提交。
+   * @param handler - 收到请求时的回调，参数为答案 payload
+   * @returns 取消监听的函数（cleanup）
+   */
+  onAnswer?(handler: (payload: AskUserQuestionAnswerPayload) => void): () => void
+
+  /**
+   * 向外部发送 AskUserQuestion 请求并等待响应。
+   * 用于在 canUseTool 回调中请求前端显示对话框。
+   * @param request - AskUserQuestion 请求数据
+   * @returns 用户响应，如果取消则返回 null
+   */
+  sendAskUserQuestion?(request: AskUserQuestionRequest): Promise<AskUserQuestionResponse | null>
 }

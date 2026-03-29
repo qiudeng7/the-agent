@@ -6,7 +6,7 @@
  * @layer types
  */
 
-import type { ClaudeRunOptions, ClaudeEvent } from '#claude/types'
+import type { ClaudeRunOptions, ClaudeEvent, AskUserQuestionAnswerPayload, AskUserQuestionItem } from '#claude/types'
 
 export interface IElectronAPI {
   // ── 系统 API ────────────────────────────────────────────────────────────
@@ -24,6 +24,12 @@ export interface IElectronAPI {
   agentAbort: (taskId: string) => Promise<void>
   /** 订阅流式事件，返回取消订阅函数 */
   onAgentEvent: (handler: (event: ClaudeEvent) => void) => () => void
+  /** 提交 AskUserQuestion 答案 */
+  submitAskUserQuestionAnswer: (payload: AskUserQuestionAnswerPayload) => Promise<void>
+  /** 监听 AskUserQuestion 请求 */
+  onAskQuestion: (handler: (request: { taskId: string; toolUseId: string; questions: AskUserQuestionItem[] }) => void) => () => void
+  /** 回答 AskUserQuestion */
+  answerAskQuestion: (toolUseId: string, response: { answers: Record<string, string>; annotations?: Record<string, { notes?: string; preview?: string }> } | null) => Promise<void>
 }
 
 declare global {

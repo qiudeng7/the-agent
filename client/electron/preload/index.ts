@@ -8,6 +8,9 @@
  *                agentRun(options)       发起任务（不含 toolExecutor，主进程注入）
  *                agentAbort(taskId)      取消任务
  *                onAgentEvent(handler)   订阅流式事件，返回取消订阅函数
+ *                submitAskUserQuestionAnswer(payload)  提交 AskUserQuestion 答案
+ *                onAskQuestion(handler)  监听 AskUserQuestion 请求
+ *                answerAskQuestion(toolUseId, response)  回答 AskUserQuestion
  * @layer electron-preload
  */
 import { contextBridge, ipcRenderer } from 'electron'
@@ -35,4 +38,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('agent:event', listener)
     return () => ipcRenderer.removeListener('agent:event', listener)
   },
+
+  submitAskUserQuestionAnswer: (payload: Parameters<IElectronAPI['submitAskUserQuestionAnswer']>[0]) =>
+    ipcRenderer.invoke('agent:submit-answer', payload),
+
+  onAskQuestion: (handler: Parameters<IElectronAPI['onAskQuestion']>[0]) => {
+    const listener = (_: Electron.IpcRendererEvent, request: Parameters<typeof handler>[0]) =>
+      handler(request)
+    ipcRenderer.on('agent:ask-question', listener)
+    return () => ipcRenderer.removeListener('agent:ask-question', listener)
+  },
+
+  answerAskQuestion: (toolUseId: string, response: Parameters<IElectronAPI['answerAskQuestion']>[1]) =>
+    ipcRenderer.invoke('agent:answer-question', { toolUseId, response }),
 } as IElectronAPI)
