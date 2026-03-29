@@ -59,6 +59,7 @@ export default defineEventHandler(async (event) => {
       id: session.id,
       title: session.title,
       model: session.model,
+      taskId: session.taskId,
       createdAt: session.createdAt.getTime(),
       updatedAt: session.updatedAt.getTime(),
     },

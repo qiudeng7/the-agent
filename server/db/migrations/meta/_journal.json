@@ -8,6 +8,13 @@
       "when": 1774653315914,
       "tag": "0000_unusual_morgan_stark",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1774797109543,
+      "tag": "0001_long_red_ghost",
+      "breakpoints": true
     }
   ]
 }

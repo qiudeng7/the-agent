@@ -19,6 +19,7 @@ export interface SessionSummary {
   id: string
   title: string
   model: string
+  taskId?: number | null
   createdAt: number
   updatedAt: number
 }
@@ -74,6 +75,7 @@ export function createSessionListModule() {
         id: s.id,
         title: s.title,
         model: s.model,
+        taskId: s.taskId,
         createdAt: s.createdAt,
         updatedAt: s.updatedAt,
       }))
@@ -83,12 +85,13 @@ export function createSessionListModule() {
     }
   }
 
-  async function createSession(title?: string, model?: string): Promise<SessionSummary> {
-    const remote = await backend.createSession(title, model)
+  async function createSession(title?: string, model?: string, taskId?: number): Promise<SessionSummary> {
+    const remote = await backend.createSession(title, model, taskId)
     const session: SessionSummary = {
       id: remote.id,
       title: remote.title,
       model: remote.model,
+      taskId: remote.taskId,
       createdAt: remote.createdAt,
       updatedAt: remote.updatedAt,
     }

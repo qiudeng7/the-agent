@@ -12,6 +12,7 @@ import { requireAuth } from '~/utils/auth'
 interface CreateSessionBody {
   title?: string
   model?: string
+  taskId?: number
 }
 
 export default defineEventHandler(async (event) => {
@@ -28,6 +29,7 @@ export default defineEventHandler(async (event) => {
     userId: payload.userId,
     title: body.title || '新会话',
     model: body.model || 'default',
+    taskId: body.taskId ?? null,
     createdAt: now,
     updatedAt: now,
   })
@@ -37,6 +39,7 @@ export default defineEventHandler(async (event) => {
     id: sessionId,
     title: body.title || '新会话',
     model: body.model || 'default',
+    taskId: body.taskId ?? null,
     createdAt: now.getTime(),
     updatedAt: now.getTime(),
     messageCount: 0,

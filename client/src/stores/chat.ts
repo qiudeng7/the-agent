@@ -80,8 +80,8 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   /** 创建会话 */
-  async function createSession(title?: string, model?: string): Promise<ChatSession> {
-    const session = await sessionList.createSession(title, model)
+  async function createSession(title?: string, model?: string, taskId?: number): Promise<ChatSession> {
+    const session = await sessionList.createSession(title, model, taskId)
     currentSessionId.value = session.id
     // 新会话没有消息，标记为已加载
     messages.markSessionLoaded(session.id)

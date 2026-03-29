@@ -34,6 +34,9 @@ export const chatSessions = sqliteTable('chat_sessions', {
     .references(() => users.id, { onDelete: 'cascade' }),
   title: text('title').notNull(),
   model: text('model').notNull(),
+  /** 可选：绑定的任务 ID（员工端任务专属会话） */
+  taskId: integer('task_id')
+    .references(() => tasks.id, { onDelete: 'set null' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
 })

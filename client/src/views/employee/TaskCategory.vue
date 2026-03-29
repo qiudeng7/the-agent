@@ -502,10 +502,7 @@ watch(category, () => {
 
 .tabs-header {
   display: flex;
-  gap: 4px;
-  padding: 4px;
-  background: var(--color-muted)/30;
-  border-radius: var(--radius-lg);
+  gap: 8px;
   margin-bottom: 16px;
 }
 
@@ -513,11 +510,11 @@ watch(category, () => {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 16px;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 0.8rem;
+  padding: 10px 20px;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  font-size: 0.85rem;
   font-weight: 500;
   color: var(--color-muted-foreground);
   cursor: pointer;
@@ -526,11 +523,13 @@ watch(category, () => {
 
 .tab-btn:hover {
   color: var(--color-foreground);
+  border-color: var(--color-muted-foreground);
 }
 
 .tab-btn.active {
-  background: var(--color-background);
-  color: var(--color-foreground);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-primary-foreground);
   box-shadow: var(--shadow-sm);
 }
 

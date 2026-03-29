@@ -107,10 +107,11 @@ export async function fetchSessions(): Promise<Session[]> {
 export async function createSession(
   title?: string,
   model?: string,
+  taskId?: number,
 ): Promise<Session> {
   return request('/api/sessions', {
     method: 'POST',
-    body: JSON.stringify({ title, model }),
+    body: JSON.stringify({ title, model, taskId }),
   })
 }
 

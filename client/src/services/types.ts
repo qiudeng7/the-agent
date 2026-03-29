@@ -44,6 +44,7 @@ export interface Session {
   id: string
   title: string
   model: string
+  taskId?: number | null
   createdAt: number
   updatedAt: number
   messageCount: number
@@ -54,6 +55,7 @@ export interface SessionDetail {
     id: string
     title: string
     model: string
+    taskId?: number | null
     createdAt: number
     updatedAt: number
   }
