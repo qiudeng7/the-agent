@@ -1,10 +1,12 @@
 <!--
   @component AdminLayout
   @description 管理端布局，包含：
-    - 左侧固定导航栏
+    - 左侧可折叠导航栏
     - 右侧主内容区域
     - 顶部窗口拖动区域
+    - 顶部侧栏收起按钮
     - 底部用户区域（hover 展开菜单）
+  @state sidebarCollapsed - 侧边栏折叠状态
   @layer layout
 -->
 <template>
@@ -12,8 +14,11 @@
     <!-- 窗口拖动区域 -->
     <div class="window-drag-region"></div>
 
+    <!-- 侧栏收起按钮 -->
+    <SidebarToggle :collapsed="sidebarCollapsed" @toggle="sidebarCollapsed = !sidebarCollapsed" />
+
     <!-- 侧边栏 -->
-    <aside class="admin-sidebar">
+    <aside class="admin-sidebar" :class="{ collapsed: sidebarCollapsed }">
       <div class="sidebar-header">
         <div class="logo">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -150,12 +155,14 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore, type Port } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
+import SidebarToggle from './SidebarToggle.vue'
 
 const router = useRouter()
 const appStore = useAppStore()
 const authStore = useAuthStore()
 
 const showMenu = ref(false)
+const sidebarCollapsed = ref(false)
 
 // 用户信息
 const userName = computed(() => authStore.user?.nickname || authStore.user?.email?.split('@')[0] || '用户')
@@ -208,6 +215,13 @@ function switchToPort(port: Port) {
   flex-shrink: 0;
   z-index: 10;
   -webkit-app-region: no-drag;
+  transition: width 0.2s ease, opacity 0.2s ease;
+  overflow: hidden;
+}
+
+.admin-sidebar.collapsed {
+  width: 0;
+  opacity: 0;
 }
 
 .sidebar-header {
