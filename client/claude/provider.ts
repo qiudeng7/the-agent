@@ -1,43 +1,28 @@
 /**
  * @module claude/provider
- * @description ClaudeAgentProvider — 基于 @anthropic-ai/claude-agent-sdk 实现 IClaudeProvider。
+ * @description ClaudeAgentProvider — 基于 @anthropic-ai/claude-agent-sdk 实现。
  *
  *              核心职责：
  *              1. 配置 SDK 环境（API key、base URL、CLI path）
  *              2. 调用 SDK query() 函数
- *              3. 将 SDK message 转换为 ClaudeEvent
+ *              3. 将 SDK message 转换为 ClaudeEvent（IPC 类型）
  *              4. 管理 abort 状态
  */
 
 import path from 'path'
 import { query } from '@anthropic-ai/claude-agent-sdk'
+import type {
+  SDKMessage,
+  SDKAssistantMessage,
+  SDKResultSuccess,
+  SDKResultError,
+  SDKSystemMessage,
+  SDKUserMessage,
+  SDKToolUseSummaryMessage,
+} from '@anthropic-ai/claude-agent-sdk'
+import type { BetaRawMessageStreamEvent, BetaContentBlock, BetaTextBlock, BetaThinkingBlock, BetaToolUseBlock } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 import type { ClaudeRunOptions, ClaudeEvent, ContentBlock } from './types'
-import type { IClaudeProvider } from './interfaces/provider'
-import { mapSdkContentBlocks, type SdkContentBlock } from './utils/content-mapper'
 import { detectClaude } from '#claude-installer'
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SDK 类型（用于类型安全）
-// ─────────────────────────────────────────────────────────────────────────────
-
-interface SdkMessage {
-  type: string
-  subtype?: string
-  session_id?: string
-  content?: unknown[]
-  result?: string
-  cost_usd?: number
-  duration_ms?: number
-  duration_api_ms?: number
-  num_turns?: number
-  total_tokens?: number
-  error?: string
-  id?: string
-  name?: string
-  input?: Record<string, unknown>
-  tool_use_id?: string
-  is_error?: boolean
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CLI 路径解析
@@ -77,7 +62,7 @@ export interface ClaudeProviderOptions {
   onProgress?: (message: string) => void
 }
 
-export class ClaudeAgentProvider implements IClaudeProvider {
+export class ClaudeAgentProvider {
   readonly name = 'claude-agent-sdk'
 
   private sdkCliPath: string
@@ -161,7 +146,7 @@ export class ClaudeAgentProvider implements IClaudeProvider {
           return
         }
 
-        const event = this._convertMessage(message as SdkMessage, taskId)
+        const event = this._convertMessage(message, taskId)
         if (event) {
           yield event
         }
@@ -262,154 +247,282 @@ export class ClaudeAgentProvider implements IClaudeProvider {
   // 内部：转换 SDK message 为 ClaudeEvent
   // ─────────────────────────────────────────────────────────────────────────
 
-  private _convertMessage(message: SdkMessage, taskId: string): ClaudeEvent | null {
-    switch (message.type) {
-      case 'system':
-        if (message.subtype === 'init') {
+  private _convertMessage(msg: SDKMessage, taskId: string): ClaudeEvent | null {
+    switch (msg.type) {
+      case 'system': {
+        const sysMsg = msg as SDKSystemMessage
+        if (sysMsg.subtype === 'init') {
           return {
             type: 'system',
             subtype: 'init',
             taskId,
-            sessionId: message.session_id ?? '',
+            sessionId: sysMsg.session_id,
           }
         }
         return null
+      }
 
-      case 'assistant':
+      case 'assistant': {
+        const assistantMsg = msg as SDKAssistantMessage
         return {
           type: 'assistant',
           taskId,
-          content: mapSdkContentBlocks(message.content as SdkContentBlock[]),
+          content: this._mapContentBlocks(assistantMsg.message.content),
         }
+      }
 
-      case 'user':
+      case 'user': {
+        const userMsg = msg as SDKUserMessage
+        const content = userMsg.message.content
+        console.log('[ClaudeAgentProvider] User message:', { type: typeof content, content })
+        // SDKUserMessage.message.content 可以是 string 或 ContentBlockParam[]
+        if (typeof content === 'string') {
+          return {
+            type: 'user',
+            taskId,
+            content: [{ type: 'text', text: content }],
+          }
+        }
+        const mappedContent = this._mapContentParamArray(content as unknown[])
+        console.log('[ClaudeAgentProvider] Mapped user content:', mappedContent)
         return {
           type: 'user',
           taskId,
-          content: mapSdkContentBlocks(message.content as SdkContentBlock[]),
+          content: mappedContent,
         }
+      }
 
-      case 'result':
-        return {
-          type: 'result',
-          taskId,
-          result: typeof message.result === 'string' ? message.result : JSON.stringify(message.result),
-          costUsd: message.cost_usd,
-          durationMs: message.duration_ms,
-          durationApiMs: message.duration_api_ms,
-          numTurns: message.num_turns,
-          totalTokens: message.total_tokens,
+      case 'result': {
+        if (msg.subtype === 'success') {
+          const resultMsg = msg as SDKResultSuccess
+          return {
+            type: 'result',
+            taskId,
+            result: resultMsg.result,
+            costUsd: resultMsg.total_cost_usd,
+            durationMs: resultMsg.duration_ms,
+            durationApiMs: resultMsg.duration_api_ms,
+            numTurns: resultMsg.num_turns,
+            totalTokens: resultMsg.usage?.input_tokens + resultMsg.usage?.output_tokens,
+          }
+        } else {
+          const errorResult = msg as SDKResultError
+          return {
+            type: 'error',
+            taskId,
+            error: errorResult.errors?.join('\n') ?? 'Unknown error',
+          }
         }
+      }
 
-      case 'error':
-        return {
-          type: 'error',
-          taskId,
-          error: message.error ?? 'Unknown error',
-        }
+      case 'stream_event': {
+        // SDKPartialAssistantMessage 的 type 是 'stream_event'
+        return this._convertStreamEvent(msg as { type: 'stream_event'; event: BetaRawMessageStreamEvent }, taskId)
+      }
 
-      case 'tool_use':
+      case 'tool_use_summary': {
+        const toolMsg = msg as SDKToolUseSummaryMessage
+        // tool_use_summary 只有 summary，没有 tool_use_id
+        // 前端需要根据 preceding_tool_use_ids 来匹配
         return {
           type: 'tool_use',
           taskId,
-          toolUseId: message.id ?? '',
-          toolName: message.name ?? '',
-          input: message.input ?? {},
+          toolUseId: toolMsg.preceding_tool_use_ids?.[0] ?? '',
+          toolName: 'summary',
+          input: { summary: toolMsg.summary },
         }
-
-      case 'tool_result':
-        return {
-          type: 'tool_result',
-          taskId,
-          toolUseId: message.tool_use_id ?? '',
-          result: typeof message.content === 'string' ? message.content : JSON.stringify(message.content ?? ''),
-          isError: message.is_error ?? false,
-        }
-
-      case 'stream_event': {
-        // 处理流式增量事件
-        const streamEvent = message as unknown as { event: { type: string; index?: number; delta?: { type: string; text?: string; thinking?: string; partial_json?: string }; content_block?: { type: string; id?: string; name?: string } } }
-        const event = streamEvent.event
-
-        if (event.type === 'content_block_delta') {
-          const delta = event.delta
-          if (delta?.type === 'text_delta') {
-            return {
-              type: 'stream_event',
-              subtype: 'text_delta',
-              taskId,
-              text: delta.text ?? '',
-              index: event.index ?? 0,
-            }
-          }
-          if (delta?.type === 'thinking_delta') {
-            return {
-              type: 'stream_event',
-              subtype: 'thinking_delta',
-              taskId,
-              thinking: delta.thinking ?? '',
-              index: event.index ?? 0,
-            }
-          }
-          if (delta?.type === 'input_json_delta') {
-            return {
-              type: 'stream_event',
-              subtype: 'input_json_delta',
-              taskId,
-              toolUseId: event.content_block?.id ?? '',
-              partialJson: delta.partial_json ?? '',
-              index: event.index ?? 0,
-            }
-          }
-        }
-
-        if (event.type === 'content_block_start') {
-          const block = event.content_block
-          if (block) {
-            return {
-              type: 'stream_event',
-              subtype: 'content_block_start',
-              taskId,
-              index: event.index ?? 0,
-              blockType: block.type as 'text' | 'thinking' | 'tool_use',
-              toolName: block.name,
-              toolUseId: block.id,
-            }
-          }
-        }
-
-        if (event.type === 'content_block_stop') {
-          return {
-            type: 'stream_event',
-            subtype: 'content_block_stop',
-            taskId,
-            index: event.index ?? 0,
-          }
-        }
-
-        if (event.type === 'message_start') {
-          return {
-            type: 'stream_event',
-            subtype: 'message_start',
-            taskId,
-          }
-        }
-
-        if (event.type === 'message_stop') {
-          return {
-            type: 'stream_event',
-            subtype: 'message_stop',
-            taskId,
-          }
-        }
-
-        return null
       }
 
       default:
         // 未处理的消息类型，记录日志但不返回事件
-        console.log('[ClaudeAgentProvider] Unknown message type:', message.type)
+        console.log('[ClaudeAgentProvider] Unhandled message type:', msg.type)
         return null
     }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 内部：转换 stream_event 流式消息
+  // ─────────────────────────────────────────────────────────────────────────
+
+  private _convertStreamEvent(
+    msg: { type: 'stream_event'; event: BetaRawMessageStreamEvent },
+    taskId: string,
+  ): ClaudeEvent | null {
+    const event = msg.event
+
+    if (event.type === 'content_block_delta') {
+      const delta = event.delta
+      if (delta.type === 'text_delta') {
+        return {
+          type: 'stream_event',
+          subtype: 'text_delta',
+          taskId,
+          text: delta.text ?? '',
+          index: event.index ?? 0,
+        }
+      }
+      if (delta.type === 'thinking_delta') {
+        return {
+          type: 'stream_event',
+          subtype: 'thinking_delta',
+          taskId,
+          thinking: delta.thinking ?? '',
+          index: event.index ?? 0,
+        }
+      }
+      if (delta.type === 'input_json_delta') {
+        return {
+          type: 'stream_event',
+          subtype: 'input_json_delta',
+          taskId,
+          // input_json_delta 没有 toolUseId，前端需要根据 index 从 content_block_start 获取
+          toolUseId: '',
+          partialJson: delta.partial_json ?? '',
+          index: event.index ?? 0,
+        }
+      }
+      // 其他 delta 类型忽略
+      return null
+    }
+
+    if (event.type === 'content_block_start') {
+      const block = event.content_block
+      return {
+        type: 'stream_event',
+        subtype: 'content_block_start',
+        taskId,
+        index: event.index,
+        blockType: block.type as 'text' | 'thinking' | 'tool_use',
+        toolName: (block as BetaToolUseBlock).name,
+        toolUseId: (block as BetaToolUseBlock).id,
+      }
+    }
+
+    if (event.type === 'content_block_stop') {
+      return {
+        type: 'stream_event',
+        subtype: 'content_block_stop',
+        taskId,
+        index: event.index,
+      }
+    }
+
+    if (event.type === 'message_start') {
+      return {
+        type: 'stream_event',
+        subtype: 'message_start',
+        taskId,
+      }
+    }
+
+    if (event.type === 'message_stop') {
+      return {
+        type: 'stream_event',
+        subtype: 'message_stop',
+        taskId,
+      }
+    }
+
+    return null
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 内部：映射 BetaContentBlock → ContentBlock
+  // ─────────────────────────────────────────────────────────────────────────
+
+  private _mapContentBlocks(blocks: BetaContentBlock[]): ContentBlock[] {
+    return blocks.map((block) => {
+      switch (block.type) {
+        case 'text':
+          return {
+            type: 'text',
+            text: (block as BetaTextBlock).text,
+          }
+
+        case 'thinking':
+          return {
+            type: 'thinking',
+            thinking: (block as BetaThinkingBlock).thinking,
+            signature: (block as BetaThinkingBlock).signature,
+          }
+
+        case 'tool_use':
+          return {
+            type: 'tool_use',
+            id: (block as BetaToolUseBlock).id,
+            name: (block as BetaToolUseBlock).name,
+            input: (block as BetaToolUseBlock).input as Record<string, unknown>,
+          }
+
+        case 'mcp_tool_use':
+          return {
+            type: 'tool_use',
+            id: block.id,
+            name: block.name,
+            input: block.input as Record<string, unknown>,
+          }
+
+        case 'mcp_tool_result':
+          return {
+            type: 'tool_result',
+            toolUseId: block.tool_use_id,
+            content: typeof block.content === 'string' ? block.content : JSON.stringify(block.content),
+            isError: block.is_error ?? false,
+          }
+
+        default:
+          // 其他类型转为文本
+          return {
+            type: 'text',
+            text: JSON.stringify(block),
+          }
+      }
+    })
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 内部：映射 ContentBlockParam[] → ContentBlock[]
+  // ─────────────────────────────────────────────────────────────────────────
+
+  private _mapContentParamArray(blocks: unknown[]): ContentBlock[] {
+    return blocks.map((block) => {
+      const b = block as Record<string, unknown>
+      switch (b.type) {
+        case 'text':
+          return {
+            type: 'text',
+            text: b.text as string,
+          }
+
+        case 'thinking':
+          return {
+            type: 'thinking',
+            thinking: b.thinking as string,
+            signature: b.signature as string | undefined,
+          }
+
+        case 'tool_use':
+          return {
+            type: 'tool_use',
+            id: b.id as string,
+            name: b.name as string,
+            input: b.input as Record<string, unknown>,
+          }
+
+        case 'tool_result':
+          return {
+            type: 'tool_result',
+            toolUseId: b.tool_use_id as string,
+            content: typeof b.content === 'string' ? b.content : JSON.stringify(b.content),
+            isError: b.is_error as boolean | undefined ?? false,
+          }
+
+        default:
+          return {
+            type: 'text',
+            text: JSON.stringify(block),
+          }
+      }
+    })
   }
 }

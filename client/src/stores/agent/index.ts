@@ -220,6 +220,19 @@ export const useAgentStore = defineStore('agent', () => {
       case 'user':
         // SDK 回放用户消息，一般用于多轮对话
         console.log('[Claude] User message replay:', event.content)
+        // 检查是否包含 tool_result
+        for (const block of event.content) {
+          if (block.type === 'tool_result') {
+            console.log('[Claude] Found tool_result in user message:', block)
+            // 添加到 buffer
+            const exists = buffer.value.content.some(
+              b => b.type === 'tool_result' && b.toolUseId === block.toolUseId,
+            )
+            if (!exists) {
+              buffer.value.content.push(block)
+            }
+          }
+        }
         break
 
       case 'tool_use':
