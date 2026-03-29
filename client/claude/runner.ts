@@ -12,12 +12,12 @@
  */
 
 import type { IClaudeTransportServer } from './interfaces/transport'
-import type { IClaudeProvider } from './interfaces/provider'
+import { ClaudeAgentProvider } from './provider'
 import type { ClaudeRunOptions } from './types'
 
 export class ClaudeRunner {
   constructor(
-    private readonly provider: IClaudeProvider,
+    private readonly provider: ClaudeAgentProvider,
     private readonly transport: IClaudeTransportServer,
   ) {}
 
