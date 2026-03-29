@@ -23,6 +23,7 @@ import AdminTasks from '@/views/admin/Tasks.vue'
 import AdminApps from '@/views/admin/Apps.vue'
 // Employee views
 import EmployeeTasks from '@/views/employee/Tasks.vue'
+import EmployeeTaskCategory from '@/views/employee/TaskCategory.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore, type Port } from '@/stores/app'
 
@@ -109,6 +110,11 @@ const router = createRouter({
           path: 'tasks',
           name: 'employee-tasks',
           component: EmployeeTasks,
+        },
+        {
+          path: 'tasks/:category',
+          name: 'employee-task-category',
+          component: EmployeeTaskCategory,
         },
       ],
     },

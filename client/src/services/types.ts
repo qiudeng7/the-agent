@@ -135,3 +135,29 @@ export type TaskApiResponse = ApiResponse<{ task: Task }>
 
 /** 任务统计 API 响应 */
 export type TaskStatsApiResponse = ApiResponse<TaskStats>
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 员工端任务类型
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 表单字段配置 */
+export interface FormField {
+  name: string
+  label: string
+  type: 'text' | 'textarea' | 'number' | 'select' | 'boolean' | 'date'
+  required?: boolean
+  placeholder?: string
+  options?: string[]
+  defaultValue?: any
+}
+
+/** 员工端任务类型配置 */
+export interface EmployeeTaskType {
+  name: string
+  category: string
+  route: string
+  icon: string
+  requiresForm: boolean
+  formFields?: FormField[]
+  description?: string
+}

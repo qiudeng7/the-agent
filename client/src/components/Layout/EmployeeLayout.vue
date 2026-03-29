@@ -27,10 +27,27 @@
       <nav class="sidebar-nav">
         <router-link to="/employee/tasks" class="nav-item">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 11l3 3L22 4"/>
-            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            <line x1="8" y1="6" x2="21" y1="6"/>
+            <line x1="8" y1="12" x2="21" y1="12"/>
+            <line x1="8" y1="18" x2="21" y1="18"/>
+            <line x1="3" y1="6" x2="3.01" y1="6"/>
+            <line x1="3" y1="12" x2="3.01" y1="12"/>
+            <line x1="3" y1="18" x2="3.01" y1="18"/>
           </svg>
-          <span>我的任务</span>
+          <span>任务列表</span>
+        </router-link>
+
+        <!-- 动态任务类型入口 -->
+        <router-link
+          v-for="taskType in EMPLOYEE_TASK_TYPES"
+          :key="taskType.category"
+          :to="taskType.route"
+          class="nav-item"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path :d="taskType.icon"/>
+          </svg>
+          <span>{{ taskType.name }}</span>
         </router-link>
       </nav>
 
@@ -131,6 +148,7 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore, type Port } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
+import { EMPLOYEE_TASK_TYPES } from '@/config/employee-task-types'
 
 const router = useRouter()
 const appStore = useAppStore()
