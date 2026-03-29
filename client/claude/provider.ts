@@ -56,9 +56,9 @@ function getSdkCliPath(): string {
 export interface ClaudeProviderOptions {
   /** Claude Code 可执行文件路径（如果已安装） */
   claudePath?: string
-  /** 默认模型 */
+  /** 默认模型，默认值：'claude-opus-4-6' */
   defaultModel?: string
-  /** 进度回调 */
+  /** 进度回调，用于在初始化过程中向用户显示进度信息 */
   onProgress?: (message: string) => void
 }
 
@@ -109,11 +109,6 @@ export class ClaudeAgentProvider {
     }
 
     this.initialized = true
-  }
-
-  getVersion(): string {
-    // SDK 版本信息（可以从 package.json 读取）
-    return '1.0.0'
   }
 
   abort(taskId: string): void {
@@ -334,8 +329,8 @@ export class ClaudeAgentProvider {
       }
 
       default:
-        // 未处理的消息类型，记录日志但不返回事件
-        console.log('[ClaudeAgentProvider] Unhandled message type:', msg.type)
+        // 未处理的消息类型，记录详细信息便于调试
+        console.log('[ClaudeAgentProvider] Unhandled message type:', msg.type, JSON.stringify(msg).slice(0, 200))
         return null
     }
   }

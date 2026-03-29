@@ -65,7 +65,7 @@ export function createUISettingsModule() {
 
   function setCollapseThinking(value: boolean) {
     collapseThinking.value = value
-    storage.setItem('collapseThinking', String(value))
+    // 持久化由 settings.ts 聚合层统一处理
   }
 
   function clear() {

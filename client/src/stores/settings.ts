@@ -11,18 +11,24 @@
  * @layer state
  */
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
+import { ref, watch, inject } from 'vue'
 import { emitter } from '@/events'
 import * as backend from '@/services/backend'
+import { STORAGE_KEY, type IStorage } from '@/di/interfaces'
 import { createUISettingsModule, type Language, type Theme } from './ui-settings'
 import { createModelSettingsModule, type BundleModel, type CustomModelConfig, type AvailableModel, BUNDLE_MODELS } from './model-settings'
 
 // 重导出类型
 export type { Language, Theme }
-export type { BundleModel, CustomModelConfig, AvailableModel, PermissionMode }
+export type { BundleModel, CustomModelConfig, AvailableModel }
 export { BUNDLE_MODELS }
+// PermissionMode 直接从 claude/types 重导出
+export type { PermissionMode } from '#claude/types'
 
 export const useSettingsStore = defineStore('settings', () => {
+  // ── 依赖注入 ────────────────────────────────────────────────────────────────
+  const storage = inject<IStorage>(STORAGE_KEY)!
+
   // ── 模块实例 ──────────────────────────────────────────────────────────────
   const ui = createUISettingsModule()
   const model = createModelSettingsModule()
@@ -139,6 +145,14 @@ export const useSettingsStore = defineStore('settings', () => {
       [language, theme, customModelConfigs, enabledModels, defaultModel, permissionMode],
       () => debouncedSave(),
       { deep: true },
+    )
+
+    // 监听 collapseThinking 变化，保存到本地 storage（本地偏好，不同步云端）
+    watch(
+      collapseThinking,
+      (value) => {
+        storage.setItem('collapseThinking', String(value))
+      },
     )
   }
 

@@ -4,7 +4,7 @@
  *              与后端数据库 schema 对应的数据结构。
  * @layer types
  */
-import type { ContentBlock } from '#claude/types'
+import type { ContentBlock, PermissionMode } from '#claude/types'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 用户类型
@@ -68,5 +68,6 @@ export interface Settings {
   customModelConfigs: unknown[]
   enabledModels: string[]
   defaultModel: string
+  permissionMode?: PermissionMode
   updatedAt?: number
 }

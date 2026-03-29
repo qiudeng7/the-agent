@@ -43,6 +43,13 @@ settingsStore.setupEventListeners()
 chatStore.setupEventListeners()
 agentStore.setupEventListeners()
 
+// Electron 窗口关闭时清理事件监听器
+window.addEventListener('beforeunload', () => {
+  settingsStore.teardownEventListeners()
+  chatStore.teardownEventListeners()
+  agentStore.teardownEventListeners()
+})
+
 // Vue 挂载完成后移除 loading
 nextTick(() => {
   const loading = document.getElementById('app-loading')

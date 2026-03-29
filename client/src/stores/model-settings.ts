@@ -8,6 +8,9 @@
 import { ref, computed } from 'vue'
 import type { PermissionMode } from '#claude/types'
 
+// 重导出类型
+export type { PermissionMode }
+
 /** 内置模型定义 */
 export interface BundleModel {
   id: string
