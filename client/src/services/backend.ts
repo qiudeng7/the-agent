@@ -5,13 +5,13 @@
  * @layer service
  */
 import type { ContentBlock } from '#claude/types'
-import type { User, AuthResponse, Session, SessionDetail, Message, Settings } from './types'
+import type { User, AuthResponse, MeResponse, Session, SessionDetail, Message, Settings } from './types'
 
 // API 基础地址（开发环境使用本地服务器，生产环境使用配置的地址）
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000'
 
 // 重导出类型（保持兼容性）
-export type { User, AuthResponse, Session, SessionDetail, Message, Settings } from './types'
+export type { User, AuthResponse, MeResponse, Session, SessionDetail, Message, Settings } from './types'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // API 错误
@@ -86,7 +86,7 @@ export async function login(
   })
 }
 
-export async function getCurrentUser(): Promise<User> {
+export async function getCurrentUser(): Promise<MeResponse> {
   return request('/api/auth/me')
 }
 

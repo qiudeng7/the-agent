@@ -9,6 +9,9 @@
 -->
 <template>
   <div class="login-page">
+    <!-- Electron 窗口拖动区域 -->
+    <div class="window-drag-region"></div>
+
     <!-- Decorative blobs -->
     <div class="blob blob-1"></div>
     <div class="blob blob-2"></div>
@@ -108,6 +111,17 @@ async function handleSubmit() {
   position: relative;
   overflow: hidden;
   background: var(--color-background);
+}
+
+/* Electron 窗口拖动区域 */
+.window-drag-region {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 32px;
+  -webkit-app-region: drag;
+  z-index: 100;
 }
 
 /* Decorative blobs */

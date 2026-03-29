@@ -25,11 +25,16 @@ const JWT_EXPIRES_IN = '7d'
 export interface JwtPayload {
   userId: string
   email: string
+  role: string
 }
 
-export async function generateToken(payload: JwtPayload): Promise<string> {
+export async function generateToken(user: { id: string; email: string; role: string }): Promise<string> {
   const secret = getJwtSecret()
-  return new jose.SignJWT(payload)
+  return new jose.SignJWT({
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+  })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(JWT_EXPIRES_IN)
@@ -43,7 +48,11 @@ export async function generateToken(payload: JwtPayload): Promise<string> {
 export async function verifyToken(token: string): Promise<JwtPayload> {
   const secret = getJwtSecret()
   const { payload } = await jose.jwtVerify(token, secret)
-  return payload as JwtPayload
+  return {
+    userId: payload.userId as string,
+    email: payload.email as string,
+    role: payload.role as string,
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -95,4 +104,21 @@ export async function optionalAuth(
   } catch {
     return null
   }
+}
+
+/**
+ * 验证管理员权限
+ * 无权限时抛出 403 错误
+ */
+export async function requireAdmin(event: H3Event): Promise<JwtPayload> {
+  const payload = await requireAuth(event)
+
+  if (payload.role !== 'admin') {
+    throw createError({
+      statusCode: 403,
+      message: 'Admin access required',
+    })
+  }
+
+  return payload
 }

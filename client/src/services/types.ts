@@ -14,13 +14,27 @@ export interface User {
   id: string
   email: string
   nickname: string | null
+  role: 'admin' | 'employee'
   createdAt: number
 }
 
-export interface AuthResponse {
+/** 登录/注册响应数据 */
+export interface AuthData {
   token: string
   user: User
 }
+
+/** API 包装响应 */
+export interface ApiResponse<T> {
+  success: boolean
+  data: T
+}
+
+/** 登录/注册 API 响应 */
+export type AuthResponse = ApiResponse<AuthData>
+
+/** 获取当前用户 API 响应 */
+export type MeResponse = ApiResponse<{ user: User }>
 
 // ─────────────────────────────────────────────────────────────────────────────────────
 // 会话类型

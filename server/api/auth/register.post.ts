@@ -53,6 +53,11 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // 检查是否是第一个用户（自动成为 admin）
+  const userCount = await db.select({ id: users.id }).from(users)
+  const isFirstUser = userCount.length === 0
+  const role = isFirstUser ? 'admin' : 'employee'
+
   // 创建用户
   const now = new Date()
   const userId = nanoid()
@@ -63,24 +68,30 @@ export default defineEventHandler(async (event) => {
     email: body.email,
     passwordHash,
     nickname: body.nickname || null,
+    role,
     createdAt: now,
     updatedAt: now,
   })
 
   // 生成 JWT
   const token = await generateToken({
-    userId,
+    id: userId,
     email: body.email,
+    role,
   })
 
   // 返回结果
   return {
-    token,
-    user: {
-      id: userId,
-      email: body.email,
-      nickname: body.nickname || null,
-      createdAt: now.getTime(),
+    success: true,
+    data: {
+      token,
+      user: {
+        id: userId,
+        email: body.email,
+        nickname: body.nickname || null,
+        role,
+        createdAt: now.getTime(),
+      },
     },
   }
 })

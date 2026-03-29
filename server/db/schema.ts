@@ -14,8 +14,10 @@ export const users = sqliteTable('users', {
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
   nickname: text('nickname'),
+  role: text('role', { enum: ['admin', 'employee'] }).notNull().default('employee'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
 })
 
 export type User = typeof users.$inferSelect
@@ -85,6 +87,32 @@ export type UserSettings = typeof userSettings.$inferSelect
 export type NewUserSettings = typeof userSettings.$inferInsert
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 任务表
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const tasks = sqliteTable('tasks', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  title: text('title').notNull(),
+  category: text('category'),
+  tag: text('tag'),
+  description: text('description'),
+  status: text('status', { enum: ['todo', 'in_progress', 'in_review', 'done', 'cancelled'] })
+    .notNull()
+    .default('todo'),
+  createdByUserId: text('created_by_user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  assignedToUserId: text('assigned_to_user_id')
+    .references(() => users.id, { onDelete: 'set null' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
+})
+
+export type Task = typeof tasks.$inferSelect
+export type NewTask = typeof tasks.$inferInsert
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Schema 导出
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -93,4 +121,5 @@ export const schema = {
   chatSessions,
   messages,
   userSettings,
+  tasks,
 }

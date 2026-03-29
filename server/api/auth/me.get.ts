@@ -24,12 +24,26 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // 检查用户是否被禁用
+  if (user.deletedAt) {
+    throw createError({
+      statusCode: 403,
+      message: 'User account has been disabled',
+    })
+  }
+
   // 返回用户信息（不含密码）
   return {
-    id: user.id,
-    email: user.email,
-    nickname: user.nickname,
-    createdAt: user.createdAt.getTime(),
-    updatedAt: user.updatedAt.getTime(),
+    success: true,
+    data: {
+      user: {
+        id: user.id,
+        email: user.email,
+        nickname: user.nickname,
+        role: user.role,
+        createdAt: user.createdAt.getTime(),
+        updatedAt: user.updatedAt.getTime(),
+      },
+    },
   }
 })

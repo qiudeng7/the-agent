@@ -20,6 +20,8 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250321.0",
     "@rollup/plugin-terser": "^1.0.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^25.5.0",
     "better-sqlite3": "^11.9.1",
     "drizzle-kit": "^0.30.0",
     "nitro": "^3.0.0",

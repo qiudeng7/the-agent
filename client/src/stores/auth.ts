@@ -35,7 +35,9 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       isLoading.value = true
-      user.value = await backend.getCurrentUser()
+      const response = await backend.getCurrentUser()
+      // API 返回 { success: true, data: { user } }
+      user.value = response.data.user
 
       // 触发事件，让其他 store 自行响应
       emitter.emit('auth:login-success')
@@ -60,9 +62,11 @@ export const useAuthStore = defineStore('auth', () => {
       error.value = null
 
       const response = await backend.login(email, password)
-      token.value = response.token
-      user.value = response.user
-      storage.setItem('token', response.token)
+      // API 返回 { success: true, data: { token, user } }
+      const data = response.data
+      token.value = data.token
+      user.value = data.user
+      storage.setItem('token', data.token)
 
       // 触发事件，让其他 store 自行响应
       emitter.emit('auth:login-success')
@@ -87,9 +91,11 @@ export const useAuthStore = defineStore('auth', () => {
       error.value = null
 
       const response = await backend.register(email, password, nickname)
-      token.value = response.token
-      user.value = response.user
-      storage.setItem('token', response.token)
+      // API 返回 { success: true, data: { token, user } }
+      const data = response.data
+      token.value = data.token
+      user.value = data.user
+      storage.setItem('token', data.token)
 
       // 新用户没有数据，触发事件即可
       emitter.emit('auth:login-success')
