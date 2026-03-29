@@ -164,3 +164,15 @@ export const emitter = mitt<AppEvents>()
 - Store 只管理状态，不处理 IPC 细节
 - 组件只负责 UI 渲染，业务逻辑放 store 或 service
 - 事件总线用于跨模块通信，避免 store 间直接依赖
+
+**模块历史与注释**：
+- 结合 Changelog 和 git log 理解模块发展历史：
+  ```bash
+  # 1. 从 Changelog 定位版本
+  # 2. 查看该版本范围的提交
+  git log --oneline v0.8.0..v0.9.0 -- client/claude/
+  # 3. 查看关键提交详情
+  git show <commit-hash> --stat
+  ```
+- 检查注释是否齐全，与实际功能是否对应
+- 非一级业务模块需在文件头部解释其作用
