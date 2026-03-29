@@ -5,8 +5,6 @@
 -->
 <template>
   <div class="task-form">
-    <h3 class="form-title">完成任务</h3>
-
     <form @submit.prevent="emit('submit')">
       <div class="form-fields">
         <div v-for="field in fields" :key="field.name" class="form-field">
@@ -24,6 +22,7 @@
             :required="field.required"
             :disabled="disabled || loading"
             class="input"
+            @input="handleChange(field)"
           />
 
           <!-- Number input -->
@@ -35,6 +34,7 @@
             :required="field.required"
             :disabled="disabled || loading"
             class="input"
+            @input="handleChange(field)"
           />
 
           <!-- Textarea -->
@@ -46,6 +46,7 @@
             :disabled="disabled || loading"
             rows="4"
             class="textarea"
+            @input="handleChange(field)"
           />
 
           <!-- Select -->
@@ -55,6 +56,7 @@
             :required="field.required"
             :disabled="disabled || loading"
             class="select"
+            @change="handleChange(field)"
           >
             <option value="" disabled>{{ field.placeholder || '请选择...' }}</option>
             <option v-for="option in field.options" :key="option" :value="option">
@@ -69,6 +71,7 @@
               type="checkbox"
               :disabled="disabled || loading"
               class="checkbox"
+              @change="handleChange(field)"
             />
             <span class="checkbox-label">{{ field.label }}</span>
           </div>
@@ -81,6 +84,7 @@
             :required="field.required"
             :disabled="disabled || loading"
             class="input"
+            @input="handleChange(field)"
           />
         </div>
       </div>
@@ -121,29 +125,22 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   (e: 'update:modelValue', value: Record<string, any>): void
   (e: 'submit'): void
+  (e: 'fieldChange', field: FormField, value: any): void
 }>()
 
 const localData = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value)
 })
+
+function handleChange(field: FormField) {
+  emit('fieldChange', field, localData.value[field.name])
+}
 </script>
 
 <style scoped>
 .task-form {
   padding: 20px;
-  background: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
-}
-
-.form-title {
-  font-family: var(--font-heading);
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: var(--color-foreground);
-  margin-bottom: 16px;
 }
 
 .form-fields {

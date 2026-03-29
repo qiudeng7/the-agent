@@ -149,7 +149,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, provide } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore, type Port } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
@@ -162,6 +162,9 @@ const authStore = useAuthStore()
 
 const showMenu = ref(false)
 const sidebarCollapsed = ref(false)
+
+// 提供侧栏状态给子组件
+provide('employeeSidebarCollapsed', computed(() => sidebarCollapsed.value))
 
 // 用户信息
 const userName = computed(() => authStore.user?.nickname || authStore.user?.email?.split('@')[0] || '用户')
