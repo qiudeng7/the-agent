@@ -24,7 +24,7 @@
       </div>
 
       <nav class="sidebar-nav">
-        <button class="nav-item disabled" disabled title="功能开发中">
+        <router-link to="/admin/dashboard" class="nav-item">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="3" width="7" height="7"/>
             <rect x="14" y="3" width="7" height="7"/>
@@ -32,7 +32,7 @@
             <rect x="3" y="14" width="7" height="7"/>
           </svg>
           <span>仪表盘</span>
-        </button>
+        </router-link>
 
         <router-link to="/admin/tasks" class="nav-item">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

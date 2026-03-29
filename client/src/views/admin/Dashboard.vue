@@ -119,7 +119,7 @@
           </div>
         </router-link>
 
-        <router-link to="/admin/apps" class="action-card">
+        <div class="action-card disabled" title="功能开发中">
           <div class="action-inner">
             <div class="action-content">
               <div class="action-icon secondary">
@@ -142,7 +142,7 @@
               </svg>
             </div>
           </div>
-        </router-link>
+        </div>
       </div>
     </div>
   </div>
@@ -354,6 +354,19 @@ onMounted(async () => {
 
 .action-card:hover {
   box-shadow: var(--shadow-lift);
+}
+
+.action-card.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.action-card.disabled:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.action-card.disabled .action-arrow {
+  display: none;
 }
 
 .action-inner {
