@@ -231,6 +231,12 @@ function switchToPort(port: Port) {
   background: var(--color-muted);
 }
 
+.nav-item.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  color: var(--color-muted-foreground);
+}
+
 .nav-item.router-link-active {
   background: var(--color-secondary)/10;
   color: var(--color-secondary);

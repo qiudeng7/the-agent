@@ -24,7 +24,7 @@
       </div>
 
       <nav class="sidebar-nav">
-        <router-link to="/admin/dashboard" class="nav-item">
+        <button class="nav-item disabled" disabled title="功能开发中">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="3" width="7" height="7"/>
             <rect x="14" y="3" width="7" height="7"/>
@@ -32,7 +32,7 @@
             <rect x="3" y="14" width="7" height="7"/>
           </svg>
           <span>仪表盘</span>
-        </router-link>
+        </button>
 
         <router-link to="/admin/tasks" class="nav-item">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -42,7 +42,7 @@
           <span>任务管理</span>
         </router-link>
 
-        <router-link to="/admin/apps" class="nav-item">
+        <button class="nav-item disabled" disabled title="功能开发中">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="3" width="7" height="7" rx="1"/>
             <rect x="14" y="3" width="7" height="7" rx="1"/>
@@ -50,7 +50,7 @@
             <rect x="14" y="14" width="7" height="7" rx="1"/>
           </svg>
           <span>应用管理</span>
-        </router-link>
+        </button>
       </nav>
 
       <!-- 用户区域（hover 展开菜单） -->
@@ -248,6 +248,12 @@ function switchToPort(port: Port) {
 
 .nav-item:hover {
   background: var(--color-muted);
+}
+
+.nav-item.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  color: var(--color-muted-foreground);
 }
 
 .nav-item.router-link-active {
