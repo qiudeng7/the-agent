@@ -33,6 +33,14 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody<AddMessageBody>(event)
 
+  // 验证 body 存在
+  if (!body) {
+    throw createError({
+      statusCode: 400,
+      message: 'Request body is required',
+    })
+  }
+
   // 验证必填字段
   if (!body.role || !body.content) {
     throw createError({

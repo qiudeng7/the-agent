@@ -6,7 +6,7 @@
  *              - employee: 查看分配给自己的任务
  */
 import { defineEventHandler, getQuery } from 'h3'
-import { getDb, tasks } from '~/db'
+import { getDb, tasks, type Task } from '~/db'
 import { requireAuth } from '~/utils/auth'
 import { eq, and, like, or, isNull, sql } from 'drizzle-orm'
 
@@ -71,7 +71,7 @@ export default defineEventHandler(async (event) => {
   return {
     success: true,
     data: {
-      tasks: taskList.map((task) => ({
+      tasks: taskList.map((task: Task) => ({
         ...task,
         createdAt: task.createdAt.getTime(),
         updatedAt: task.updatedAt.getTime(),

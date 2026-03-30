@@ -5,7 +5,7 @@
  *              需要 Authorization: Bearer <token>
  */
 import { defineEventHandler, createError, getRouterParam } from 'h3'
-import { db, chatSessions, messages } from '~/db'
+import { db, chatSessions, messages, type Message, type ChatSession } from '~/db'
 import { requireAuth } from '~/utils/auth'
 import { eq, asc } from 'drizzle-orm'
 
@@ -63,7 +63,7 @@ export default defineEventHandler(async (event) => {
       createdAt: session.createdAt.getTime(),
       updatedAt: session.updatedAt.getTime(),
     },
-    messages: msgs.map((m) => ({
+    messages: msgs.map((m: Message) => ({
       id: m.id,
       role: m.role,
       content: JSON.parse(m.content),

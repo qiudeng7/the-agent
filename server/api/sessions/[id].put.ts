@@ -27,6 +27,12 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody<UpdateSessionBody>(event)
+  if (!body) {
+    throw createError({
+      statusCode: 400,
+      message: 'Request body is required',
+    })
+  }
   if (!body.title) {
     throw createError({
       statusCode: 400,

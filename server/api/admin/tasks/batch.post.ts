@@ -5,7 +5,7 @@
  *              需要 admin 权限
  */
 import { defineEventHandler, readBody, createError } from 'h3'
-import { db, tasks } from '~/db'
+import { db, tasks, type Task } from '~/db'
 import { requireAdmin } from '~/utils/auth'
 
 interface BatchTaskItem {
@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
     success: true,
     data: {
       created: result.length,
-      tasks: result.map((t) => ({
+      tasks: result.map((t: Task) => ({
         ...t,
         createdAt: t.createdAt.getTime(),
         updatedAt: t.updatedAt.getTime(),

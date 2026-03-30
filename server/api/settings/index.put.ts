@@ -23,6 +23,13 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody<UpdateSettingsBody>(event)
 
+  // body 可以为空，使用默认值
+  const language = body?.language || 'system'
+  const theme = body?.theme || 'system'
+  const customModelConfigs = body?.customModelConfigs
+  const enabledModels = body?.enabledModels
+  const defaultModel = body?.defaultModel
+
   // 查找现有设置
   const result = await db
     .select()
@@ -38,15 +45,15 @@ export default defineEventHandler(async (event) => {
     await db
       .update(userSettings)
       .set({
-        language: body.language || existing.language,
-        theme: body.theme || existing.theme,
-        customModelConfigs: body.customModelConfigs
-          ? JSON.stringify(body.customModelConfigs)
+        language: language || existing.language,
+        theme: theme || existing.theme,
+        customModelConfigs: customModelConfigs
+          ? JSON.stringify(customModelConfigs)
           : existing.customModelConfigs,
-        enabledModels: body.enabledModels
-          ? JSON.stringify(body.enabledModels)
+        enabledModels: enabledModels
+          ? JSON.stringify(enabledModels)
           : existing.enabledModels,
-        defaultModel: body.defaultModel || existing.defaultModel,
+        defaultModel: defaultModel || existing.defaultModel,
         updatedAt: now,
       })
       .where(eq(userSettings.userId, payload.userId))
@@ -54,26 +61,26 @@ export default defineEventHandler(async (event) => {
     // 创建新设置
     await db.insert(userSettings).values({
       userId: payload.userId,
-      language: body.language || 'system',
-      theme: body.theme || 'system',
-      customModelConfigs: body.customModelConfigs
-        ? JSON.stringify(body.customModelConfigs)
+      language: language,
+      theme: theme,
+      customModelConfigs: customModelConfigs
+        ? JSON.stringify(customModelConfigs)
         : null,
-      enabledModels: body.enabledModels
-        ? JSON.stringify(body.enabledModels)
+      enabledModels: enabledModels
+        ? JSON.stringify(enabledModels)
         : null,
-      defaultModel: body.defaultModel || null,
+      defaultModel: defaultModel || null,
       updatedAt: now,
     })
   }
 
   // 返回更新后的设置
   return {
-    language: body.language || existing?.language || 'system',
-    theme: body.theme || existing?.theme || 'system',
-    customModelConfigs: body.customModelConfigs || [],
-    enabledModels: body.enabledModels || [],
-    defaultModel: body.defaultModel || '',
+    language: language || existing?.language || 'system',
+    theme: theme || existing?.theme || 'system',
+    customModelConfigs: customModelConfigs || [],
+    enabledModels: enabledModels || [],
+    defaultModel: defaultModel || '',
     updatedAt: now.getTime(),
   }
 })

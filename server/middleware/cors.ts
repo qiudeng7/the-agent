@@ -2,10 +2,10 @@
  * @module server/middleware/cors
  * @description CORS 中间件
  */
-import { defineEventHandler, setResponseHeaders, sendNoContent } from 'h3'
+import { defineEventHandler, setResponseHeaders, sendNoContent, getHeader, getMethod } from 'h3'
 
 export default defineEventHandler((event) => {
-  const origin = event.node.req.headers.origin || '*'
+  const origin = getHeader(event, 'origin') || '*'
 
   // 设置 CORS 头
   setResponseHeaders(event, {
@@ -16,7 +16,7 @@ export default defineEventHandler((event) => {
   })
 
   // 处理 preflight 请求
-  if (event.node.req.method === 'OPTIONS') {
+  if (getMethod(event) === 'OPTIONS') {
     return sendNoContent(event, 204)
   }
 })

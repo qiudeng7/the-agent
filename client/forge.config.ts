@@ -7,14 +7,12 @@ const config: ForgeConfig = {
     appBundleId: 'com.example.the-agent',
     appCategoryType: 'public.app-category.productivity',
     darwinDarkModeSupport: true,
-    // 跨平台打包配置
-    platform: process.env.FORGE_PLATFORM || undefined,
-    arch: process.env.FORGE_ARCH || undefined,
   },
   rebuildConfig: {},
   makers: [
     {
       name: '@electron-forge/maker-zip',
+      config: {},
       platforms: ['darwin', 'win32', 'linux'],
     },
     {
@@ -43,7 +41,6 @@ const config: ForgeConfig = {
     },
   ],
   plugins: [],
-  files: ['dist', 'dist-electron', 'node_modules', 'package.json'],
 }
 
 export default config

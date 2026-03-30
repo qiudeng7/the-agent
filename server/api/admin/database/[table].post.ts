@@ -42,7 +42,8 @@ interface CreateTaskResult {
   createdAt: Date
 }
 
-type CreateResult = CreateUserResult | CreateTaskResult
+type CreateResultItem = CreateUserResult | CreateTaskResult
+type CreateResult = CreateResultItem[]
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)

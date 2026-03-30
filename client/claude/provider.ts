@@ -22,7 +22,7 @@ import type {
 } from '@anthropic-ai/claude-agent-sdk'
 import type { BetaRawMessageStreamEvent, BetaContentBlock, BetaTextBlock, BetaThinkingBlock, BetaToolUseBlock } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 import type { ClaudeRunOptions, ClaudeEvent, ContentBlock, AskUserQuestionAnswerPayload, AskUserQuestionItem } from './types'
-import type { AskUserQuestionRequest, AskUserQuestionResponse, IClaudeTransportServer } from './interfaces/transport'
+import type { IClaudeTransportServer } from './interfaces/transport'
 import { detectClaude } from '#claude-installer'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -385,7 +385,7 @@ export class ClaudeAgentProvider {
       pathToClaudeCodeExecutable,
       includePartialMessages: true,
       // 添加 canUseTool 回调来拦截 AskUserQuestion
-      canUseTool: async (toolName, input, canUseToolOptions) => {
+      canUseTool: async (toolName: string, input: Record<string, unknown>, canUseToolOptions: { toolUseID: string }) => {
         if (toolName === 'AskUserQuestion') {
           console.log('[ClaudeAgentProvider] Intercepting AskUserQuestion tool')
           const toolUseId = canUseToolOptions.toolUseID

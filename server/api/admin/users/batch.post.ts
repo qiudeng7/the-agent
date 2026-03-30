@@ -5,7 +5,7 @@
  *              需要 admin 权限
  */
 import { defineEventHandler, readBody, createError } from 'h3'
-import { db, users } from '~/db'
+import { db, users, type User } from '~/db'
 import { requireAdmin } from '~/utils/auth'
 import { hashPassword } from '~/utils/crypto'
 import { nanoid } from 'nanoid'
@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
     success: true,
     data: {
       created: result.length,
-      users: result.map((u) => ({
+      users: result.map((u: User) => ({
         id: u.id,
         email: u.email,
         nickname: u.nickname,

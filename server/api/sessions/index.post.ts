@@ -20,6 +20,7 @@ export default defineEventHandler(async (event) => {
   const payload = await requireAuth(event)
   const body = await readBody<CreateSessionBody>(event)
 
+  // body 可以为空，创建默认会话
   const now = new Date()
   const sessionId = nanoid()
 
@@ -27,9 +28,9 @@ export default defineEventHandler(async (event) => {
   await db.insert(chatSessions).values({
     id: sessionId,
     userId: payload.userId,
-    title: body.title || '新会话',
-    model: body.model || 'default',
-    taskId: body.taskId ?? null,
+    title: body?.title || '新会话',
+    model: body?.model || 'default',
+    taskId: body?.taskId ?? null,
     createdAt: now,
     updatedAt: now,
   })
@@ -37,9 +38,9 @@ export default defineEventHandler(async (event) => {
   // 返回创建的会话
   return {
     id: sessionId,
-    title: body.title || '新会话',
-    model: body.model || 'default',
-    taskId: body.taskId ?? null,
+    title: body?.title || '新会话',
+    model: body?.model || 'default',
+    taskId: body?.taskId ?? null,
     createdAt: now.getTime(),
     updatedAt: now.getTime(),
     messageCount: 0,

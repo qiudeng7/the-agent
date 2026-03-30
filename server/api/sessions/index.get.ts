@@ -5,7 +5,7 @@
  *              需要 Authorization: Bearer <token>
  */
 import { defineEventHandler } from 'h3'
-import { db, chatSessions, messages } from '~/db'
+import { db, chatSessions, messages, type ChatSession } from '~/db'
 import { requireAuth } from '~/utils/auth'
 import { eq, desc } from 'drizzle-orm'
 
@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
 
   // 获取每个会话的消息数量（不加载消息内容，减少传输）
   const sessionsWithCounts = await Promise.all(
-    sessions.map(async (session) => {
+    sessions.map(async (session: ChatSession) => {
       const msgs = await db
         .select({ id: messages.id })
         .from(messages)
