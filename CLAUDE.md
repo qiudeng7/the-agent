@@ -62,6 +62,19 @@ pnpm run dev
 - `client/dist-electron/` - 编译后的主进程和预加载脚本
 - `client/out/` - Electron Forge 打包的最终产品
 
+### Claude Code 二进制预置
+
+构建时（`pnpm run make` / `pnpm run make:win`）会自动执行以下流程：
+
+1. Forge 的 `generateAssets` hook 根据目标平台调用 `client/claude/downloader.ts`
+2. 从 Anthropic GCS 下载对应平台的 Claude Code 最新版二进制到 `client/claude-code-installation-assets/{platform}/`
+3. 若文件已存在且 SHA256 与 manifest 一致，跳过下载
+4. 将该目录作为 `extraResource` 打包进 app，最终位于 `Resources/{platform}/claude[.exe]`
+
+运行时，`electron/main/index.ts` 的 `resolveBundledClaudePath()` 检测 `process.resourcesPath` 下的二进制，找到则注入给 `ClaudeAgentProvider`（`pathToClaudeCodeExecutable`）。
+
+`claude-code-installation-assets/` 已加入 `.gitignore`，不提交到仓库。
+
 ## 版本发布
 
 发布新版本时需要：
