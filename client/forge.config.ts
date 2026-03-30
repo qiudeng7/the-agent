@@ -13,34 +13,11 @@ const config: ForgeConfig = {
   },
   rebuildConfig: {},
   makers: [
+    // 构建为压缩包
     {
       name: '@electron-forge/maker-zip',
       config: {},
-      platforms: ['darwin', 'win32', 'linux'],
-    },
-    {
-      name: '@electron-forge/maker-rpm',
-      platforms: ['linux'],
-      config: {
-        options: {
-          name: 'the-agent',
-          productName: 'The Agent',
-          homepage: 'https://github.com/your-org/the-agent',
-          icon: './public/icon.png',
-        },
-      },
-    },
-    {
-      name: '@electron-forge/maker-deb',
-      platforms: ['linux'],
-      config: {
-        options: {
-          name: 'the-agent',
-          productName: 'The Agent',
-          homepage: 'https://github.com/your-org/the-agent',
-          icon: './public/icon.png',
-        },
-      },
+      platforms: ['darwin','win32', 'linux'],
     },
   ],
   plugins: [],
