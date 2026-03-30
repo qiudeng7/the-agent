@@ -12,6 +12,8 @@ export default {
   experimental: {
     database: true,
   },
+  // 自定义错误处理器，返回详细错误信息
+  errorHandler: './error-handler.ts',
   runtimeConfig: {
     jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-in-production',
   },

@@ -68,15 +68,22 @@ pnpm run dev
 
 1. 修改 `client/package.json` 中的 `version` 字段
 2. 更新 `docs/5.changelog.md` 添加版本记录
-3. 部署服务端到 Cloudflare（在 server 目录下执行 `pnpm run deploy`）
+3. 部署服务端到 Cloudflare（在 server 目录下）
+   - 部署代码：`pnpm run deploy`
+   - 迁移数据库：`pnpm run db:migrate:d1`（如有 schema 变更）
 4. 提交更改并创建 git tag
 5. 推送到 Gitea
 
 ```bash
 # 示例：发布 v0.11.0
 # 1. 更新版本号和 changelog 后
+
 # 2. 部署服务端
-cd server && pnpm run deploy && cd ..
+cd server
+pnpm run build           # 构建产物到 .output/
+pnpm run deploy          # 部署到 Cloudflare Workers
+pnpm run db:migrate:d1   # 运行数据库迁移（如有 schema 变更）
+cd ..
 
 # 3. 提交并打 tag
 git add .
