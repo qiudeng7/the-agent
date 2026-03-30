@@ -19,6 +19,7 @@ import * as schema from './schema'
 // 类型定义
 // ─────────────────────────────────────────────────────────────────────────────
 
+// 使用 D1 类型作为主类型，better-sqlite3 实例通过 unknown 中间转换
 type DrizzleDb = ReturnType<typeof drizzleD1<typeof schema>>
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -47,7 +48,7 @@ function getDb(): DrizzleDb {
   // 开发环境：使用 better-sqlite3 内存数据库
   console.log('[DB] Using better-sqlite3 in-memory database')
   const sqlite = new Database(':memory:')
-  _db = drizzleBetterSqlite3(sqlite, { schema }) as DrizzleDb
+  _db = drizzleBetterSqlite3(sqlite, { schema }) as unknown as DrizzleDb
   return _db
 }
 
@@ -155,7 +156,7 @@ export async function initSchema() {
   `)
 
   // 更新全局数据库实例
-  _db = drizzleBetterSqlite3(sqlite, { schema }) as DrizzleDb
+  _db = drizzleBetterSqlite3(sqlite, { schema }) as unknown as DrizzleDb
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
