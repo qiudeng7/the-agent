@@ -23,7 +23,7 @@ import type {
 import type { BetaRawMessageStreamEvent, BetaContentBlock, BetaTextBlock, BetaThinkingBlock, BetaToolUseBlock } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 import type { ClaudeRunOptions, ClaudeEvent, ContentBlock, AskUserQuestionAnswerPayload, AskUserQuestionItem } from './types'
 import type { IClaudeTransportServer } from './interfaces/transport'
-import { detectClaude } from '#claude-installer'
+import { ensureClaudeInstalled } from '#claude-installer'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CLI 路径解析
@@ -96,7 +96,7 @@ export class ClaudeAgentProvider {
   }
 
   /**
-   * 初始化：检测 Claude Code 路径。
+   * 初始化：检测并确保 Claude Code 已安装。
    */
   async initialize(): Promise<void> {
     if (this.initialized) return
@@ -108,16 +108,20 @@ export class ClaudeAgentProvider {
       return
     }
 
-    // 检测系统中是否已安装
-    this.onProgress?.('Detecting Claude Code installation...')
-    const detected = await detectClaude()
-    if (detected) {
-      this.claudePath = detected
-      console.log('[ClaudeAgentProvider] Detected claude at:', this.claudePath)
-      this.onProgress?.(`Found Claude Code at: ${this.claudePath}`)
+    // 检测并确保安装 Claude Code
+    this.onProgress?.('Checking Claude Code installation...')
+    const result = await ensureClaudeInstalled({
+      useChinaMirror: true,
+      onProgress: (msg) => this.onProgress?.(msg),
+    })
+
+    if (result.success && result.claudePath) {
+      this.claudePath = result.claudePath
+      console.log('[ClaudeAgentProvider] Claude ready at:', this.claudePath)
+      this.onProgress?.(`Claude Code ready (${result.method})`)
     } else {
-      console.log('[ClaudeAgentProvider] Claude Code not found, will use SDK cli.js')
-      this.onProgress?.('Claude Code not found in system')
+      console.log('[ClaudeAgentProvider] Claude installation failed:', result.error)
+      this.onProgress?.(`Claude Code not available: ${result.error}`)
     }
 
     this.initialized = true
