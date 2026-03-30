@@ -163,8 +163,8 @@ const filteredApps = computed(() => {
   return result
 })
 
-function selectApp(app: typeof apps[0]) {
-  const session = chatStore.createSession(app.name)
+async function selectApp(app: typeof apps[0]) {
+  const session = await chatStore.createSession(app.name)
   router.push(`/chat/${session.id}`)
 }
 </script>

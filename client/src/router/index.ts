@@ -17,6 +17,7 @@ import Chat from '@/views/Chat.vue'
 import Settings from '@/views/Settings.vue'
 import Login from '@/views/Login.vue'
 import Register from '@/views/Register.vue'
+import NotFound from '@/views/NotFound.vue'
 // Admin views
 import AdminDashboard from '@/views/admin/Dashboard.vue'
 import AdminTasks from '@/views/admin/Tasks.vue'
@@ -119,6 +120,13 @@ const router = createRouter({
       ],
     },
   ],
+})
+
+// 404 路由需要在所有路由之后添加
+router.addRoute({
+  path: '/:pathMatch(.*)*',
+  name: 'not-found',
+  component: NotFound,
 })
 
 // 路由守卫

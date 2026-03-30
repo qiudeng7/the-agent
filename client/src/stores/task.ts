@@ -5,7 +5,7 @@
  * @layer state
  */
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import * as backend from '@/services/backend'
 import type { Task, TaskListParams, TaskStats } from '@/services/types'
 
@@ -16,6 +16,43 @@ export const useTaskStore = defineStore('task', () => {
   const stats = ref<TaskStats | null>(null)
   const loading = ref(false)
   const total = ref(0)
+
+  // ── Getters ────────────────────────────────────────────────────────────────
+
+  /** 任务总数 */
+  const taskCount = computed(() => tasks.value.length)
+
+  /** 是否有当前任务 */
+  const hasCurrentTask = computed(() => currentTask.value !== null)
+
+  /** 按状态分组的任务 */
+  const tasksByStatus = computed(() => {
+    const result: Record<string, Task[]> = {
+      pending: [],
+      in_progress: [],
+      completed: [],
+    }
+    for (const task of tasks.value) {
+      const status = task.status || 'pending'
+      if (result[status]) {
+        result[status].push(task)
+      }
+    }
+    return result
+  })
+
+  /** 按类别分组的任务 */
+  const tasksByCategory = computed(() => {
+    const result: Record<string, Task[]> = {}
+    for (const task of tasks.value) {
+      const category = task.category || 'default'
+      if (!result[category]) {
+        result[category] = []
+      }
+      result[category].push(task)
+    }
+    return result
+  })
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
@@ -148,6 +185,11 @@ export const useTaskStore = defineStore('task', () => {
     stats,
     loading,
     total,
+    // Getters
+    taskCount,
+    hasCurrentTask,
+    tasksByStatus,
+    tasksByCategory,
     // Actions
     fetchTasks,
     fetchTask,

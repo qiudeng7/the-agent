@@ -117,13 +117,20 @@ export class ElectronAgentTransport implements IClaudeTransportServer {
       // 发送请求给前端
       window.webContents.send('agent:ask-question', request)
 
-      // 设置超时（5分钟）
-      setTimeout(() => {
+      // 设置超时（5分钟），保存 timer ID 以便清理
+      const timeoutId = setTimeout(() => {
         if (this._askQuestionResolvers.has(request.toolUseId)) {
           this._askQuestionResolvers.delete(request.toolUseId)
           resolve(null)
         }
       }, 5 * 60 * 1000)
+
+      // 清理函数：在 resolver 被调用时清除 timer
+      const originalResolve = resolve
+      this._askQuestionResolvers.set(request.toolUseId, (response) => {
+        clearTimeout(timeoutId)
+        originalResolve(response)
+      })
     })
   }
 }

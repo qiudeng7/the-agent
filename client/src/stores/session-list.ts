@@ -80,6 +80,10 @@ export function createSessionListModule() {
         updatedAt: s.updatedAt,
       }))
       emitter.emit('sessions:loaded')
+    } catch (err) {
+      console.error('[SessionList] Failed to fetch sessions:', err)
+      // 发送错误事件供 UI 显示
+      emitter.emit('sessions:error', { error: err instanceof Error ? err.message : 'Failed to load sessions' })
     } finally {
       isLoading.value = false
     }

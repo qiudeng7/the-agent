@@ -37,6 +37,9 @@ export class ApiError extends Error {
 // 请求封装
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** 请求超时时间（毫秒） */
+const REQUEST_TIMEOUT = 30000
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
@@ -53,18 +56,48 @@ async function request<T>(
     headers['Authorization'] = `Bearer ${token}`
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  })
+  // 创建 AbortController 用于超时控制
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
 
-  const data = await response.json()
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers,
+      signal: controller.signal,
+    })
 
-  if (!response.ok) {
-    throw new ApiError(response.status, data.message || 'Request failed')
+    // 检查响应内容类型
+    const contentType = response.headers.get('content-type')
+    if (!contentType?.includes('application/json')) {
+      throw new ApiError(response.status, 'Invalid response format: expected JSON')
+    }
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new ApiError(response.status, data.message || 'Request failed')
+    }
+
+    return data
+  } catch (err) {
+    // 处理超时错误
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new ApiError(0, 'Request timeout')
+    }
+    // 处理网络错误
+    if (err instanceof TypeError) {
+      throw new ApiError(0, 'Network error: unable to connect to server')
+    }
+    // 已经是 ApiError，直接抛出
+    if (err instanceof ApiError) {
+      throw err
+    }
+    // 其他错误
+    throw new ApiError(0, err instanceof Error ? err.message : 'Unknown error')
+  } finally {
+    clearTimeout(timeoutId)
   }
-
-  return data
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

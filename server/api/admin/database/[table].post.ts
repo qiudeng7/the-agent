@@ -26,6 +26,24 @@ interface CreateTaskBody {
   assignedToUserId?: string
 }
 
+interface CreateUserResult {
+  id: string
+  email: string
+  nickname: string | null
+  role: string
+  createdAt: Date
+}
+
+interface CreateTaskResult {
+  id: number
+  title: string
+  category: string | null
+  status: string
+  createdAt: Date
+}
+
+type CreateResult = CreateUserResult | CreateTaskResult
+
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
 
@@ -40,7 +58,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const now = new Date()
-  let result: any
+  let result: CreateResult
 
   switch (tableName) {
     case 'users': {

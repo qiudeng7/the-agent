@@ -133,6 +133,8 @@ export class ClaudeAgentProvider {
     this.runningQueries.delete(taskId)
     this.pendingAnswers.delete(taskId)
     this.answerResolvers.delete(taskId)
+    // 清理所有相关资源
+    this.cleanupTaskResources(taskId)
   }
 
   /**
@@ -267,7 +269,7 @@ export class ClaudeAgentProvider {
   }
 
   /** AskUserQuestion 问题等待的 resolver */
-  private askQuestionResolvers = new Map<string, (answers: { answers: Record<string, string>; annotations?: Record<string, { notes?: string; preview?: string }> } | null) => void>()
+  private askQuestionResolvers = new Map<string, { resolve: (answers: { answers: Record<string, string>; annotations?: Record<string, { notes?: string; preview?: string }> } | null) => void; cleanup: () => void }>()
 
   /**
    * 等待前端处理 AskUserQuestion 并返回答案。
@@ -291,6 +293,28 @@ export class ClaudeAgentProvider {
     // 如果 transport 不支持，返回 null（取消）
     console.warn('[ClaudeAgentProvider] Transport does not support sendAskUserQuestion')
     return null
+  }
+
+  /**
+   * 清理指定 taskId 的所有资源（包括 answer resolvers）。
+   * 在 abort 或任务结束时调用。
+   */
+  private cleanupTaskResources(taskId: string): void {
+    // 清理 answerResolvers
+    const resolver = this.answerResolvers.get(taskId)
+    if (resolver) {
+      // 发送 null 来结束等待的 Promise
+      resolver(null as any)
+      this.answerResolvers.delete(taskId)
+    }
+
+    // 清理 askQuestionResolvers
+    for (const [key, entry] of this.askQuestionResolvers.entries()) {
+      if (key.startsWith(taskId)) {
+        entry.cleanup()
+        this.askQuestionResolvers.delete(key)
+      }
+    }
   }
 
   /**

@@ -58,6 +58,8 @@ export type AppEvents = {
   'session:deleted': { sessionId: string }
   /** 会话列表加载完成 */
   'sessions:loaded': void
+  /** 会话列表加载失败 */
+  'sessions:error': { error: string }
 }
 
 /** 事件总线实例 */

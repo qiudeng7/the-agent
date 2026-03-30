@@ -77,44 +77,52 @@ export default defineEventHandler(async (event) => {
   const messageId = body.id || nanoid()
   const timestamp = body.timestamp ? new Date(body.timestamp) : now
 
-  await db.insert(messages).values({
-    id: messageId,
-    sessionId,
-    role: body.role,
-    content: JSON.stringify(body.content),
-    model: body.model || null,
-    timestamp,
-  })
+  try {
+    await db.insert(messages).values({
+      id: messageId,
+      sessionId,
+      role: body.role,
+      content: JSON.stringify(body.content),
+      model: body.model || null,
+      timestamp,
+    })
 
-  // 更新会话的 updatedAt
-  await db
-    .update(chatSessions)
-    .set({ updatedAt: now })
-    .where(eq(chatSessions.id, sessionId))
+    // 更新会话的 updatedAt
+    await db
+      .update(chatSessions)
+      .set({ updatedAt: now })
+      .where(eq(chatSessions.id, sessionId))
 
-  // 如果是第一条用户消息，更新会话标题
-  if (body.role === 'user') {
-    const existingMessages = await db
-      .select()
-      .from(messages)
-      .where(eq(messages.sessionId, sessionId))
+    // 如果是第一条用户消息，更新会话标题
+    if (body.role === 'user') {
+      const existingMessages = await db
+        .select()
+        .from(messages)
+        .where(eq(messages.sessionId, sessionId))
 
-    if (existingMessages.length === 1) {
-      // 只有一条消息（刚添加的），提取标题
-      let text = ''
-      if (typeof body.content === 'string') {
-        text = body.content
-      } else if (Array.isArray(body.content)) {
-        const textBlock = body.content.find((b: Record<string, unknown>) => b.type === 'text')
-        text = (textBlock?.text as string) || ''
+      if (existingMessages.length === 1) {
+        // 只有一条消息（刚添加的），提取标题
+        let text = ''
+        if (typeof body.content === 'string') {
+          text = body.content
+        } else if (Array.isArray(body.content)) {
+          const textBlock = body.content.find((b: Record<string, unknown>) => b.type === 'text')
+          text = (textBlock?.text as string) || ''
+        }
+
+        const title = text.slice(0, 30) + (text.length > 30 ? '...' : '')
+        await db
+          .update(chatSessions)
+          .set({ title })
+          .where(eq(chatSessions.id, sessionId))
       }
-
-      const title = text.slice(0, 30) + (text.length > 30 ? '...' : '')
-      await db
-        .update(chatSessions)
-        .set({ title })
-        .where(eq(chatSessions.id, sessionId))
     }
+  } catch (err) {
+    console.error('[Messages API] Failed to create message:', err)
+    throw createError({
+      statusCode: 500,
+      message: 'Failed to create message',
+    })
   }
 
   // 返回创建的消息

@@ -3,11 +3,12 @@
  * @description 用户注册 API
  *              POST /api/auth/register
  */
-import { defineEventHandler, readBody, createError } from 'h3'
+import { defineEventHandler, readBody, createError, getHeader } from 'h3'
 import { nanoid } from 'nanoid'
 import { db, users } from '~/db'
 import { hashPassword } from '~/utils/crypto'
 import { generateToken } from '~/utils/auth'
+import { checkRateLimit, recordSuccess } from '~/utils/rate-limit'
 import { eq } from 'drizzle-orm'
 
 interface RegisterBody {
@@ -17,6 +18,16 @@ interface RegisterBody {
 }
 
 export default defineEventHandler(async (event) => {
+  // 速率限制检查（基于 IP）
+  const ip = getHeader(event, 'x-forwarded-for') || getHeader(event, 'x-real-ip') || 'unknown'
+  const rateCheck = checkRateLimit(`register:${ip}`, { windowMs: 60000, max: 3 })
+  if (!rateCheck.allowed) {
+    throw createError({
+      statusCode: 429,
+      message: `Too many registration attempts. Please wait ${rateCheck.retryAfter} seconds.`,
+    })
+  }
+
   const body = await readBody<RegisterBody>(event)
 
   // 验证必填字段
@@ -79,6 +90,9 @@ export default defineEventHandler(async (event) => {
     email: body.email,
     role,
   })
+
+  // 记录成功注册
+  recordSuccess(`register:${ip}`, 10000)
 
   // 返回结果
   return {
