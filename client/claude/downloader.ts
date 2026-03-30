@@ -205,6 +205,9 @@ export async function downloadGitForWindows(options: GitForWindowsOptions): Prom
   const Seven = (await import('node-7z')).default
   const sevenBin = (await import('7zip-bin')).default
 
+  // 确保 7za 二进制有执行权限（macOS/Linux 上 npm 安装后可能缺失）
+  try { fs.chmodSync(sevenBin.path7za, 0o755) } catch { /* ignore */ }
+
   const filename = arch === 'x64' ? 'PortableGit-2.53.0.2-64-bit.7z.exe' : 'PortableGit-2.53.0.2-arm64.7z.exe'
   const url = `${GIT_FOR_WINDOWS_BASE_URL}/${filename}`
   const tempFile = `${destDir}.7z.exe`
