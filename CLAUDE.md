@@ -68,18 +68,22 @@ pnpm run dev
 
 1. 修改 `client/package.json` 中的 `version` 字段
 2. 更新 `docs/5.changelog.md` 添加版本记录
-3. 提交更改并创建 git tag
-4. 推送到 Gitea
+3. 部署服务端到 Cloudflare（在 server 目录下执行 `pnpm run deploy`）
+4. 提交更改并创建 git tag
+5. 推送到 Gitea
 
 ```bash
-# 示例：发布 v0.9.0
+# 示例：发布 v0.11.0
 # 1. 更新版本号和 changelog 后
-git add .
-git commit -m "chore: release v0.9.0"
-git tag v0.9.0
-git push && git push --tags
+# 2. 部署服务端
+cd server && pnpm run deploy && cd ..
 
-# 推送到 Gitea（远程名为 gitea）
+# 3. 提交并打 tag
+git add .
+git commit -m "chore: release v0.11.0"
+git tag v0.11.0
+
+# 4. 推送到 Gitea（远程名为 gitea）
 git push gitea main && git push gitea --tags
 ```
 
