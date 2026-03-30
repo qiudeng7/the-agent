@@ -30,7 +30,7 @@
           参数
         </button>
         <button
-          v-if="result"
+          v-if="hasResult"
           class="tool-tab"
           :class="{ active: activeTab === 'result' }"
           @click.stop="$emit('setActiveTab', 'result')"
@@ -41,7 +41,7 @@
       <!-- Tab 内容 -->
       <div class="tool-tab-content">
         <pre v-if="activeTab === 'input'">{{ inputDetail }}</pre>
-        <pre v-else-if="result">{{ result }}</pre>
+        <pre v-else-if="hasResult">{{ result?.content }}</pre>
       </div>
     </div>
   </div>
@@ -76,6 +76,9 @@ const name = computed(() => props.block.name)
 
 /** 输入参数 */
 const input = computed(() => props.block.input)
+
+/** 是否有实际结果（非空占位符） */
+const hasResult = computed(() => props.result && props.result.content !== '')
 
 /** 输入参数缩略显示 */
 const inputSummary = computed(() => {

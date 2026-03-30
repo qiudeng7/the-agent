@@ -132,6 +132,8 @@ function getToolResult(toolUseId: string): ToolResultContent | undefined {
 function getToolStatus(toolUseId: string): 'running' | 'done' | 'error' {
   const result = getToolResult(toolUseId)
   if (!result) return 'running'
+  // 占位符（空 content）表示正在执行
+  if (result.content === '') return 'running'
   if (result.isError) return 'error'
   return 'done'
 }

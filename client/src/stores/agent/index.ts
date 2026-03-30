@@ -171,6 +171,16 @@ export const useAgentStore = defineStore('agent', () => {
             }
             delete block._partialJson
           }
+          // tool_use 结束时，添加一个 running 状态的占位符，让用户立刻看到执行状态
+          if (block.type === 'tool_use') {
+            const placeholder: ContentBlock = {
+              type: 'tool_result',
+              toolUseId: block.id,
+              content: '',
+              isError: false,
+            }
+            buffer.value.content.push(placeholder)
+          }
         }
         break
       }
@@ -206,12 +216,21 @@ export const useAgentStore = defineStore('agent', () => {
         // stream_event 只增量构建 text/thinking/tool_use，tool_result 需要从 assistant 合入
         for (const block of event.content) {
           if (block.type === 'tool_result') {
-            // 检查是否已存在（避免重复）
-            const exists = buffer.value.content.some(
-              b => b.type === 'tool_result' && b.toolUseId === block.toolUseId,
+            // 找到对应的占位符并更新
+            const placeholder = buffer.value.content.find(
+              b => b.type === 'tool_result' && b.toolUseId === block.toolUseId && b.content === '',
             )
-            if (!exists) {
-              buffer.value.content.push(block)
+            if (placeholder) {
+              placeholder.content = block.content
+              placeholder.isError = block.isError
+            } else {
+              // 没有占位符，检查是否已存在（避免重复）
+              const exists = buffer.value.content.some(
+                b => b.type === 'tool_result' && b.toolUseId === block.toolUseId,
+              )
+              if (!exists) {
+                buffer.value.content.push(block)
+              }
             }
           }
         }
@@ -220,16 +239,26 @@ export const useAgentStore = defineStore('agent', () => {
       case 'user':
         // SDK 回放用户消息，一般用于多轮对话
         console.log('[Claude] User message replay:', event.content)
-        // 检查是否包含 tool_result
+        // 检查是否包含 tool_result，更新对应的占位符
         for (const block of event.content) {
           if (block.type === 'tool_result') {
             console.log('[Claude] Found tool_result in user message:', block)
-            // 添加到 buffer
-            const exists = buffer.value.content.some(
-              b => b.type === 'tool_result' && b.toolUseId === block.toolUseId,
+            // 找到对应的占位符并更新
+            const placeholder = buffer.value.content.find(
+              b => b.type === 'tool_result' && b.toolUseId === block.toolUseId && b.content === '',
             )
-            if (!exists) {
-              buffer.value.content.push(block)
+            if (placeholder) {
+              // 更新占位符内容
+              placeholder.content = block.content
+              placeholder.isError = block.isError
+            } else {
+              // 没有占位符，直接添加（避免重复）
+              const exists = buffer.value.content.some(
+                b => b.type === 'tool_result' && b.toolUseId === block.toolUseId,
+              )
+              if (!exists) {
+                buffer.value.content.push(block)
+              }
             }
           }
         }
