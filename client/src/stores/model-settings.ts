@@ -79,6 +79,20 @@ export const BUNDLE_MODELS: BundleModel[] = [
     baseURL: 'https://coding.dashscope.aliyuncs.com/apps/anthropic',
     apiKey: 'sk-sp-f09b783d6c824e2fab15646a07f9e179',
   },
+  {
+    id: 'opus',
+    name: 'Claude Opus 4.6',
+    description: 'Anthropic 最强模型',
+    baseURL: 'https://api.claudecode.net.cn/api/claudecode',
+    apiKey: 'sk-ant-api03-ZHcf-bBtRYKZNjYcIkTX4QW8LooK5brn0kOiuRjqJ2bOVsaBDmCMd6zDLT5acW69UL2ozvH5PXTL4r8NNkUWNQ',
+  },
+  {
+    id: 'sonnet',
+    name: 'Claude Sonnet 4.6',
+    description: 'Anthropic 均衡模型',
+    baseURL: 'https://api.claudecode.net.cn/api/claudecode',
+    apiKey: 'sk-ant-api03-ZHcf-bBtRYKZNjYcIkTX4QW8LooK5brn0kOiuRjqJ2bOVsaBDmCMd6zDLT5acW69UL2ozvH5PXTL4r8NNkUWNQ',
+  },
 ]
 
 /**
