@@ -114,35 +114,33 @@ const isComposing = ref(false)
 // 使用 composable
 const { resize: autoResize, reset: resetTextarea } = useAutoResize(textareaRef, { maxHeight: 200 })
 
-// 初始化 selectedModel：优先使用 initialModel，其次默认模型，最后第一个可用模型
-function initSelectedModel() {
-  const available = settingsStore.enabledAvailableModels
-  if (props.initialModel && available.some(m => m.id === props.initialModel)) {
-    selectedModel.value = props.initialModel
-  } else if (settingsStore.defaultModel && available.some(m => m.id === settingsStore.defaultModel)) {
-    selectedModel.value = settingsStore.defaultModel
-  } else if (available.length > 0) {
-    selectedModel.value = available[0].id
-  }
-}
-
 // 初始化 selectedPermissionMode：从 settingsStore 读取
 function initSelectedPermissionMode() {
   selectedPermissionMode.value = settingsStore.permissionMode || 'default'
 }
 
 // 初始化
-initSelectedModel()
 initSelectedPermissionMode()
 
-// 监听 initialModel 变化（切换会话时），仅在 initialModel 有效时更新
+// 监听 initialModel 变化（切换会话时）
+// 使用 immediate: true 确保初始化时也执行
 watch(() => props.initialModel, (newModel) => {
   const available = settingsStore.enabledAvailableModels
-  // 只有当 initialModel 有值且在可用列表中时才更新
+  if (available.length === 0) return
+
+  // 优先使用 initialModel（如果有效）
   if (newModel && available.some(m => m.id === newModel)) {
     selectedModel.value = newModel
   }
-})
+  // 如果 initialModel 无效，使用默认模型或第一个可用模型
+  else if (!selectedModel.value) {
+    if (settingsStore.defaultModel && available.some(m => m.id === settingsStore.defaultModel)) {
+      selectedModel.value = settingsStore.defaultModel
+    } else {
+      selectedModel.value = available[0].id
+    }
+  }
+}, { immediate: true })
 
 // 监听 selectedModel 变化，通知父组件
 watch(selectedModel, (newModel) => {
