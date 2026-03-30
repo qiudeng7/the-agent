@@ -28,6 +28,8 @@ import type { IClaudeTransportServer } from './interfaces/transport'
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface ClaudeProviderOptions {
+  /** Claude Code 可执行文件路径，不传则由 SDK 自行定位 */
+  claudePath?: string
   /** 默认模型，默认值：'claude-opus-4-6' */
   defaultModel?: string
   /** Transport 用于发送 AskUserQuestion 请求给前端 */
@@ -37,6 +39,7 @@ export interface ClaudeProviderOptions {
 export class ClaudeAgentProvider {
   readonly name = 'claude-agent-sdk'
 
+  private claudePath?: string
   private defaultModel: string
   /** Transport 用于发送 AskUserQuestion 请求 */
   private transport?: IClaudeTransportServer
@@ -50,6 +53,7 @@ export class ClaudeAgentProvider {
   private answerResolvers = new Map<string, (answer: AskUserQuestionAnswerPayload) => void>()
 
   constructor(options: ClaudeProviderOptions = {}) {
+    this.claudePath = options.claudePath
     this.defaultModel = options.defaultModel ?? 'claude-opus-4-6'
     this.transport = options.transport
   }
@@ -303,6 +307,7 @@ export class ClaudeAgentProvider {
       allowedTools,
       mcpServers,
       resume,
+      ...(this.claudePath ? { pathToClaudeCodeExecutable: this.claudePath } : {}),
       debug,
       env: Object.keys(env).length > 0 ? env : undefined,
       includePartialMessages: true,

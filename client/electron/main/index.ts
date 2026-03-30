@@ -14,6 +14,7 @@
  */
 import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'path'
+import fs from 'fs'
 import { ClaudeAgentProvider, ClaudeRunner } from '#claude'
 import { ElectronAgentTransport } from '#electron/agent-transport'
 
@@ -29,10 +30,22 @@ app.commandLine.appendSwitch('remote-debugging-port', '9223')
 let runner: ClaudeRunner | null = null
 let transport: ElectronAgentTransport | null = null
 
+function resolveBundledClaudePath(): string | undefined {
+  const platform = process.platform
+  const arch = process.arch
+  const binaryName = platform === 'win32' ? 'claude.exe' : 'claude'
+  const candidate = path.join(process.resourcesPath, `${platform}-${arch}`, binaryName)
+  return fs.existsSync(candidate) ? candidate : undefined
+}
+
 function setupAgent() {
   console.log('[Claude] Setting up claude runner...')
   transport = new ElectronAgentTransport(() => mainWindow)
-  const provider = new ClaudeAgentProvider({ transport })
+  const claudePath = resolveBundledClaudePath()
+  if (claudePath) {
+    console.log('[Claude] Using bundled claude:', claudePath)
+  }
+  const provider = new ClaudeAgentProvider({ transport, claudePath })
   runner = new ClaudeRunner(provider, transport)
   runner.start()
   console.log('[Claude] Claude runner started')
