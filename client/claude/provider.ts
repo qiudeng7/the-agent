@@ -30,6 +30,8 @@ import type { IClaudeTransportServer } from './interfaces/transport'
 export interface ClaudeProviderOptions {
   /** Claude Code 可执行文件路径，不传则由 SDK 自行定位 */
   claudePath?: string
+  /** 环境变量，会合并到 SDK 子进程的 env 中 */
+  env?: Record<string, string>
   /** 默认模型，默认值：'claude-opus-4-6' */
   defaultModel?: string
   /** Transport 用于发送 AskUserQuestion 请求给前端 */
@@ -40,6 +42,7 @@ export class ClaudeAgentProvider {
   readonly name = 'claude-agent-sdk'
 
   private claudePath?: string
+  private customEnv?: Record<string, string>
   private defaultModel: string
   /** Transport 用于发送 AskUserQuestion 请求 */
   private transport?: IClaudeTransportServer
@@ -54,6 +57,7 @@ export class ClaudeAgentProvider {
 
   constructor(options: ClaudeProviderOptions = {}) {
     this.claudePath = options.claudePath
+    this.customEnv = options.env
     this.defaultModel = options.defaultModel ?? 'claude-opus-4-6'
     this.transport = options.transport
   }
@@ -292,7 +296,7 @@ export class ClaudeAgentProvider {
     } = options
 
     // 通过 env 选项传递环境变量给 SDK 子进程
-    const env: Record<string, string> = {}
+    const env: Record<string, string> = { ...this.customEnv }
     if (apiKey) {
       env.ANTHROPIC_API_KEY = apiKey
     }

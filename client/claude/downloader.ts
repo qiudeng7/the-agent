@@ -179,3 +179,59 @@ function httpsGet(
   })
   return req
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Git for Windows 下载
+// ─────────────────────────────────────────────────────────────────────────────
+
+const GIT_FOR_WINDOWS_BASE_URL = 'https://github.com/git-for-windows/git/releases/download/v2.53.0.windows.2'
+
+export interface GitForWindowsOptions {
+  /** 架构：'x64' | 'arm64' */
+  arch: 'x64' | 'arm64'
+  /** 解压目标目录 */
+  destDir: string
+  /** 进度回调 */
+  onProgress?: (message: string) => void
+}
+
+/**
+ * 下载并解压 Git for Windows Portable 到指定目录。
+ * 版本固定为 2.53.0.2。
+ */
+export async function downloadGitForWindows(options: GitForWindowsOptions): Promise<void> {
+  const { arch, destDir, onProgress } = options
+  // @ts-ignore - node-7z 没有类型定义
+  const Seven = (await import('node-7z')).default
+  const sevenBin = (await import('7zip-bin')).default
+
+  const filename = arch === 'x64' ? 'PortableGit-2.53.0.2-64-bit.7z.exe' : 'PortableGit-2.53.0.2-arm64.7z.exe'
+  const url = `${GIT_FOR_WINDOWS_BASE_URL}/${filename}`
+  const tempFile = `${destDir}.7z.exe`
+
+  onProgress?.(`Downloading Git for Windows ${arch}...`)
+  fs.mkdirSync(destDir, { recursive: true })
+
+  await new Promise<void>((resolve, reject) => {
+    httpsGet(url, (res) => {
+      const fileStream = fs.createWriteStream(tempFile)
+      res.pipe(fileStream)
+      fileStream.on('finish', resolve)
+      fileStream.on('error', reject)
+      res.on('error', reject)
+    }).on('error', reject)
+  })
+
+  onProgress?.('Extracting Git for Windows...')
+  const stream = Seven.extractFull(tempFile, destDir, {
+    $bin: sevenBin.path7za,
+  })
+
+  await new Promise<void>((resolve, reject) => {
+    stream.on('end', resolve)
+    stream.on('error', reject)
+  })
+
+  fs.unlinkSync(tempFile)
+  onProgress?.(`Git for Windows extracted to ${destDir}`)
+}

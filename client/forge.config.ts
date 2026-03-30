@@ -1,7 +1,7 @@
 import type { ForgeConfig } from '@electron-forge/shared-types'
 import path from 'path'
 import fs from 'fs'
-import { downloadClaudeCode, type ClaudeCodePlatform } from './claude/downloader'
+import { downloadClaudeCode, downloadGitForWindows, type ClaudeCodePlatform } from './claude/downloader'
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -84,6 +84,23 @@ const config: ForgeConfig = {
       const extraRes = _config.packagerConfig.extraResource as string[]
       if (!extraRes.includes(assetsDir)) {
         extraRes.push(assetsDir)
+      }
+
+      // Windows 平台：下载 Git for Windows
+      if (platform === 'win32') {
+        const gitArch = arch === 'arm64' ? 'arm64' : 'x64'
+        const gitDir = path.resolve(__dirname, 'claude-code-installation-assets', `win32-git-${gitArch}`)
+
+        console.log(`[forge] Downloading Git for Windows ${gitArch}...`)
+        await downloadGitForWindows({
+          arch: gitArch,
+          destDir: gitDir,
+          onProgress: (msg) => console.log(`[forge] ${msg}`),
+        })
+
+        if (!extraRes.includes(gitDir)) {
+          extraRes.push(gitDir)
+        }
       }
     },
   },

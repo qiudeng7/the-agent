@@ -38,6 +38,15 @@ function resolveBundledClaudePath(): string | undefined {
   return fs.existsSync(candidate) ? candidate : undefined
 }
 
+function resolveGitEnv(): Record<string, string> | undefined {
+  if (process.platform !== 'win32') return undefined
+  const arch = process.arch === 'arm64' ? 'arm64' : 'x64'
+  const gitDir = path.join(process.resourcesPath, `win32-git-${arch}`)
+  if (!fs.existsSync(gitDir)) return undefined
+  const gitCmd = path.join(gitDir, 'cmd')
+  return { PATH: `${gitCmd};${process.env.PATH ?? ''}` }
+}
+
 function setupAgent() {
   console.log('[Claude] Setting up claude runner...')
   transport = new ElectronAgentTransport(() => mainWindow)
@@ -45,7 +54,11 @@ function setupAgent() {
   if (claudePath) {
     console.log('[Claude] Using bundled claude:', claudePath)
   }
-  const provider = new ClaudeAgentProvider({ transport, claudePath })
+  const env = resolveGitEnv()
+  if (env) {
+    console.log('[Claude] Injecting bundled Git for Windows into PATH')
+  }
+  const provider = new ClaudeAgentProvider({ transport, claudePath, env })
   runner = new ClaudeRunner(provider, transport)
   runner.start()
   console.log('[Claude] Claude runner started')
