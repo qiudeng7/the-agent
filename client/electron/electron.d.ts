@@ -30,6 +30,10 @@ export interface IElectronAPI {
   onAskQuestion: (handler: (request: { taskId: string; toolUseId: string; questions: AskUserQuestionItem[] }) => void) => () => void
   /** 回答 AskUserQuestion */
   answerAskQuestion: (toolUseId: string, response: { answers: Record<string, string>; annotations?: Record<string, { notes?: string; preview?: string }> } | null) => Promise<void>
+
+  // ── Claude Installer API ────────────────────────────────────────────────
+  /** 监听 Claude CLI 安装进度消息 */
+  onClaudeInstallerProgress: (handler: (message: string) => void) => () => void
 }
 
 declare global {

@@ -32,7 +32,10 @@ let transport: ElectronAgentTransport | null = null
 function setupAgent() {
   console.log('[Claude] Setting up claude runner...')
   transport = new ElectronAgentTransport(() => mainWindow)
-  const provider = new ClaudeAgentProvider({ transport })
+  const provider = new ClaudeAgentProvider({
+    transport,
+    onProgress: (message) => transport?.sendProgress(message)
+  })
   runner = new ClaudeRunner(provider, transport)
   runner.start()
   console.log('[Claude] Claude runner started')
@@ -75,8 +78,8 @@ function createWindow() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 app.whenReady().then(() => {
-  setupAgent()
   createWindow()
+  setupAgent()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

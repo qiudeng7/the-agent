@@ -9,7 +9,6 @@
  *              4. 管理 abort 状态
  */
 
-import path from 'path'
 import { query, type Query } from '@anthropic-ai/claude-agent-sdk'
 import type {
   SDKMessage,
@@ -24,31 +23,6 @@ import type { BetaRawMessageStreamEvent, BetaContentBlock, BetaTextBlock, BetaTh
 import type { ClaudeRunOptions, ClaudeEvent, ContentBlock, AskUserQuestionAnswerPayload, AskUserQuestionItem } from './types'
 import type { IClaudeTransportServer } from './interfaces/transport'
 import { ensureClaudeInstalled } from '#claude-installer'
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CLI 路径解析
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * 获取 Claude Agent SDK 的 cli.js 路径。
- * 在 Electron 打包环境中，SDK 无法通过 import.meta.url 正确定位 cli.js，
- * 需要通过 require.resolve 找到正确的路径。
- */
-function getSdkCliPath(): string {
-  try {
-    // 通过 package.json 定位 SDK 包目录
-    const sdkPackagePath = require.resolve('@anthropic-ai/claude-agent-sdk/package.json')
-    return path.join(path.dirname(sdkPackagePath), 'cli.js')
-  } catch {
-    // 回退：尝试直接解析 cli.js
-    try {
-      return require.resolve('@anthropic-ai/claude-agent-sdk/cli.js')
-    } catch {
-      // 最后回退：假设在 node_modules 中
-      return path.join(process.cwd(), 'node_modules', '@anthropic-ai', 'claude-agent-sdk', 'cli.js')
-    }
-  }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ClaudeAgentProvider
@@ -68,7 +42,6 @@ export interface ClaudeProviderOptions {
 export class ClaudeAgentProvider {
   readonly name = 'claude-agent-sdk'
 
-  private sdkCliPath: string
   private claudePath: string | null = null
   private defaultModel: string
   private onProgress?: (message: string) => void
@@ -86,13 +59,10 @@ export class ClaudeAgentProvider {
   private initialized = false
 
   constructor(options: ClaudeProviderOptions = {}) {
-    this.sdkCliPath = getSdkCliPath()
     this.claudePath = options.claudePath ?? null
     this.defaultModel = options.defaultModel ?? 'claude-opus-4-6'
     this.onProgress = options.onProgress
     this.transport = options.transport
-
-    console.log('[ClaudeAgentProvider] SDK CLI path:', this.sdkCliPath)
   }
 
   /**
@@ -372,11 +342,6 @@ export class ClaudeAgentProvider {
       env.ANTHROPIC_BASE_URL = baseURL
     }
 
-    // 确定 pathToClaudeCodeExecutable：
-    // - 如果检测到系统安装的 claude，使用该路径
-    // - 否则使用 SDK 包内的 cli.js
-    const pathToClaudeCodeExecutable = this.claudePath || this.sdkCliPath
-
     return {
       model: model ?? this.defaultModel,
       systemPrompt,
@@ -386,7 +351,7 @@ export class ClaudeAgentProvider {
       resume,
       debug,
       env: Object.keys(env).length > 0 ? env : undefined,
-      pathToClaudeCodeExecutable,
+      pathToClaudeCodeExecutable: this.claudePath,
       includePartialMessages: true,
       // 添加 canUseTool 回调来拦截 AskUserQuestion
       canUseTool: async (toolName: string, input: Record<string, unknown>, canUseToolOptions: { toolUseID: string }) => {

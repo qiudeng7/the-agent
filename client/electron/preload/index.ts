@@ -11,6 +11,9 @@
  *                submitAskUserQuestionAnswer(payload)  提交 AskUserQuestion 答案
  *                onAskQuestion(handler)  监听 AskUserQuestion 请求
  *                answerAskQuestion(toolUseId, response)  回答 AskUserQuestion
+ *
+ *              暴露的 Claude Installer 相关 API：
+ *                onClaudeInstallerProgress(handler)  监听 Claude CLI 安装进度消息
  * @layer electron-preload
  */
 import { contextBridge, ipcRenderer } from 'electron'
@@ -51,4 +54,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   answerAskQuestion: (toolUseId: string, response: Parameters<IElectronAPI['answerAskQuestion']>[1]) =>
     ipcRenderer.invoke('agent:answer-question', { toolUseId, response }),
+
+  // ── Claude Installer API ────────────────────────────────────────────────
+  onClaudeInstallerProgress: (handler: Parameters<IElectronAPI['onClaudeInstallerProgress']>[0]) => {
+    const listener = (_: Electron.IpcRendererEvent, message: string) => handler(message)
+    ipcRenderer.on('claude-installer:progress', listener)
+    return () => ipcRenderer.removeListener('claude-installer:progress', listener)
+  },
 } as IElectronAPI)
