@@ -86,6 +86,9 @@ async function handleSubmit(input: string, options: { model: string; permissionM
     sessionCreated.value = true
   }
 
+  const modelId = options.model || settingsStore.defaultModel
+  const modelConfig = settingsStore.getModelConfig(modelId)
+
   // 添加用户消息到 chat store（用于前端显示）
   await chatStore.addMessage(sessionId.value, {
     id: Date.now().toString() + '-user',
@@ -106,7 +109,9 @@ async function handleSubmit(input: string, options: { model: string; permissionM
     input,
     historyMessages,
     {
-      model: options.model,
+      model: modelId,
+      apiKey: modelConfig.apiKey,
+      baseURL: modelConfig.baseURL,
       permissionMode: options.permissionMode,
     }
   )
