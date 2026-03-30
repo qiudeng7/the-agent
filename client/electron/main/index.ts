@@ -34,7 +34,14 @@ function resolveBundledClaudePath(): string | undefined {
   const platform = process.platform
   const arch = process.arch
   const binaryName = platform === 'win32' ? 'claude.exe' : 'claude'
-  const candidate = path.join(process.resourcesPath, `${platform}-${arch}`, binaryName)
+
+  // 开发环境：从项目目录下的 claude-code-installation-assets 读取
+  // 生产环境：从 process.resourcesPath 读取（打包后的资源目录）
+  const baseDir = process.env.VITE_DEV_SERVER_URL
+    ? path.resolve(__dirname, '../../claude-code-installation-assets')
+    : process.resourcesPath
+
+  const candidate = path.join(baseDir, `${platform}-${arch}`, binaryName)
   return fs.existsSync(candidate) ? candidate : undefined
 }
 
