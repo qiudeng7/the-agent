@@ -23,3 +23,4 @@ export type { IClaudeTransportServer } from './interfaces/transport'
 // ── 实现导出 ────────────────────────────────────────────────────────────────
 export { ClaudeAgentProvider, type ClaudeProviderOptions } from './provider'
 export { ClaudeRunner } from './runner'
+export { downloadClaudeCode, fetchLatestVersion, type ClaudeCodePlatform, type DownloadOptions, type DownloadResult } from './downloader'
