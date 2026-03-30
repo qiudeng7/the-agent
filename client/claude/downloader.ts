@@ -39,6 +39,8 @@ export interface DownloadResult {
   version: string
   platform: ClaudeCodePlatform
   destPath: string
+  /** true 表示本地已是最新，跳过了下载 */
+  skipped: boolean
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -47,6 +49,7 @@ export interface DownloadResult {
 
 /**
  * 下载指定平台的 Claude Code 最新版二进制到 destPath。
+ * 若文件已存在且 SHA256 与 manifest 一致，跳过下载。
  * 下载完成后自动校验 SHA256，Unix 平台自动 chmod +x。
  */
 export async function downloadClaudeCode(options: DownloadOptions): Promise<DownloadResult> {
@@ -62,6 +65,11 @@ export async function downloadClaudeCode(options: DownloadOptions): Promise<Down
     throw new Error(`Platform "${platform}" not found in manifest (version ${version})`)
   }
 
+  // 已存在且 checksum 匹配，跳过下载
+  if (fs.existsSync(destPath) && computeFileSha256(destPath) === platformMeta.checksum) {
+    return { version, platform, destPath, skipped: true }
+  }
+
   const binaryName = platform.startsWith('win32') ? 'claude.exe' : 'claude'
   const url = `${GCS_BUCKET}/${version}/${platform}/${binaryName}`
 
@@ -71,7 +79,7 @@ export async function downloadClaudeCode(options: DownloadOptions): Promise<Down
     fs.chmodSync(destPath, 0o755)
   }
 
-  return { version, platform, destPath }
+  return { version, platform, destPath, skipped: false }
 }
 
 /**
@@ -84,6 +92,12 @@ export async function fetchLatestVersion(): Promise<string> {
 // ─────────────────────────────────────────────────────────────────────────────
 // 内部工具
 // ─────────────────────────────────────────────────────────────────────────────
+
+function computeFileSha256(filePath: string): string {
+  const hash = crypto.createHash('sha256')
+  hash.update(fs.readFileSync(filePath))
+  return hash.digest('hex')
+}
 
 function fetchText(url: string): Promise<string> {
   return new Promise((resolve, reject) => {
