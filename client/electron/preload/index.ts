@@ -13,11 +13,12 @@
  *                answerAskQuestion(toolUseId, response)  回答 AskUserQuestion
  *
  *              暴露的 Claude Installer 相关 API：
- *                onClaudeInstallerProgress(handler)  监听 Claude CLI 安装进度消息
+ *                onClaudeInstallerProgress(handler)  监听 Claude CLI 安装进度事件
  * @layer electron-preload
  */
 import { contextBridge, ipcRenderer } from 'electron'
 import type { IElectronAPI } from '../electron'
+import type { InstallerProgressEvent } from '#claude-installer/types'
 
 contextBridge.exposeInMainWorld('electronAPI', {
   // ── 系统 API ──────────────────────────────────────────────────────────────
@@ -57,7 +58,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // ── Claude Installer API ────────────────────────────────────────────────
   onClaudeInstallerProgress: (handler: Parameters<IElectronAPI['onClaudeInstallerProgress']>[0]) => {
-    const listener = (_: Electron.IpcRendererEvent, message: string) => handler(message)
+    const listener = (_: Electron.IpcRendererEvent, event: InstallerProgressEvent) => handler(event)
     ipcRenderer.on('claude-installer:progress', listener)
     return () => ipcRenderer.removeListener('claude-installer:progress', listener)
   },

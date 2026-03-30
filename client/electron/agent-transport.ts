@@ -20,6 +20,7 @@ import { ipcMain } from 'electron'
 import type { BrowserWindow } from 'electron'
 import type { ClaudeEvent, ClaudeRunOptions, AskUserQuestionAnswerPayload } from '#claude/types'
 import type { IClaudeTransportServer, AskUserQuestionRequest, AskUserQuestionResponse } from '#claude/interfaces/transport'
+import type { InstallerProgressEvent } from '#claude-installer/types'
 
 export class ElectronAgentTransport implements IClaudeTransportServer {
   private _getWindow: () => BrowserWindow | null
@@ -86,8 +87,8 @@ export class ElectronAgentTransport implements IClaudeTransportServer {
   }
 
   /** 向渲染进程推送 Claude 安装进度消息 */
-  sendProgress(message: string): void {
-    this._getWindow()?.webContents.send('claude-installer:progress', message)
+  sendProgress(event: InstallerProgressEvent): void {
+    this._getWindow()?.webContents.send('claude-installer:progress', event)
   }
 
   onRun(handler: (options: ClaudeRunOptions) => void): () => void {

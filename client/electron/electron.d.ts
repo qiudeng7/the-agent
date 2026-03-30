@@ -7,6 +7,7 @@
  */
 
 import type { ClaudeRunOptions, ClaudeEvent, AskUserQuestionAnswerPayload, AskUserQuestionItem } from '#claude/types'
+import type { InstallerProgressEvent } from '#claude-installer/types'
 
 export interface IElectronAPI {
   // ── 系统 API ────────────────────────────────────────────────────────────
@@ -32,8 +33,8 @@ export interface IElectronAPI {
   answerAskQuestion: (toolUseId: string, response: { answers: Record<string, string>; annotations?: Record<string, { notes?: string; preview?: string }> } | null) => Promise<void>
 
   // ── Claude Installer API ────────────────────────────────────────────────
-  /** 监听 Claude CLI 安装进度消息 */
-  onClaudeInstallerProgress: (handler: (message: string) => void) => () => void
+  /** 监听 Claude CLI 安装进度事件 */
+  onClaudeInstallerProgress: (handler: (event: InstallerProgressEvent) => void) => () => void
 }
 
 declare global {

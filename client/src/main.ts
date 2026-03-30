@@ -43,18 +43,11 @@ settingsStore.setupEventListeners()
 chatStore.setupEventListeners()
 agentStore.setupEventListeners()
 
-// 监听 Claude Installer 进度消息
-let cleanupClaudeInstallerProgress: (() => void) | null = null
-cleanupClaudeInstallerProgress = window.electronAPI.onClaudeInstallerProgress((message) => {
-  console.log('[Claude Installer]', message)
-})
-
 // Electron 窗口关闭时清理事件监听器
 window.addEventListener('beforeunload', () => {
   settingsStore.teardownEventListeners()
   chatStore.teardownEventListeners()
   agentStore.teardownEventListeners()
-  cleanupClaudeInstallerProgress?.()
 })
 
 // Vue 挂载完成后移除 loading

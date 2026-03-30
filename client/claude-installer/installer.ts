@@ -32,10 +32,10 @@ export async function ensureClaudeInstalled(
 
   try {
     // Step 1: 检查是否已安装
-    onProgress('Checking for existing Claude installation...')
+    onProgress({ type: 'check:start' })
     const existingClaude = await findClaude()
     if (existingClaude) {
-      onProgress(`Found existing Claude at: ${existingClaude}`)
+      onProgress({ type: 'check:found', path: existingClaude })
       return {
         success: true,
         claudePath: existingClaude,
@@ -43,15 +43,19 @@ export async function ensureClaudeInstalled(
       }
     }
 
+    // 未找到，需要安装
+    onProgress({ type: 'check:not-found' })
+
     // Step 2: 检查 npm
-    onProgress('Checking for npm...')
+    onProgress({ type: 'log', message: 'Checking for npm...' })
     const existingNpm = await findNpm()
     if (existingNpm) {
-      onProgress(`Found npm at: ${existingNpm}`)
+      onProgress({ type: 'log', message: `Found npm at: ${existingNpm}` })
       const claudePath = await installClaudeWithNpm(
         opts.useChinaMirror ? opts.npmRegistry : undefined,
-        onProgress
+        (msg) => onProgress({ type: 'log', message: msg })
       )
+      onProgress({ type: 'install:success', path: claudePath, method: 'npm' })
       return {
         success: true,
         claudePath,
@@ -60,18 +64,18 @@ export async function ensureClaudeInstalled(
     }
 
     // Step 3: 检查 fnm
-    onProgress('Checking for fnm...')
+    onProgress({ type: 'log', message: 'Checking for fnm...' })
     const existingFnm = await findFnm()
     let fnmPath: string
     let shouldCleanupFnm = false
 
     if (!existingFnm) {
       // 安装 fnm
-      onProgress('FNM not found, installing...')
-      fnmPath = await installFnm(onProgress)
+      onProgress({ type: 'log', message: 'FNM not found, installing...' })
+      fnmPath = await installFnm((msg) => onProgress({ type: 'log', message: msg }))
       shouldCleanupFnm = true
     } else {
-      onProgress(`Found fnm at: ${existingFnm}`)
+      onProgress({ type: 'log', message: `Found fnm at: ${existingFnm}` })
       fnmPath = existingFnm
     }
 
@@ -81,15 +85,16 @@ export async function ensureClaudeInstalled(
         fnmPath,
         '22',
         opts.useChinaMirror ? opts.fnmMirror : undefined,
-        onProgress
+        (msg) => onProgress({ type: 'log', message: msg })
       )
 
       // 使用 npm 安装 Claude
       const claudePath = await installClaudeWithNpm(
         opts.useChinaMirror ? opts.npmRegistry : undefined,
-        onProgress
+        (msg) => onProgress({ type: 'log', message: msg })
       )
 
+      onProgress({ type: 'install:success', path: claudePath, method: 'fnm' })
       return {
         success: true,
         claudePath,
@@ -98,7 +103,7 @@ export async function ensureClaudeInstalled(
     } finally {
       // 清理临时 fnm
       if (shouldCleanupFnm && fnmPath) {
-        onProgress('Cleaning up temporary FNM...')
+        onProgress({ type: 'log', message: 'Cleaning up temporary FNM...' })
         try {
           const fnmDir = require('path').dirname(fnmPath)
           rmSync(fnmDir, { recursive: true, force: true })
@@ -109,7 +114,7 @@ export async function ensureClaudeInstalled(
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
-    onProgress(`Installation failed: ${errorMessage}`)
+    onProgress({ type: 'install:failed', error: errorMessage })
     return {
       success: false,
       error: errorMessage,

@@ -23,6 +23,7 @@ import type { BetaRawMessageStreamEvent, BetaContentBlock, BetaTextBlock, BetaTh
 import type { ClaudeRunOptions, ClaudeEvent, ContentBlock, AskUserQuestionAnswerPayload, AskUserQuestionItem } from './types'
 import type { IClaudeTransportServer } from './interfaces/transport'
 import { ensureClaudeInstalled } from '#claude-installer'
+import type { InstallerProgressEvent } from '#claude-installer/types'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ClaudeAgentProvider
@@ -34,7 +35,7 @@ export interface ClaudeProviderOptions {
   /** 默认模型，默认值：'claude-opus-4-6' */
   defaultModel?: string
   /** 进度回调，用于在初始化过程中向用户显示进度信息 */
-  onProgress?: (message: string) => void
+  onProgress?: (event: InstallerProgressEvent) => void
   /** Transport 用于发送 AskUserQuestion 请求给前端 */
   transport?: IClaudeTransportServer
 }
@@ -44,7 +45,7 @@ export class ClaudeAgentProvider {
 
   private claudePath: string | null = null
   private defaultModel: string
-  private onProgress?: (message: string) => void
+  private onProgress?: (event: InstallerProgressEvent) => void
   /** Transport 用于发送 AskUserQuestion 请求 */
   private transport?: IClaudeTransportServer
   /** 正在运行的任务：taskId → AbortController */
@@ -79,19 +80,16 @@ export class ClaudeAgentProvider {
     }
 
     // 检测并确保安装 Claude Code
-    this.onProgress?.('Checking Claude Code installation...')
     const result = await ensureClaudeInstalled({
       useChinaMirror: true,
-      onProgress: (msg) => this.onProgress?.(msg),
+      onProgress: (event) => this.onProgress?.(event),
     })
 
     if (result.success && result.claudePath) {
       this.claudePath = result.claudePath
       console.log('[ClaudeAgentProvider] Claude ready at:', this.claudePath)
-      this.onProgress?.(`Claude Code ready (${result.method})`)
     } else {
       console.log('[ClaudeAgentProvider] Claude installation failed:', result.error)
-      this.onProgress?.(`Claude Code not available: ${result.error}`)
     }
 
     this.initialized = true
