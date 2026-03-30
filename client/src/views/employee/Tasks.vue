@@ -108,9 +108,7 @@
               <p v-if="task.description" class="task-desc">{{ task.description }}</p>
             </div>
             <div class="task-side">
-              <span class="task-status" :class="statusClass(task.status)">
-                {{ getStatusLabel(task.status) }}
-              </span>
+              <BaseStatusBadge :status="task.status" />
               <span v-if="task.category" class="task-category">{{ task.category }}</span>
             </div>
             <div class="task-meta">
@@ -136,9 +134,7 @@
         <div class="modal-body">
           <div class="detail-row">
             <span class="detail-label">状态</span>
-            <span class="task-status" :class="statusClass(selectedTask.status)">
-              {{ getStatusLabel(selectedTask.status) }}
-            </span>
+            <BaseStatusBadge :status="selectedTask.status" />
           </div>
           <div v-if="selectedTask.category" class="detail-row">
             <span class="detail-label">分类</span>
@@ -170,6 +166,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useTaskStore } from '@/stores/task'
 import { EMPLOYEE_TASK_TYPES } from '@/config/employee-task-types'
 import type { Task, TaskStatus, TaskListParams } from '@/services/types'
+import { BaseStatusBadge } from '@/components/base'
 
 const taskStore = useTaskStore()
 
@@ -204,21 +201,6 @@ function openDetailModal(task: Task) {
 function closeDetailModal() {
   showDetailModal.value = false
   selectedTask.value = null
-}
-
-function getStatusLabel(status: TaskStatus) {
-  return statusOptions.find(s => s.value === status)?.label || status
-}
-
-function statusClass(status: TaskStatus) {
-  const classes: Record<TaskStatus, string> = {
-    todo: 'warning',
-    in_progress: 'info',
-    in_review: 'secondary',
-    done: 'success',
-    cancelled: 'muted'
-  }
-  return classes[status] || 'muted'
 }
 
 function formatDate(dateString: string) {
@@ -513,38 +495,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.task-status {
-  padding: 4px 10px;
-  border-radius: var(--radius-full);
-  font-size: 0.7rem;
-  font-weight: 600;
-}
-
-.task-status.warning {
-  background: #f59e0b/10;
-  color: #f59e0b;
-}
-
-.task-status.info {
-  background: #3b82f6/10;
-  color: #3b82f6;
-}
-
-.task-status.secondary {
-  background: var(--color-secondary)/10;
-  color: var(--color-secondary);
-}
-
-.task-status.success {
-  background: #10b981/10;
-  color: #10b981;
-}
-
-.task-status.muted {
-  background: var(--color-muted-foreground)/10;
-  color: var(--color-muted-foreground);
 }
 
 .task-category {

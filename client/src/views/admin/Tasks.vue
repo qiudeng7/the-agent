@@ -110,9 +110,7 @@
                 <div v-if="task.description" class="task-desc">{{ task.description }}</div>
               </td>
               <td>
-                <span class="status-badge" :class="statusColors[task.status]">
-                  {{ getStatusLabel(task.status) }}
-                </span>
+                <BaseStatusBadge :status="task.status" />
               </td>
               <td>
                 <span v-if="task.category" class="category-tag">{{ task.category }}</span>
@@ -145,98 +143,80 @@
     </div>
 
     <!-- Create Task Modal -->
-    <div v-if="showCreateModal" class="modal-overlay" @click.self="showCreateModal = false">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2>新建任务</h2>
-        </div>
-        <form @submit.prevent="handleCreateTask">
-          <div class="modal-body">
-            <div class="form-item">
-              <label class="form-label required">标题</label>
-              <input v-model="newTask.title" required type="text" class="form-input">
-            </div>
-            <div class="form-item">
-              <label class="form-label">分类</label>
-              <input v-model="newTask.category" type="text" class="form-input">
-            </div>
-            <div class="form-item">
-              <label class="form-label">标签</label>
-              <input v-model="newTask.tag" type="text" class="form-input">
-            </div>
-            <div class="form-item">
-              <label class="form-label">分配给</label>
-              <select v-model="newTask.assignedToUserId" class="form-select">
-                <option :value="null">未分配</option>
-                <option v-for="employee in employees" :key="employee.id" :value="employee.id">
-                  {{ employee.email }} ({{ employee.role === 'admin' ? 'Admin' : 'Employee' }})
-                </option>
-              </select>
-            </div>
-            <div class="form-item">
-              <label class="form-label">描述</label>
-              <textarea v-model="newTask.description" rows="3" class="form-textarea"></textarea>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn-secondary" @click="showCreateModal = false">取消</button>
-            <button type="submit" class="btn-primary">创建</button>
-          </div>
-        </form>
+    <BaseModal :show="showCreateModal" title="新建任务" @close="showCreateModal = false">
+      <div class="form-item">
+        <label class="form-label required">标题</label>
+        <input v-model="newTask.title" required type="text" class="form-input">
       </div>
-    </div>
+      <div class="form-item">
+        <label class="form-label">分类</label>
+        <input v-model="newTask.category" type="text" class="form-input">
+      </div>
+      <div class="form-item">
+        <label class="form-label">标签</label>
+        <input v-model="newTask.tag" type="text" class="form-input">
+      </div>
+      <div class="form-item">
+        <label class="form-label">分配给</label>
+        <select v-model="newTask.assignedToUserId" class="form-select">
+          <option :value="null">未分配</option>
+          <option v-for="employee in employees" :key="employee.id" :value="employee.id">
+            {{ employee.email }} ({{ employee.role === 'admin' ? 'Admin' : 'Employee' }})
+          </option>
+        </select>
+      </div>
+      <div class="form-item">
+        <label class="form-label">描述</label>
+        <textarea v-model="newTask.description" rows="3" class="form-textarea"></textarea>
+      </div>
+      <template #footer>
+        <BaseButton variant="secondary" @click="showCreateModal = false">取消</BaseButton>
+        <BaseButton type="submit" @click="handleCreateTask">创建</BaseButton>
+      </template>
+    </BaseModal>
 
     <!-- Edit Task Modal -->
-    <div v-if="showEditModal && selectedTask" class="modal-overlay" @click.self="showEditModal = false">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2>编辑任务</h2>
-        </div>
-        <form @submit.prevent="handleUpdateTask">
-          <div class="modal-body">
-            <div class="form-item">
-              <label class="form-label">标题</label>
-              <input v-model="selectedTask.title" type="text" class="form-input">
-            </div>
-            <div class="form-item">
-              <label class="form-label">分类</label>
-              <input v-model="selectedTask.category" type="text" class="form-input">
-            </div>
-            <div class="form-item">
-              <label class="form-label">标签</label>
-              <input v-model="selectedTask.tag" type="text" class="form-input">
-            </div>
-            <div class="form-item">
-              <label class="form-label">分配给</label>
-              <select v-model="selectedTask.assignedToUserId" class="form-select">
-                <option :value="null">未分配</option>
-                <option v-for="employee in employees" :key="employee.id" :value="employee.id">
-                  {{ employee.email }} ({{ employee.role === 'admin' ? 'Admin' : 'Employee' }})
-                </option>
-              </select>
-            </div>
-            <div class="form-item">
-              <label class="form-label">状态</label>
-              <select v-model="selectedTask.status" class="form-select">
-                <option value="todo">待办</option>
-                <option value="in_progress">进行中</option>
-                <option value="in_review">审核中</option>
-                <option value="done">已完成</option>
-                <option value="cancelled">已取消</option>
-              </select>
-            </div>
-            <div class="form-item">
-              <label class="form-label">描述</label>
-              <textarea v-model="selectedTask.description" rows="3" class="form-textarea"></textarea>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn-secondary" @click="showEditModal = false">取消</button>
-            <button type="submit" class="btn-primary">保存</button>
-          </div>
-        </form>
+    <BaseModal :show="showEditModal && selectedTask !== null" title="编辑任务" @close="showEditModal = false">
+      <div class="form-item">
+        <label class="form-label">标题</label>
+        <input v-model="selectedTask.title" type="text" class="form-input">
       </div>
-    </div>
+      <div class="form-item">
+        <label class="form-label">分类</label>
+        <input v-model="selectedTask.category" type="text" class="form-input">
+      </div>
+      <div class="form-item">
+        <label class="form-label">标签</label>
+        <input v-model="selectedTask.tag" type="text" class="form-input">
+      </div>
+      <div class="form-item">
+        <label class="form-label">分配给</label>
+        <select v-model="selectedTask.assignedToUserId" class="form-select">
+          <option :value="null">未分配</option>
+          <option v-for="employee in employees" :key="employee.id" :value="employee.id">
+            {{ employee.email }} ({{ employee.role === 'admin' ? 'Admin' : 'Employee' }})
+          </option>
+        </select>
+      </div>
+      <div class="form-item">
+        <label class="form-label">状态</label>
+        <select v-model="selectedTask.status" class="form-select">
+          <option value="todo">待办</option>
+          <option value="in_progress">进行中</option>
+          <option value="in_review">审核中</option>
+          <option value="done">已完成</option>
+          <option value="cancelled">已取消</option>
+        </select>
+      </div>
+      <div class="form-item">
+        <label class="form-label">描述</label>
+        <textarea v-model="selectedTask.description" rows="3" class="form-textarea"></textarea>
+      </div>
+      <template #footer>
+        <BaseButton variant="secondary" @click="showEditModal = false">取消</BaseButton>
+        <BaseButton @click="handleUpdateTask">保存</BaseButton>
+      </template>
+    </BaseModal>
   </div>
 </template>
 
@@ -246,6 +226,7 @@ import { useTaskStore } from '@/stores/task'
 import { useAuthStore } from '@/stores/auth'
 import * as backend from '@/services/backend'
 import type { Task, TaskListParams, User } from '@/services/types'
+import { BaseModal, BaseButton, BaseStatusBadge } from '@/components/base'
 
 const taskStore = useTaskStore()
 const authStore = useAuthStore()
@@ -270,25 +251,6 @@ const newTask = reactive({
   description: '',
   assignedToUserId: null as number | null
 })
-
-const statusColors: Record<string, string> = {
-  todo: 'status-todo',
-  in_progress: 'status-progress',
-  in_review: 'status-review',
-  done: 'status-done',
-  cancelled: 'status-cancelled'
-}
-
-function getStatusLabel(status: string) {
-  const labels: Record<string, string> = {
-    todo: '待办',
-    in_progress: '进行中',
-    in_review: '审核中',
-    done: '已完成',
-    cancelled: '已取消'
-  }
-  return labels[status] || status
-}
 
 function formatDate(dateStr: string) {
   const date = new Date(dateStr)
@@ -423,25 +385,6 @@ onMounted(() => {
 
 .btn-primary:hover {
   box-shadow: var(--shadow-lift);
-}
-
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 20px;
-  background: var(--color-background);
-  color: var(--color-foreground);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-  font-weight: 500;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: background 0.3s ease;
-}
-
-.btn-secondary:hover {
-  background: var(--color-muted);
 }
 
 /* Filters Card */
@@ -583,40 +526,6 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-/* Status Badge */
-.status-badge {
-  display: inline-flex;
-  padding: 4px 12px;
-  border-radius: var(--radius-full);
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-.status-todo {
-  background: #f59e0b/10;
-  color: #f59e0b;
-}
-
-.status-progress {
-  background: #3b82f6/10;
-  color: #3b82f6;
-}
-
-.status-review {
-  background: var(--color-secondary)/10;
-  color: var(--color-secondary);
-}
-
-.status-done {
-  background: #10b981/10;
-  color: #10b981;
-}
-
-.status-cancelled {
-  background: var(--color-muted-foreground)/10;
-  color: var(--color-muted-foreground);
-}
-
 .category-tag {
   display: inline-flex;
   padding: 2px 10px;
@@ -678,45 +587,7 @@ onMounted(() => {
   color: var(--color-muted-foreground);
 }
 
-/* Modal */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--color-background)/80;
-  backdrop-filter: blur(4px);
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal-content {
-  width: 100%;
-  max-width: 480px;
-  background: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lift);
-}
-
-.modal-header {
-  padding: 24px 32px 16px;
-}
-
-.modal-header h2 {
-  font-family: var(--font-heading);
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--color-foreground);
-}
-
-.modal-body {
-  padding: 16px 32px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
+/* Form */
 .form-item {
   display: flex;
   flex-direction: column;
@@ -767,13 +638,5 @@ onMounted(() => {
 
 .form-textarea:focus {
   border-color: var(--color-primary);
-}
-
-.modal-footer {
-  padding: 16px 32px 24px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  background: var(--color-muted)/30;
 }
 </style>

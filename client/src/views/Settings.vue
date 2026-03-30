@@ -201,71 +201,54 @@
     </main>
 
     <!-- 添加/编辑配置弹窗 -->
-    <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
-      <div class="modal">
-        <div class="modal-header">
-          <h3>{{ editingConfig ? '编辑配置' : '添加配置' }}</h3>
-          <button class="modal-close" @click="closeModal">✕</button>
-        </div>
+    <BaseModal :show="showModal" :title="editingConfig ? '编辑配置' : '添加配置'" @close="closeModal">
+      <div class="form-group">
+        <label>配置名称</label>
+        <input v-model="modalForm.name" placeholder="如：我的 OpenAI 配置" class="form-input" />
+      </div>
 
-        <div class="modal-body">
-          <div class="form-group">
-            <label>配置名称</label>
-            <input v-model="modalForm.name" placeholder="如：我的 OpenAI 配置" class="form-input" />
-          </div>
+      <div class="form-group">
+        <label>API Base URL</label>
+        <input v-model="modalForm.baseURL" placeholder="https://api.openai.com/v1" class="form-input" />
+      </div>
 
-          <div class="form-group">
-            <label>API Base URL</label>
-            <input v-model="modalForm.baseURL" placeholder="https://api.openai.com/v1" class="form-input" />
-          </div>
+      <div class="form-group">
+        <label>API Key</label>
+        <input v-model="modalForm.apiKey" type="password" placeholder="sk-..." class="form-input" />
+      </div>
 
-          <div class="form-group">
-            <label>API Key</label>
-            <input v-model="modalForm.apiKey" type="password" placeholder="sk-..." class="form-input" />
-          </div>
-
-          <div class="form-group">
-            <div class="models-header">
-              <label>模型列表</label>
-              <button class="add-model-btn" @click="addModalModel" type="button">
-                + 添加模型
-              </button>
-            </div>
-            <div class="modal-models-list">
-              <div v-for="(model, index) in modalForm.models" :key="index" class="modal-model-item">
-                <input v-model="model.id" placeholder="模型 ID" class="form-input model-id-input" />
-                <input v-model="model.description" placeholder="描述" class="form-input model-desc-input" />
-                <button class="remove-model-btn" @click="removeModalModel(index)" type="button">✕</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <button class="btn btn-secondary" @click="closeModal">取消</button>
-          <button
-            class="btn btn-primary"
-            @click="saveConfig"
-            :disabled="!isModalValid"
-          >
-            {{ editingConfig ? '保存' : '添加' }}
+      <div class="form-group">
+        <div class="models-header">
+          <label>模型列表</label>
+          <button class="add-model-btn" @click="addModalModel" type="button">
+            + 添加模型
           </button>
-          <button
-            v-if="editingConfig"
-            class="btn btn-danger"
-            @click="deleteConfig"
-          >
-            删除
-          </button>
+        </div>
+        <div class="modal-models-list">
+          <div v-for="(model, index) in modalForm.models" :key="index" class="modal-model-item">
+            <input v-model="model.id" placeholder="模型 ID" class="form-input model-id-input" />
+            <input v-model="model.description" placeholder="描述" class="form-input model-desc-input" />
+            <button class="remove-model-btn" @click="removeModalModel(index)" type="button">✕</button>
+          </div>
         </div>
       </div>
-    </div>
+      <template #footer>
+        <BaseButton variant="secondary" @click="closeModal">取消</BaseButton>
+        <BaseButton @click="saveConfig" :disabled="!isModalValid">
+          {{ editingConfig ? '保存' : '添加' }}
+        </BaseButton>
+        <BaseButton v-if="editingConfig" variant="danger" @click="deleteConfig">
+          删除
+        </BaseButton>
+      </template>
+    </BaseModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useSettingsStore, BUNDLE_MODELS, type CustomModelConfig, type CustomModelItem } from '@/stores/settings'
+import { BaseModal, BaseButton } from '@/components/base'
 
 const settingsStore = useSettingsStore()
 
@@ -693,62 +676,7 @@ onMounted(async () => {
   color: var(--color-primary);
 }
 
-/* Modal */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal {
-  background: var(--color-background);
-  border-radius: var(--radius-lg);
-  width: 90%;
-  max-width: 500px;
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: var(--shadow-lift);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.modal-header h3 {
-  font-size: 1.1rem;
-  color: var(--color-foreground);
-}
-
-.modal-close {
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: transparent;
-  color: var(--color-muted-foreground);
-  cursor: pointer;
-  border-radius: var(--radius-md);
-  font-size: 1rem;
-}
-
-.modal-close:hover {
-  background: var(--color-muted);
-}
-
-.modal-body {
-  padding: 20px;
-}
-
+/* Form */
 .form-group {
   margin-bottom: 16px;
 }
@@ -830,56 +758,5 @@ onMounted(async () => {
 .remove-model-btn:hover {
   background: var(--color-destructive)/10;
   color: var(--color-destructive);
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 16px 20px;
-  border-top: 1px solid var(--color-border);
-}
-
-.btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: var(--transition-gentle);
-}
-
-.btn-primary {
-  background: var(--color-primary);
-  color: var(--color-primary-foreground);
-}
-
-.btn-primary:hover:not(:disabled) {
-  opacity: 0.9;
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: var(--color-muted);
-  color: var(--color-foreground);
-  border: 1px solid var(--color-border);
-}
-
-.btn-secondary:hover {
-  background: var(--color-background);
-}
-
-.btn-danger {
-  background: var(--color-destructive);
-  color: white;
-}
-
-.btn-danger:hover {
-  opacity: 0.9;
 }
 </style>

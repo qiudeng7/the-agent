@@ -46,20 +46,24 @@
           <span class="record-count">{{ tableData.length }} 条记录</span>
         </div>
         <div class="data-actions">
-          <button @click="openCreateModal" class="btn-primary">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="12" y1="5" x2="12" y2="19"/>
-              <line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            <span>添加</span>
-          </button>
-          <button @click="fetchTableData(selectedTable)" class="btn-secondary">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="23 4 23 10 17 10"/>
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-            </svg>
-            <span>刷新</span>
-          </button>
+          <BaseButton @click="openCreateModal">
+            <template #icon>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+            </template>
+            添加
+          </BaseButton>
+          <BaseButton variant="secondary" @click="fetchTableData(selectedTable)">
+            <template #icon>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"/>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+              </svg>
+            </template>
+            刷新
+          </BaseButton>
         </div>
       </div>
 
@@ -137,97 +141,80 @@
     </div>
 
     <!-- Create Modal -->
-    <div v-if="showCreateModal" class="modal-overlay" @click.self="showCreateModal = false">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2>添加记录</h2>
-        </div>
-        <div class="modal-body">
-          <div v-for="field in editableFields" :key="field.name" class="form-item">
-            <label class="form-label">{{ field.name }}</label>
-            <select v-if="field.type === 'role'" v-model="formData[field.name]" class="form-select">
-              <option value="">请选择</option>
-              <option value="admin">Admin</option>
-              <option value="employee">Employee</option>
-            </select>
-            <input
-              v-else-if="field.type === 'status'"
-              v-model="formData[field.name]"
-              type="text"
-              class="form-input"
-              placeholder="todo, in_progress, in_review, done, cancelled"
-            >
-            <input v-else v-model="formData[field.name]" :type="field.type" class="form-input">
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn-secondary" @click="showCreateModal = false">取消</button>
-          <button type="button" class="btn-primary" @click="createRecord">创建</button>
-        </div>
+    <BaseModal :show="showCreateModal" title="添加记录" @close="showCreateModal = false">
+      <div v-for="field in editableFields" :key="field.name" class="form-item">
+        <label class="form-label">{{ field.name }}</label>
+        <select v-if="field.type === 'role'" v-model="formData[field.name]" class="form-select">
+          <option value="">请选择</option>
+          <option value="admin">Admin</option>
+          <option value="employee">Employee</option>
+        </select>
+        <input
+          v-else-if="field.type === 'status'"
+          v-model="formData[field.name]"
+          type="text"
+          class="form-input"
+          placeholder="todo, in_progress, in_review, done, cancelled"
+        >
+        <input v-else v-model="formData[field.name]" :type="field.type" class="form-input">
       </div>
-    </div>
+      <template #footer>
+        <BaseButton variant="secondary" @click="showCreateModal = false">取消</BaseButton>
+        <BaseButton variant="primary" @click="createRecord">创建</BaseButton>
+      </template>
+    </BaseModal>
 
     <!-- Edit Modal -->
-    <div v-if="showEditModal" class="modal-overlay" @click.self="showEditModal = false">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2>编辑记录</h2>
-        </div>
-        <div class="modal-body">
-          <div v-for="field in editableFields" :key="field.name" class="form-item">
-            <label class="form-label">{{ field.name }}</label>
-            <select v-if="field.type === 'role'" v-model="formData[field.name]" class="form-select">
-              <option value="">请选择</option>
-              <option value="admin">Admin</option>
-              <option value="employee">Employee</option>
-            </select>
-            <input
-              v-else-if="field.type === 'status'"
-              v-model="formData[field.name]"
-              type="text"
-              class="form-input"
-              placeholder="todo, in_progress, in_review, done, cancelled"
-            >
-            <input v-else v-model="formData[field.name]" :type="field.type" class="form-input">
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn-secondary" @click="showEditModal = false">取消</button>
-          <button type="button" class="btn-primary" @click="updateRecord">保存</button>
-        </div>
+    <BaseModal :show="showEditModal" title="编辑记录" @close="showEditModal = false">
+      <div v-for="field in editableFields" :key="field.name" class="form-item">
+        <label class="form-label">{{ field.name }}</label>
+        <select v-if="field.type === 'role'" v-model="formData[field.name]" class="form-select">
+          <option value="">请选择</option>
+          <option value="admin">Admin</option>
+          <option value="employee">Employee</option>
+        </select>
+        <input
+          v-else-if="field.type === 'status'"
+          v-model="formData[field.name]"
+          type="text"
+          class="form-input"
+          placeholder="todo, in_progress, in_review, done, cancelled"
+        >
+        <input v-else v-model="formData[field.name]" :type="field.type" class="form-input">
       </div>
-    </div>
+      <template #footer>
+        <BaseButton variant="secondary" @click="showEditModal = false">取消</BaseButton>
+        <BaseButton variant="primary" @click="updateRecord">保存</BaseButton>
+      </template>
+    </BaseModal>
 
     <!-- Delete Modal -->
-    <div v-if="showDeleteModal" class="modal-overlay" @click.self="showDeleteModal = false">
-      <div class="modal-content modal-delete">
-        <div class="modal-body">
-          <div class="delete-warning">
-            <div class="warning-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="12"/>
-                <line x1="12" y1="16" x2="12.01" y2="16"/>
-              </svg>
-            </div>
-            <div class="warning-text">
-              <h3>确认删除</h3>
-              <p>确定要删除这条记录吗？此操作无法撤销。</p>
-            </div>
-          </div>
+    <BaseModal :show="showDeleteModal" title="" size="sm" @close="showDeleteModal = false">
+      <div class="delete-warning">
+        <div class="warning-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn-secondary" @click="showDeleteModal = false">取消</button>
-          <button type="button" class="btn-danger" @click="deleteRecord">删除</button>
+        <div class="warning-text">
+          <h3>确认删除</h3>
+          <p>确定要删除这条记录吗？此操作无法撤销。</p>
         </div>
       </div>
-    </div>
+      <template #footer>
+        <BaseButton variant="secondary" @click="showDeleteModal = false">取消</BaseButton>
+        <BaseButton variant="danger" @click="deleteRecord">删除</BaseButton>
+      </template>
+    </BaseModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, h } from 'vue'
 import * as backend from '@/services/backend'
+import { BaseModal, BaseButton, BaseTable } from '@/components/base'
 
 // 表格列表及其字段定义
 const tables = ref([
@@ -483,64 +470,6 @@ onMounted(() => {
   color: var(--color-muted-foreground);
 }
 
-/* Buttons */
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  background: var(--color-primary);
-  color: var(--color-primary-foreground);
-  border: none;
-  border-radius: var(--radius-full);
-  font-weight: 500;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: box-shadow 0.3s ease;
-}
-
-.btn-primary:hover {
-  box-shadow: var(--shadow-lift);
-}
-
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  background: var(--color-background);
-  color: var(--color-foreground);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-  font-weight: 500;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: background 0.3s ease;
-}
-
-.btn-secondary:hover {
-  background: var(--color-muted);
-}
-
-.btn-danger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 20px;
-  background: var(--color-destructive);
-  color: white;
-  border: none;
-  border-radius: var(--radius-full);
-  font-weight: 500;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: box-shadow 0.3s ease;
-}
-
-.btn-danger:hover {
-  box-shadow: 0 4px 12px var(--color-destructive)/30;
-}
-
 /* Tables Card */
 .tables-card {
   padding: 24px;
@@ -794,45 +723,7 @@ onMounted(() => {
   background: var(--color-destructive)/10;
 }
 
-/* Modal */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--color-background)/80;
-  backdrop-filter: blur(4px);
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal-content {
-  width: 100%;
-  max-width: 480px;
-  background: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lift);
-}
-
-.modal-header {
-  padding: 24px 32px 16px;
-}
-
-.modal-header h2 {
-  font-family: var(--font-heading);
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--color-foreground);
-}
-
-.modal-body {
-  padding: 16px 32px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
+/* Form */
 .form-item {
   display: flex;
   flex-direction: column;
@@ -863,19 +754,7 @@ onMounted(() => {
   border-color: var(--color-primary);
 }
 
-.modal-footer {
-  padding: 16px 32px 24px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  background: var(--color-muted)/30;
-}
-
-/* Delete Modal */
-.modal-delete .modal-body {
-  padding: 24px 32px;
-}
-
+/* Delete Warning */
 .delete-warning {
   display: flex;
   align-items: flex-start;
