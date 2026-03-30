@@ -10,6 +10,7 @@
     :messages="messages"
     :is-generating="isGenerating"
     :streaming-content-blocks="streamingContentBlocks"
+    :all-content-blocks="allContentBlocks"
     :initial-model="sessionModel"
     empty-title="任务助手"
     empty-desc="询问关于此任务的任何问题"
@@ -61,6 +62,11 @@ const isGenerating = computed(() => {
 const streamingContentBlocks = computed(() => {
   if (!isGenerating.value) return []
   return agentStore.currentContent.filter(b => b.type !== 'tool_result')
+})
+
+const allContentBlocks = computed(() => {
+  if (!isGenerating.value) return []
+  return agentStore.currentContent
 })
 
 // ── 初始化模型 ────────────────────────────────────────────────────────────────

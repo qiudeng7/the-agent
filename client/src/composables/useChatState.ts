@@ -9,8 +9,10 @@ import { useSettingsStore } from '@/stores/settings'
 import type { ContentBlock, ToolResultContent } from '#claude/types'
 
 export interface UseChatStateOptions {
-  /** 流式内容块 */
+  /** 流式内容块（不含 tool_result，用于渲染） */
   streamingContentBlocks: ComputedRef<ContentBlock[]>
+  /** 所有内容块（含 tool_result，用于获取工具结果） */
+  allContentBlocks: ComputedRef<ContentBlock[]>
 }
 
 export interface UseChatStateReturn {
@@ -43,7 +45,7 @@ export interface UseChatStateReturn {
  * 聊天状态管理 composable
  */
 export function useChatState(options: UseChatStateOptions): UseChatStateReturn {
-  const { streamingContentBlocks } = options
+  const { streamingContentBlocks, allContentBlocks } = options
 
   const settingsStore = useSettingsStore()
 
@@ -75,7 +77,7 @@ export function useChatState(options: UseChatStateOptions): UseChatStateReturn {
   }
 
   function getToolResult(toolUseId: string): ToolResultContent | undefined {
-    return streamingContentBlocks.value.find(
+    return allContentBlocks.value.find(
       b => b.type === 'tool_result' && b.toolUseId === toolUseId,
     ) as ToolResultContent | undefined
   }

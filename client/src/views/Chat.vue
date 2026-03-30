@@ -9,6 +9,7 @@
     :messages="messages"
     :is-generating="isCurrentSessionGenerating"
     :streaming-content-blocks="streamingContentBlocks"
+    :all-content-blocks="allContentBlocks"
     :initial-model="sessionModel"
     :on-submit="handleSubmit"
     :on-stop="handleStop"
@@ -52,10 +53,16 @@ const isCurrentSessionGenerating = computed(() => {
   return agentStore.isGenerating && agentStore.currentSessionId === sessionId.value
 })
 
-/** 流式内容块 */
+/** 流式内容块（不含 tool_result，用于渲染） */
 const streamingContentBlocks = computed(() => {
   if (!isCurrentSessionGenerating.value) return []
   return agentStore.currentContent.filter(b => b.type !== 'tool_result')
+})
+
+/** 所有内容块（含 tool_result，用于获取工具结果） */
+const allContentBlocks = computed(() => {
+  if (!isCurrentSessionGenerating.value) return []
+  return agentStore.currentContent
 })
 
 // ── 事件处理 ──────────────────────────────────────────────────────────────────

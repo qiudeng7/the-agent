@@ -64,8 +64,10 @@ const props = withDefaults(defineProps<{
   messages: Message[]
   /** 是否正在生成 */
   isGenerating: boolean
-  /** 流式内容块 */
+  /** 流式内容块（不含 tool_result，用于渲染） */
   streamingContentBlocks: ContentBlock[]
+  /** 所有内容块（含 tool_result，用于获取工具结果） */
+  allContentBlocks?: ContentBlock[]
   /** 空状态标题 */
   emptyTitle?: string
   /** 空状态描述 */
@@ -94,6 +96,7 @@ const messageListRef = ref<InstanceType<typeof MessageList> | null>(null)
 
 // ── Composables ───────────────────────────────────────────────────────────────
 const streamingContentBlocksComputed = computed(() => props.streamingContentBlocks)
+const allContentBlocksComputed = computed(() => props.allContentBlocks ?? props.streamingContentBlocks)
 
 const {
   isStreamingThinkingCollapsed,
@@ -106,6 +109,7 @@ const {
   toggleToolExpand,
 } = useChatState({
   streamingContentBlocks: streamingContentBlocksComputed,
+  allContentBlocks: allContentBlocksComputed,
 })
 
 const {
