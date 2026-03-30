@@ -9,7 +9,6 @@
  *                agent:submit-answer renderer → main (invoke): 提交 AskUserQuestion 答案
  *                agent:ask-question main → renderer (send): 发送 AskUserQuestion 请求
  *                agent:answer-question renderer → main (invoke): 回答 AskUserQuestion
- *                claude-installer:progress main → renderer (send): 推送 Claude CLI 安装进度
  *
  *              构造函数中一次性注册 ipcMain 处理器，onRun / onAbort 只设置回调指针，
  *              避免同一通道多次 handle 的冲突。
@@ -20,7 +19,6 @@ import { ipcMain } from 'electron'
 import type { BrowserWindow } from 'electron'
 import type { ClaudeEvent, ClaudeRunOptions, AskUserQuestionAnswerPayload } from '#claude/types'
 import type { IClaudeTransportServer, AskUserQuestionRequest, AskUserQuestionResponse } from '#claude/interfaces/transport'
-import type { InstallerProgressEvent } from '#claude-installer/types'
 
 export class ElectronAgentTransport implements IClaudeTransportServer {
   private _getWindow: () => BrowserWindow | null
@@ -84,11 +82,6 @@ export class ElectronAgentTransport implements IClaudeTransportServer {
   /** 向渲染进程推送流式事件 */
   send(event: ClaudeEvent): void {
     this._getWindow()?.webContents.send('agent:event', event)
-  }
-
-  /** 向渲染进程推送 Claude 安装进度消息 */
-  sendProgress(event: InstallerProgressEvent): void {
-    this._getWindow()?.webContents.send('claude-installer:progress', event)
   }
 
   onRun(handler: (options: ClaudeRunOptions) => void): () => void {
