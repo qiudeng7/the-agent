@@ -2,18 +2,21 @@
  * @module plugins/db-init
  * @description 数据库初始化插件
  *              在 Nitro 服务启动时检查并初始化测试数据
+ *
+ *              仅用于开发环境的内存数据库，生产环境 D1 需要通过迁移初始化
  */
-import { getDb, users, tasks } from '~/db'
+import { db, users, tasks, initSchema } from '~/db'
 import { hashPassword } from '~/utils/crypto'
 import { nanoid } from 'nanoid'
-import { eq } from 'drizzle-orm'
 
 let initialized = false
 
 async function initDatabase() {
   if (initialized) return
 
-  const db = getDb()
+  console.log('[DB Init] Initializing database schema...')
+  await initSchema()
+  console.log('[DB Init] Schema initialized')
 
   console.log('[DB Init] Checking database status...')
 

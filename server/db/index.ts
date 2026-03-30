@@ -1,99 +1,165 @@
 /**
  * @module db/index
- * @description 数据库连接适配器
- *              支持 D1（Cloudflare Workers）和 better-sqlite3（本地开发/单机部署）
+ * @description 数据库连接层
+ *              使用 Nitro database API + drizzle-orm
  *
- *              Nitro 3 通过 db0 连接器配置数据库：
- *              - 生产环境：cloudflare-d1 连接器，通过 globalThis.__env__.DB 获取绑定
- *              - 开发环境：better-sqlite3 连接器
+ *              架构：
+ *              - 开发环境：Node.js SQLite（内存数据库）+ drizzle-orm/better-sqlite3
+ *              - 生产环境：Cloudflare D1 + drizzle-orm/d1
+ *
+ *              Nitro 的 database 配置用于设置 D1 binding，
+ *              我们直接从 Nitro 环境获取数据库连接。
  */
-import { drizzle } from 'drizzle-orm/d1'
-import { drizzle as drizzleSqlite } from 'drizzle-orm/better-sqlite3'
-import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
-import type { DrizzleD1Database } from 'drizzle-orm/d1'
+import { drizzle as drizzleD1 } from 'drizzle-orm/d1'
+import { drizzle as drizzleBetterSqlite3 } from 'drizzle-orm/better-sqlite3'
 import Database from 'better-sqlite3'
-import { existsSync, mkdirSync } from 'node:fs'
-import { join, dirname } from 'node:path'
 import * as schema from './schema'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 类型定义
 // ─────────────────────────────────────────────────────────────────────────────
 
-// 使用 BetterSQLite3Database 作为基础类型，因为 D1 和 SQLite 的方法签名相同
-// 运行时会根据环境返回正确的实例
-type DrizzleDb = BetterSQLite3Database<typeof schema>
+type DrizzleDb = ReturnType<typeof drizzleD1<typeof schema>>
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 本地开发数据库（单例）
+// 数据库实例获取
 // ─────────────────────────────────────────────────────────────────────────────
 
-let _localDb: DrizzleDb | null = null
-
-function getLocalDb(): DrizzleDb {
-  if (_localDb) return _localDb
-
-  const dbPath = join(process.cwd(), 'data', 'local.db')
-  const dbDir = dirname(dbPath)
-
-  if (!existsSync(dbDir)) {
-    mkdirSync(dbDir, { recursive: true })
-  }
-
-  const sqlite = new Database(dbPath)
-  sqlite.pragma('journal_mode = WAL')
-  _localDb = drizzleSqlite(sqlite, { schema })
-  return _localDb
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// D1 数据库获取
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * 获取 D1 数据库实例（用于 Cloudflare Workers）
- *
- * Nitro 使用 db0 cloudflare-d1 连接器，它会将 D1 binding 放到：
- * - globalThis.__env__.DB（推荐方式）
- * - globalThis.__cf_env__.DB（旧版兼容）
- */
-function getD1Db(): DrizzleDb | null {
-  // Nitro/db0 推荐的访问方式
-  const env = (globalThis as any).__env__
-  if (env && env.DB) {
-    // D1 和 SQLite 的 Drizzle 方法签名相同，类型断言为 DrizzleDb
-    return drizzle(env.DB, { schema }) as unknown as DrizzleDb
-  }
-
-  // 旧版兼容方式
-  const cfEnv = (globalThis as any).__cf_env__
-  if (cfEnv && cfEnv.DB) {
-    return drizzle(cfEnv.DB, { schema }) as unknown as DrizzleDb
-  }
-
-  return null
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 导出
-// ─────────────────────────────────────────────────────────────────────────────
+let _db: DrizzleDb | null = null
 
 /**
  * 获取数据库实例
- * - Cloudflare Workers: 使用 D1（通过 Nitro 的 __env__ 绑定）
- * - 本地开发: 使用 better-sqlite3
+ * - 生产环境：从 Nitro 的 D1 binding 获取
+ * - 开发环境：使用 better-sqlite3 内存数据库
  */
-export function getDb(): DrizzleDb {
-  const d1Db = getD1Db()
-  if (d1Db) return d1Db
-  return getLocalDb()
+function getDb(): DrizzleDb {
+  if (_db) return _db
+
+  // 尝试获取 D1 binding（生产环境）
+  // Nitro 会将 D1 binding 放到 globalThis.__env__.DB
+  const env = (globalThis as any).__env__
+  if (env?.DB) {
+    console.log('[DB] Using D1 database')
+    _db = drizzleD1(env.DB, { schema }) as DrizzleDb
+    return _db
+  }
+
+  // 开发环境：使用 better-sqlite3 内存数据库
+  console.log('[DB] Using better-sqlite3 in-memory database')
+  const sqlite = new Database(':memory:')
+  _db = drizzleBetterSqlite3(sqlite, { schema }) as DrizzleDb
+  return _db
 }
 
-// 便捷导出（使用 Proxy 实现延迟加载）
+// 导出数据库实例（延迟初始化）
 export const db: DrizzleDb = new Proxy({} as DrizzleDb, {
   get(_, prop) {
     return getDb()[prop as keyof DrizzleDb]
   },
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Schema 初始化（仅用于开发环境内存数据库）
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * 初始化数据库表结构
+ * 仅用于开发环境的内存数据库，生产环境通过 D1 迁移
+ */
+export async function initSchema() {
+  // 只在开发环境（内存数据库）执行
+  const env = (globalThis as any).__env__
+  if (env?.DB) {
+    console.log('[DB] Skipping schema init for D1')
+    return
+  }
+
+  const sqlite = new Database(':memory:')
+
+  // 创建用户表
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id text PRIMARY KEY NOT NULL,
+      email text NOT NULL,
+      password_hash text NOT NULL,
+      nickname text,
+      role text DEFAULT 'employee' NOT NULL,
+      created_at integer NOT NULL,
+      updated_at integer NOT NULL,
+      deleted_at integer
+    )
+  `)
+
+  sqlite.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique ON users (email)
+  `)
+
+  // 创建聊天会话表
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS chat_sessions (
+      id text PRIMARY KEY NOT NULL,
+      user_id text NOT NULL,
+      title text NOT NULL,
+      model text NOT NULL,
+      task_id integer,
+      created_at integer NOT NULL,
+      updated_at integer NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON UPDATE no action ON DELETE cascade
+    )
+  `)
+
+  // 创建消息表
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS messages (
+      id text PRIMARY KEY NOT NULL,
+      session_id text NOT NULL,
+      role text NOT NULL,
+      content text NOT NULL,
+      model text,
+      timestamp integer NOT NULL,
+      FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON UPDATE no action ON DELETE cascade
+    )
+  `)
+
+  // 创建用户设置表
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS user_settings (
+      user_id text PRIMARY KEY NOT NULL,
+      language text DEFAULT 'system' NOT NULL,
+      theme text DEFAULT 'system' NOT NULL,
+      custom_model_configs text,
+      enabled_models text,
+      default_model text,
+      updated_at integer NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON UPDATE no action ON DELETE cascade
+    )
+  `)
+
+  // 创建任务表
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS tasks (
+      id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+      title text NOT NULL,
+      category text,
+      tag text,
+      description text,
+      status text DEFAULT 'todo' NOT NULL,
+      created_by_user_id text NOT NULL,
+      assigned_to_user_id text,
+      created_at integer NOT NULL,
+      updated_at integer NOT NULL,
+      deleted_at integer,
+      FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON UPDATE no action ON DELETE cascade,
+      FOREIGN KEY (assigned_to_user_id) REFERENCES users(id) ON UPDATE no action ON DELETE set null
+    )
+  `)
+
+  // 更新全局数据库实例
+  _db = drizzleBetterSqlite3(sqlite, { schema }) as DrizzleDb
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 导出
+// ─────────────────────────────────────────────────────────────────────────────
 
 export * from './schema'

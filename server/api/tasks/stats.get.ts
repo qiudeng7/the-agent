@@ -4,13 +4,12 @@
  *              GET /api/tasks/stats
  */
 import { defineEventHandler } from 'h3'
-import { getDb, tasks } from '~/db'
+import { db, tasks } from '~/db'
 import { requireAuth } from '~/utils/auth'
 import { eq, and, isNull, sql } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const authUser = await requireAuth(event)
-  const db = getDb()
 
   // 构建基础条件
   const baseConditions = [isNull(tasks.deletedAt)]

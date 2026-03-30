@@ -180,3 +180,101 @@ export const emitter = mitt<AppEvents>()
   ```
 - 检查注释是否齐全，与实际功能是否对应
 - 非一级业务模块需在文件头部解释其作用
+
+## 依赖管理
+
+**添加新依赖时，使用 pnpm 命令安装，不要直接修改 package.json 中的版本号**：
+
+```bash
+# 添加运行时依赖
+pnpm add <package-name>
+
+# 添加开发依赖
+pnpm add -D <package-name>
+```
+
+这样可以确保安装最新稳定版本，避免手动指定过时的版本号。
+
+## 后端数据库架构
+
+### 架构概述
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    运行时数据库访问                           │
+│  drizzle-orm + better-sqlite3 (dev) / d1 (prod)             │
+│  - 开发环境：better-sqlite3 内存数据库                        │
+│  - 生产环境：Cloudflare D1（通过 Nitro binding）              │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│                    数据库迁移流程                             │
+│  1. drizzle-kit generate → 生成迁移 SQL 文件                  │
+│  2. wrangler d1 execute → 应用迁移到 D1                       │
+│  （开发环境内存数据库无需迁移，每次启动自动初始化）              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 关键文件
+
+| 文件 | 用途 |
+|------|------|
+| `server/nitro.config.ts` | Nitro 配置（experimental.database + D1 binding） |
+| `server/db/index.ts` | 数据库连接层（drizzle-orm + better-sqlite3/d1） |
+| `server/db/schema.ts` | Drizzle ORM Schema 定义 |
+| `server/drizzle.config.ts` | Drizzle Kit 配置（只用于生成迁移文件） |
+| `server/db/migrations/` | 迁移 SQL 文件目录 |
+| `server/wrangler.toml` | Cloudflare D1 binding 配置 |
+
+### 运行时数据库访问
+
+使用 drizzle-orm 的原生驱动，根据环境自动切换：
+
+```typescript
+// server/db/index.ts
+import { drizzle as drizzleD1 } from 'drizzle-orm/d1'
+import { drizzle as drizzleBetterSqlite3 } from 'drizzle-orm/better-sqlite3'
+
+// 生产环境：从 Nitro 的 D1 binding 获取
+const env = globalThis.__env__
+if (env?.DB) {
+  return drizzleD1(env.DB, { schema })
+}
+
+// 开发环境：使用 better-sqlite3 内存数据库
+const sqlite = new Database(':memory:')
+return drizzleBetterSqlite3(sqlite, { schema })
+```
+
+**工作原理**：
+- Nitro 的 `experimental.database: true` 确保 D1 binding 正确配置
+- `database` 配置指定生产环境使用 `cloudflare-d1` connector
+- D1 binding 会被放到 `globalThis.__env__.DB`
+- 开发环境使用 better-sqlite3 内存数据库，通过 `initSchema()` 初始化表结构
+
+### 数据库迁移
+
+**开发环境**：使用内存数据库（`:memory:`），每次启动通过 `plugins/db-init.ts` 自动初始化测试数据，无需迁移。
+
+**生产环境（D1）**：
+
+```bash
+# 1. 生成迁移文件（不需要数据库连接）
+pnpm run db:generate
+
+# 2. 应用迁移到 D1（需要 wrangler 登录）
+pnpm run db:migrate:d1
+```
+
+**迁移文件管理**：
+- `db/migrations/0000_xxx.sql`、`0001_xxx.sql` - drizzle-kit 生成的迁移文件
+- `db/migrations/all.sql` - 合并所有迁移，用于一次性部署新环境
+
+### 添加新表或字段
+
+1. 修改 `server/db/schema.ts` 添加表定义或字段
+2. 运行 `pnpm run db:generate` 生成迁移文件
+3. 将新生成的迁移 SQL 追加到 `all.sql`
+4. 同时更新 `server/db/index.ts` 中的 `initSchema()` 函数
+5. 运行 `pnpm run db:migrate:d1` 应用到 D1
+6. 开发环境重启即可（内存数据库自动重建）

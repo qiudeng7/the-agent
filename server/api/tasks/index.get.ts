@@ -6,7 +6,7 @@
  *              - employee: 查看分配给自己的任务
  */
 import { defineEventHandler, getQuery } from 'h3'
-import { getDb, tasks, type Task } from '~/db'
+import { db, tasks, type Task } from '~/db'
 import { requireAuth } from '~/utils/auth'
 import { eq, and, like, or, isNull, sql } from 'drizzle-orm'
 
@@ -15,7 +15,6 @@ type TaskStatusType = 'todo' | 'in_progress' | 'in_review' | 'done' | 'cancelled
 export default defineEventHandler(async (event) => {
   const authUser = await requireAuth(event)
   const query = getQuery(event)
-  const db = getDb()
 
   const page = parseInt((query.page as string) || '1')
   const pageSize = parseInt((query.pageSize as string) || '10')
