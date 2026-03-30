@@ -143,6 +143,9 @@ async function handleSuggestion(text: string) {
 }
 
 async function handleSubmit(input: string, options: { model: string; permissionMode: PermissionMode }) {
+  // 保存用户选择的权限模式，确保 Chat 页面能使用正确的值
+  settingsStore.setPermissionMode(options.permissionMode)
+
   const session = await chatStore.createSession(input)
   // 设置会话的当前模型
   if (options.model) {
