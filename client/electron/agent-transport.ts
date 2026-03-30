@@ -111,13 +111,7 @@ export class ElectronAgentTransport implements IClaudeTransportServer {
     }
 
     return new Promise((resolve) => {
-      // 设置 resolver
-      this._askQuestionResolvers.set(request.toolUseId, resolve)
-
-      // 发送请求给前端
-      window.webContents.send('agent:ask-question', request)
-
-      // 设置超时（5分钟），保存 timer ID 以便清理
+      // 先设置超时，超时后清理 resolver 并返回 null
       const timeoutId = setTimeout(() => {
         if (this._askQuestionResolvers.has(request.toolUseId)) {
           this._askQuestionResolvers.delete(request.toolUseId)
@@ -125,12 +119,15 @@ export class ElectronAgentTransport implements IClaudeTransportServer {
         }
       }, 5 * 60 * 1000)
 
-      // 清理函数：在 resolver 被调用时清除 timer
-      const originalResolve = resolve
+      // 设置 resolver，在响应到达时清除超时并返回结果
       this._askQuestionResolvers.set(request.toolUseId, (response) => {
         clearTimeout(timeoutId)
-        originalResolve(response)
+        this._askQuestionResolvers.delete(request.toolUseId)
+        resolve(response)
       })
+
+      // 发送请求给前端
+      window.webContents.send('agent:ask-question', request)
     })
   }
 }

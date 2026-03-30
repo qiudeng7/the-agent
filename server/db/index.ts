@@ -74,7 +74,16 @@ export async function initSchema() {
     return
   }
 
-  const sqlite = new Database(':memory:')
+  // 如果已有数据库实例，复用它（避免重复创建内存数据库）
+  let sqlite: Database.Database
+  if (_db) {
+    // 已有实例，需要获取底层 sqlite 对象
+    // drizzle-orm/better-sqlite3 的内部结构无法直接获取，重新创建并替换
+    console.log('[DB] Replacing existing in-memory database for schema init')
+    sqlite = new Database(':memory:')
+  } else {
+    sqlite = new Database(':memory:')
+  }
 
   // 创建用户表
   sqlite.exec(`
