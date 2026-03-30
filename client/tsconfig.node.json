@@ -13,9 +13,7 @@
       "#agent": ["agent/index.ts"],
       "#agent/*": ["agent/*"],
       "#claude": ["claude/index.ts"],
-      "#claude/*": ["claude/*"],
-      "#claude-installer": ["claude-installer/index.ts"],
-      "#claude-installer/*": ["claude-installer/*"]
+      "#claude/*": ["claude/*"]
     }
   },
   "include": [
@@ -23,8 +21,7 @@
     "forge.config.ts",
     "electron/**/*.ts",
     "agent/**/*.ts",
-    "claude/**/*.ts",
-    "claude-installer/**/*.ts"
+    "claude/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }

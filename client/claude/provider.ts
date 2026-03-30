@@ -23,7 +23,6 @@ import type {
 import type { BetaRawMessageStreamEvent, BetaContentBlock, BetaTextBlock, BetaThinkingBlock, BetaToolUseBlock } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 import type { ClaudeRunOptions, ClaudeEvent, ContentBlock, AskUserQuestionAnswerPayload, AskUserQuestionItem } from './types'
 import type { IClaudeTransportServer } from './interfaces/transport'
-import { detectClaude } from '#claude-installer'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CLI 路径解析
@@ -55,12 +54,8 @@ function getSdkCliPath(): string {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface ClaudeProviderOptions {
-  /** Claude Code 可执行文件路径（如果已安装） */
-  claudePath?: string
   /** 默认模型，默认值：'claude-opus-4-6' */
   defaultModel?: string
-  /** 进度回调，用于在初始化过程中向用户显示进度信息 */
-  onProgress?: (message: string) => void
   /** Transport 用于发送 AskUserQuestion 请求给前端 */
   transport?: IClaudeTransportServer
 }
@@ -69,9 +64,7 @@ export class ClaudeAgentProvider {
   readonly name = 'claude-agent-sdk'
 
   private sdkCliPath: string
-  private claudePath: string | null = null
   private defaultModel: string
-  private onProgress?: (message: string) => void
   /** Transport 用于发送 AskUserQuestion 请求 */
   private transport?: IClaudeTransportServer
   /** 正在运行的任务：taskId → AbortController */
@@ -82,45 +75,13 @@ export class ClaudeAgentProvider {
   private pendingAnswers = new Map<string, AskUserQuestionAnswerPayload[]>()
   /** 答案等待的 Promise resolve 函数 */
   private answerResolvers = new Map<string, (answer: AskUserQuestionAnswerPayload) => void>()
-  /** 是否已初始化（检测 claude 路径） */
-  private initialized = false
 
   constructor(options: ClaudeProviderOptions = {}) {
     this.sdkCliPath = getSdkCliPath()
-    this.claudePath = options.claudePath ?? null
     this.defaultModel = options.defaultModel ?? 'claude-opus-4-6'
-    this.onProgress = options.onProgress
     this.transport = options.transport
 
     console.log('[ClaudeAgentProvider] SDK CLI path:', this.sdkCliPath)
-  }
-
-  /**
-   * 初始化：检测 Claude Code 路径。
-   */
-  async initialize(): Promise<void> {
-    if (this.initialized) return
-
-    // 如果已提供路径，直接使用
-    if (this.claudePath) {
-      console.log('[ClaudeAgentProvider] Using provided claude path:', this.claudePath)
-      this.initialized = true
-      return
-    }
-
-    // 检测系统中是否已安装
-    this.onProgress?.('Detecting Claude Code installation...')
-    const detected = await detectClaude()
-    if (detected) {
-      this.claudePath = detected
-      console.log('[ClaudeAgentProvider] Detected claude at:', this.claudePath)
-      this.onProgress?.(`Found Claude Code at: ${this.claudePath}`)
-    } else {
-      console.log('[ClaudeAgentProvider] Claude Code not found, will use SDK cli.js')
-      this.onProgress?.('Claude Code not found in system')
-    }
-
-    this.initialized = true
   }
 
   abort(taskId: string): void {
@@ -165,9 +126,6 @@ export class ClaudeAgentProvider {
   }
 
   async *run(options: ClaudeRunOptions): AsyncIterable<ClaudeEvent> {
-    // 确保已初始化
-    await this.initialize()
-
     const { taskId } = options
     const ctrl = new AbortController()
     this.runningTasks.set(taskId, ctrl)
@@ -368,10 +326,7 @@ export class ClaudeAgentProvider {
       env.ANTHROPIC_BASE_URL = baseURL
     }
 
-    // 确定 pathToClaudeCodeExecutable：
-    // - 如果检测到系统安装的 claude，使用该路径
-    // - 否则使用 SDK 包内的 cli.js
-    const pathToClaudeCodeExecutable = this.claudePath || this.sdkCliPath
+    const pathToClaudeCodeExecutable = this.sdkCliPath
 
     return {
       model: model ?? this.defaultModel,
