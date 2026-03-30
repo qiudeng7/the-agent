@@ -62,6 +62,19 @@ pnpm run dev
 - `client/dist-electron/` - 编译后的主进程和预加载脚本
 - `client/out/` - Electron Forge 打包的最终产品
 
+### Claude Code 二进制预置
+
+构建时（`pnpm run make` / `pnpm run make:win`）会自动执行以下流程：
+
+1. Forge 的 `generateAssets` hook 根据目标平台调用 `client/claude/downloader.ts`
+2. 从 Anthropic GCS 下载对应平台的 Claude Code 最新版二进制到 `client/claude-code-installation-assets/{platform}/`
+3. 若文件已存在且 SHA256 与 manifest 一致，跳过下载
+4. 将该目录作为 `extraResource` 打包进 app，最终位于 `Resources/{platform}/claude[.exe]`
+
+运行时，`electron/main/index.ts` 的 `resolveBundledClaudePath()` 检测 `process.resourcesPath` 下的二进制，找到则注入给 `ClaudeAgentProvider`（`pathToClaudeCodeExecutable`）。
+
+`claude-code-installation-assets/` 已加入 `.gitignore`，不提交到仓库。
+
 ## 版本发布
 
 发布新版本时需要：
@@ -285,38 +298,3 @@ pnpm run db:migrate:d1
 4. 同时更新 `server/db/index.ts` 中的 `initSchema()` 函数
 5. 运行 `pnpm run db:migrate:d1` 应用到 D1
 6. 开发环境重启即可（内存数据库自动重建）
-
-## Claude CLI 安装器
-
-`client/claude-installer/` 模块负责检测和安装 Claude Code CLI。
-
-### 模块结构
-
-```
-client/claude-installer/
-├── index.ts           # 模块入口，导出公共 API
-├── types.ts           # 类型定义和默认配置
-├── installer.ts       # 主安装器，协调检测和安装流程
-├── detector.ts        # 检测系统中的 Claude/npm/fnm
-├── npm-installer.ts   # 使用 npm 安装 Claude
-└── fnm-installer.ts   # FNM 安装和 Node.js 管理
-```
-
-### 安装流程
-
-`ensureClaudeInstalled()` 函数按以下优先级工作：
-
-1. **检测已安装**：检查系统中是否已有 `claude` 命令
-2. **使用 npm 安装**：如果有 npm，直接 `npm install -g @anthropic-ai/claude-code`
-3. **使用 fnm 安装**：如果没有 npm 但有 fnm，先安装 Node.js 再安装 Claude
-4. **完整安装**：如果没有 fnm，下载安装 fnm → Node.js → Claude
-
-### 集成点
-
-`client/claude/provider.ts` 的 `initialize()` 方法会在启动时调用 `ensureClaudeInstalled()`，确保 Claude CLI 可用。
-
-### 国内镜像
-
-默认启用国内镜像加速下载：
-- npm: `https://registry.npmmirror.com`
-- Node.js: `https://mirrors.tuna.tsinghua.edu.cn/nodejs-release/`

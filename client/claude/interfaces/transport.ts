@@ -14,7 +14,6 @@
  */
 
 import type { ClaudeEvent, ClaudeRunOptions, AskUserQuestionAnswerPayload, AskUserQuestionItem } from '../types'
-import type { InstallerProgressEvent } from '#claude-installer/types'
 
 /** AskUserQuestion 请求 */
 export interface AskUserQuestionRequest {
@@ -35,11 +34,6 @@ export interface IClaudeTransportServer {
    * 调用者保证在 onRun 的 handler 返回前，send 始终可用。
    */
   send(event: ClaudeEvent): void
-
-  /**
-   * 向外部推送进度消息（用于初始化过程中的进度反馈）。
-   */
-  sendProgress(event: InstallerProgressEvent): void
 
   /**
    * 监听来自外部的任务启动请求。

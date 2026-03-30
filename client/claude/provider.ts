@@ -22,20 +22,18 @@ import type {
 import type { BetaRawMessageStreamEvent, BetaContentBlock, BetaTextBlock, BetaThinkingBlock, BetaToolUseBlock } from '@anthropic-ai/sdk/resources/beta/messages/messages'
 import type { ClaudeRunOptions, ClaudeEvent, ContentBlock, AskUserQuestionAnswerPayload, AskUserQuestionItem } from './types'
 import type { IClaudeTransportServer } from './interfaces/transport'
-import { ensureClaudeInstalled } from '#claude-installer'
-import type { InstallerProgressEvent } from '#claude-installer/types'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ClaudeAgentProvider
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface ClaudeProviderOptions {
-  /** Claude Code 可执行文件路径（如果已安装） */
+  /** Claude Code 可执行文件路径，不传则由 SDK 自行定位 */
   claudePath?: string
+  /** 环境变量，会合并到 SDK 子进程的 env 中 */
+  env?: Record<string, string>
   /** 默认模型，默认值：'claude-opus-4-6' */
   defaultModel?: string
-  /** 进度回调，用于在初始化过程中向用户显示进度信息 */
-  onProgress?: (event: InstallerProgressEvent) => void
   /** Transport 用于发送 AskUserQuestion 请求给前端 */
   transport?: IClaudeTransportServer
 }
@@ -43,9 +41,9 @@ export interface ClaudeProviderOptions {
 export class ClaudeAgentProvider {
   readonly name = 'claude-agent-sdk'
 
-  private claudePath: string | null = null
+  private claudePath?: string
+  private customEnv?: Record<string, string>
   private defaultModel: string
-  private onProgress?: (event: InstallerProgressEvent) => void
   /** Transport 用于发送 AskUserQuestion 请求 */
   private transport?: IClaudeTransportServer
   /** 正在运行的任务：taskId → AbortController */
@@ -56,43 +54,12 @@ export class ClaudeAgentProvider {
   private pendingAnswers = new Map<string, AskUserQuestionAnswerPayload[]>()
   /** 答案等待的 Promise resolve 函数 */
   private answerResolvers = new Map<string, (answer: AskUserQuestionAnswerPayload) => void>()
-  /** 是否已初始化（检测 claude 路径） */
-  private initialized = false
 
   constructor(options: ClaudeProviderOptions = {}) {
-    this.claudePath = options.claudePath ?? null
+    this.claudePath = options.claudePath
+    this.customEnv = options.env
     this.defaultModel = options.defaultModel ?? 'claude-opus-4-6'
-    this.onProgress = options.onProgress
     this.transport = options.transport
-  }
-
-  /**
-   * 初始化：检测并确保 Claude Code 已安装。
-   */
-  async initialize(): Promise<void> {
-    if (this.initialized) return
-
-    // 如果已提供路径，直接使用
-    if (this.claudePath) {
-      console.log('[ClaudeAgentProvider] Using provided claude path:', this.claudePath)
-      this.initialized = true
-      return
-    }
-
-    // 检测并确保安装 Claude Code
-    const result = await ensureClaudeInstalled({
-      useChinaMirror: true,
-      onProgress: (event) => this.onProgress?.(event),
-    })
-
-    if (result.success && result.claudePath) {
-      this.claudePath = result.claudePath
-      console.log('[ClaudeAgentProvider] Claude ready at:', this.claudePath)
-    } else {
-      console.log('[ClaudeAgentProvider] Claude installation failed:', result.error)
-    }
-
-    this.initialized = true
   }
 
   abort(taskId: string): void {
@@ -137,9 +104,6 @@ export class ClaudeAgentProvider {
   }
 
   async *run(options: ClaudeRunOptions): AsyncIterable<ClaudeEvent> {
-    // 确保已初始化
-    await this.initialize()
-
     const { taskId } = options
     const ctrl = new AbortController()
     this.runningTasks.set(taskId, ctrl)
@@ -332,7 +296,7 @@ export class ClaudeAgentProvider {
     } = options
 
     // 通过 env 选项传递环境变量给 SDK 子进程
-    const env: Record<string, string> = {}
+    const env: Record<string, string> = { ...this.customEnv }
     if (apiKey) {
       env.ANTHROPIC_API_KEY = apiKey
     }
@@ -347,9 +311,9 @@ export class ClaudeAgentProvider {
       allowedTools,
       mcpServers,
       resume,
+      ...(this.claudePath ? { pathToClaudeCodeExecutable: this.claudePath } : {}),
       debug,
       env: Object.keys(env).length > 0 ? env : undefined,
-      pathToClaudeCodeExecutable: this.claudePath,
       includePartialMessages: true,
       // 添加 canUseTool 回调来拦截 AskUserQuestion
       canUseTool: async (toolName: string, input: Record<string, unknown>, canUseToolOptions: { toolUseID: string }) => {

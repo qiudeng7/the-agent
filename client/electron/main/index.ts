@@ -14,6 +14,7 @@
  */
 import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'path'
+import fs from 'fs'
 import { ClaudeAgentProvider, ClaudeRunner } from '#claude'
 import { ElectronAgentTransport } from '#electron/agent-transport'
 
@@ -29,13 +30,35 @@ app.commandLine.appendSwitch('remote-debugging-port', '9223')
 let runner: ClaudeRunner | null = null
 let transport: ElectronAgentTransport | null = null
 
+function resolveBundledClaudePath(): string | undefined {
+  const platform = process.platform
+  const arch = process.arch
+  const binaryName = platform === 'win32' ? 'claude.exe' : 'claude'
+  const candidate = path.join(process.resourcesPath, `${platform}-${arch}`, binaryName)
+  return fs.existsSync(candidate) ? candidate : undefined
+}
+
+function resolveGitEnv(): Record<string, string> | undefined {
+  if (process.platform !== 'win32') return undefined
+  const arch = process.arch === 'arm64' ? 'arm64' : 'x64'
+  const gitDir = path.join(process.resourcesPath, `win32-git-${arch}`)
+  if (!fs.existsSync(gitDir)) return undefined
+  const gitCmd = path.join(gitDir, 'cmd')
+  return { PATH: `${gitCmd};${process.env.PATH ?? ''}` }
+}
+
 function setupAgent() {
   console.log('[Claude] Setting up claude runner...')
   transport = new ElectronAgentTransport(() => mainWindow)
-  const provider = new ClaudeAgentProvider({
-    transport,
-    onProgress: (message) => transport?.sendProgress(message)
-  })
+  const claudePath = resolveBundledClaudePath()
+  if (claudePath) {
+    console.log('[Claude] Using bundled claude:', claudePath)
+  }
+  const env = resolveGitEnv()
+  if (env) {
+    console.log('[Claude] Injecting bundled Git for Windows into PATH')
+  }
+  const provider = new ClaudeAgentProvider({ transport, claudePath, env })
   runner = new ClaudeRunner(provider, transport)
   runner.start()
   console.log('[Claude] Claude runner started')
@@ -78,8 +101,8 @@ function createWindow() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 app.whenReady().then(() => {
-  createWindow()
   setupAgent()
+  createWindow()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
