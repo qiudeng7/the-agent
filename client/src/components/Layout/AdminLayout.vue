@@ -17,6 +17,9 @@
     <!-- 侧栏收起按钮 -->
     <SidebarToggle :collapsed="sidebarCollapsed" @toggle="sidebarCollapsed = !sidebarCollapsed" />
 
+    <!-- Windows 窗口控制按钮 -->
+    <WindowTitleBarButtons />
+
     <!-- 侧边栏 -->
     <aside class="admin-sidebar" :class="{ collapsed: sidebarCollapsed }">
       <div class="sidebar-header">
@@ -156,6 +159,7 @@ import { useRouter } from 'vue-router'
 import { useAppStore, type Port } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import SidebarToggle from './SidebarToggle.vue'
+import WindowTitleBarButtons from './WindowTitleBarButtons.vue'
 
 const router = useRouter()
 const appStore = useAppStore()

@@ -15,6 +15,7 @@
       :collapsed="sidebarCollapsed"
       @toggle-sidebar="sidebarCollapsed = !sidebarCollapsed"
     />
+    <WindowTitleBarButtons />
     <div class="app-body">
       <Sidebar :collapsed="sidebarCollapsed" />
       <main class="main-content">
@@ -28,6 +29,7 @@
 import { ref } from 'vue'
 import Sidebar from '@/components/Sidebar/Sidebar.vue'
 import WindowControls from '@/components/Layout/WindowControls.vue'
+import WindowTitleBarButtons from '@/components/Layout/WindowTitleBarButtons.vue'
 
 const sidebarCollapsed = ref(false)
 </script>
