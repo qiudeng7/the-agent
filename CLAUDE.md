@@ -142,6 +142,19 @@ pnpm run dev
 - 组件只负责 UI 渲染，业务逻辑放 store 或 service
 - 事件总线用于跨模块通信，避免 store 间直接依赖
 
+## Commit 规范
+
+格式：`type(scope): 中文描述`
+
+- **scope**：两级模块路径，如 `client/claude`、`server/db`、`client/src`
+- **跨多个 scope**：不写 scope，直接 `type: 中文描述`
+- **type**：`feat`、`fix`、`refactor`、`chore`、`docs`、`test`
+
+示例：
+- `feat(client/claude): 添加工具调用结果实时渲染`
+- `fix(server/db): 修复用户查询的参数绑定`
+- `refactor: 提取通用 UI 组件`
+
 ## 依赖管理
 
 添加新依赖时，使用 pnpm 命令安装，不要直接修改 package.json 中的版本号：
