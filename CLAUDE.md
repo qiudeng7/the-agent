@@ -103,7 +103,10 @@ stores/*.ts        ← inject 获取依赖
 2. 更新 `docs/5.changelog.md`
 3. 部署服务端：`cd server && pnpm run deploy && pnpm run db:migrate:d1`
 4. 提交并打 tag：`git commit -m "chore: release vX.Y.Z" && git tag vX.Y.Z`
-5. 推送到 Gitea：`git push gitea main && git push gitea --tags`
+5. 推送到 GitHub：`git push origin main && git push origin --tags`
+6. 发布 Electron 应用：`cd client && pnpm run publish`
+
+**注意**：发布前需确保 `client/.env` 中已设置 `GITHUB_TOKEN`（需要 `repo` 权限）。
 
 ## Claude Code 二进制预置
 

@@ -2,6 +2,7 @@ import type { ForgeConfig } from '@electron-forge/shared-types'
 import path from 'path'
 import fs from 'fs'
 import { downloadClaudeCode, downloadGitForWindows, type ClaudeCodePlatform } from './claude/downloader'
+import 'dotenv/config'
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -18,6 +19,18 @@ const config: ForgeConfig = {
       name: '@electron-forge/maker-zip',
       config: {},
       platforms: ['darwin','win32', 'linux'],
+    },
+  ],
+  publishers: [
+    {
+      name: '@electron-forge/publisher-github',
+      config: {
+        repository: {
+          owner: 'qiudeng7',
+          name: 'the-agent',
+        },
+        authToken: process.env.GITHUB_TOKEN,
+      },
     },
   ],
   plugins: [],
