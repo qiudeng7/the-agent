@@ -13,7 +13,7 @@
  *              - Client（渲染进程）：调用 run/abort，监听 onEvent
  */
 
-import type { ClaudeEvent, ClaudeRunOptions, AskUserQuestionAnswerPayload, AskUserQuestionItem } from '../types'
+import type { ClaudeEvent, ClaudeRunOptions, AskUserQuestionItem } from '../types'
 
 /** AskUserQuestion 请求 */
 export interface AskUserQuestionRequest {
@@ -48,13 +48,6 @@ export interface IClaudeTransportServer {
    * @returns 取消监听的函数（cleanup）
    */
   onAbort(handler: (taskId: string) => void): () => void
-
-  /**
-   * 监听来自外部的 AskUserQuestion 答案提交。
-   * @param handler - 收到请求时的回调，参数为答案 payload
-   * @returns 取消监听的函数（cleanup）
-   */
-  onAnswer?(handler: (payload: AskUserQuestionAnswerPayload) => void): () => void
 
   /**
    * 向外部发送 AskUserQuestion 请求并等待响应。

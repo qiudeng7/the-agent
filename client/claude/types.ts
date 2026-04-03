@@ -82,16 +82,16 @@ export interface McpServerConfig {
  *
  * - bypassPermissions: 跳过所有权限检查（危险，仅用于测试）
  * - acceptEdits: 自动接受文件编辑
- * - auto: 自动决策（推荐）
  * - default: 默认交互式，需要用户确认
  * - plan: 规划模式，先规划再执行
+ * - dontAsk: 不提示权限，未预批准则拒绝
  */
 export type PermissionMode =
   | 'bypassPermissions'
   | 'acceptEdits'
-  | 'auto'
   | 'default'
   | 'plan'
+  | 'dontAsk'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 任务运行参数

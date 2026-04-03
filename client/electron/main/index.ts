@@ -1,7 +1,7 @@
 /**
  * @module electron/main
  * @description Electron 主进程入口，负责创建 BrowserWindow、注册 IPC 处理器，
- *              并组装 ClaudeRunner（provider + transport）。
+ *             并组装 Claude Agent 执行逻辑。
  *
  *              IPC 处理器：
  *                - get-app-version / get-platform：返回应用信息
@@ -15,7 +15,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'path'
 import fs from 'fs'
-import { ClaudeAgentProvider, ClaudeRunner } from '#claude'
+import { runAgent, type AgentConfig } from '#claude'
 import { ElectronAgentTransport } from '#electron/agent-transport'
 
 let mainWindow: BrowserWindow | null = null
@@ -24,10 +24,12 @@ let mainWindow: BrowserWindow | null = null
 app.commandLine.appendSwitch('remote-debugging-port', '9223')
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Agent 组装（延迟到 app.whenReady，确保 IPC 可用）
+// Agent 组装
 // ─────────────────────────────────────────────────────────────────────────────
 
-let runner: ClaudeRunner | null = null
+/** 最小运行状态：taskId → AbortController（用于 IPC abort） */
+const abortControllers = new Map<string, AbortController>()
+
 let transport: ElectronAgentTransport | null = null
 
 function resolveBundledClaudePath(): string | undefined {
@@ -35,8 +37,6 @@ function resolveBundledClaudePath(): string | undefined {
   const arch = process.arch
   const binaryName = platform === 'win32' ? 'claude.exe' : 'claude'
 
-  // 开发环境：从项目目录下的 claude-code-installation-assets 读取
-  // 生产环境：从 process.resourcesPath 读取（打包后的资源目录）
   const baseDir = process.env.VITE_DEV_SERVER_URL
     ? path.resolve(__dirname, '../../claude-code-installation-assets')
     : process.resourcesPath
@@ -45,30 +45,94 @@ function resolveBundledClaudePath(): string | undefined {
   return fs.existsSync(candidate) ? candidate : undefined
 }
 
-function resolveGitEnv(): Record<string, string> | undefined {
+function resolveGitPath(): string | undefined {
   if (process.platform !== 'win32') return undefined
+
+  // 开发环境：从项目目录下的 claude-code-installation-assets 读取
+  // 生产环境：从 process.resourcesPath 读取
+  const baseDir = process.env.VITE_DEV_SERVER_URL
+    ? path.resolve(__dirname, '../../claude-code-installation-assets')
+    : process.resourcesPath
+
   const arch = process.arch === 'arm64' ? 'arm64' : 'x64'
-  const gitDir = path.join(process.resourcesPath, `win32-git-${arch}`)
+  const gitDir = path.join(baseDir, `win32-git-${arch}`)
   if (!fs.existsSync(gitDir)) return undefined
-  const gitCmd = path.join(gitDir, 'cmd')
-  return { PATH: `${gitCmd};${process.env.PATH ?? ''}` }
+  return gitDir
 }
 
 function setupAgent() {
   console.log('[Claude] Setting up claude runner...')
   transport = new ElectronAgentTransport(() => mainWindow)
-  const claudePath = resolveBundledClaudePath()
-  if (claudePath) {
-    console.log('[Claude] Using bundled claude:', claudePath)
-  }
-  const env = resolveGitEnv()
-  if (env) {
+
+  const gitPath = resolveGitPath()
+  if (gitPath) {
     console.log('[Claude] Injecting bundled Git for Windows into PATH')
   }
-  const provider = new ClaudeAgentProvider({ transport, claudePath, env })
-  runner = new ClaudeRunner(provider, transport)
-  runner.start()
+
+  const config: AgentConfig = {
+    claudePath: resolveBundledClaudePath(),
+    gitPath,
+    defaultModel: 'claude-opus-4-6',
+  }
+
+  if (config.claudePath) {
+    console.log('[Claude] Using bundled claude:', config.claudePath)
+  }
+
+  // 监听 IPC 事件
+  transport.onRun((options) => {
+    // 异步执行，不阻塞
+    void handleRun(options, config, transport!)
+  })
+
+  transport.onAbort((taskId) => {
+    const ctrl = abortControllers.get(taskId)
+    if (ctrl) {
+      ctrl.abort()
+      abortControllers.delete(taskId)
+      console.log('[Claude] Aborted task:', taskId)
+    }
+  })
+
   console.log('[Claude] Claude runner started')
+}
+
+async function handleRun(
+  options: import('#claude/types').ClaudeRunOptions,
+  config: AgentConfig,
+  transport: ElectronAgentTransport,
+) {
+  const { taskId } = options
+  const ctrl = new AbortController()
+  abortControllers.set(taskId, ctrl)
+
+  console.log('[Claude] Starting task:', taskId)
+
+  try {
+    for await (const event of runAgent(options, config, transport)) {
+      // 检查是否被 abort
+      if (ctrl.signal.aborted) {
+        transport.send({
+          type: 'error',
+          taskId,
+          error: 'Task aborted',
+          code: 'aborted',
+        })
+        return
+      }
+      transport.send(event)
+    }
+    console.log('[Claude] Task completed:', taskId)
+  } catch (err) {
+    console.error('[Claude] Task error:', taskId, err)
+    transport.send({
+      type: 'error',
+      taskId,
+      error: err instanceof Error ? err.message : String(err),
+    })
+  } finally {
+    abortControllers.delete(taskId)
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

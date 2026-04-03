@@ -4,23 +4,29 @@
  *
  * 使用方式：
  *   import type { ClaudeEvent, ClaudeRunOptions } from '#claude'
- *   import { ClaudeAgentProvider, ClaudeRunner } from '#claude'
+ *   import { runAgent, convertMessage, type AgentConfig } from '#claude'
  *
  * 目录结构：
- *   types.ts              ← 共享数据类型（Event、Options、McpServerConfig…）
+ *   types.ts              ← 共享数据类型
  *   interfaces/
  *     transport.ts        ← IClaudeTransportServer 接口
- *   provider.ts           ← ClaudeAgentProvider 实现（基于 SDK query()）
- *   runner.ts             ← ClaudeRunner 执行器
+ *   runner.ts             ← 执行函数（runAgent, convertMessage, buildSdkOptions, buildPrompt）
  */
 
 // ── 类型导出 ────────────────────────────────────────────────────────────────
 export type * from './types'
 
 // ── 接口导出 ────────────────────────────────────────────────────────────────
-export type { IClaudeTransportServer } from './interfaces/transport'
+export type { IClaudeTransportServer, AskUserQuestionRequest, AskUserQuestionResponse } from './interfaces/transport'
 
 // ── 实现导出 ────────────────────────────────────────────────────────────────
-export { ClaudeAgentProvider, type ClaudeProviderOptions } from './provider'
-export { ClaudeRunner } from './runner'
-export { downloadClaudeCode, fetchLatestVersion, downloadGitForWindows, type ClaudeCodePlatform, type DownloadOptions, type DownloadResult, type GitForWindowsOptions } from './downloader'
+export { runAgent, convertMessage, type AgentConfig } from './runner'
+export {
+  downloadClaudeCode,
+  fetchLatestVersion,
+  downloadGitForWindows,
+  type ClaudeCodePlatform,
+  type DownloadOptions,
+  type DownloadResult,
+  type GitForWindowsOptions,
+} from './downloader'
