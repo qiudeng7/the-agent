@@ -99,14 +99,27 @@ stores/*.ts        ← inject 获取依赖
 
 ## 版本发布
 
-1. 修改 `client/package.json` 的 `version`
-2. 更新 `docs/5.changelog.md`
-3. 部署服务端：`cd server && pnpm run deploy && pnpm run db:migrate:d1`
-4. 提交并打 tag：`git commit -m "chore: release vX.Y.Z" && git tag vX.Y.Z`
-5. 推送到 GitHub：`git push origin main && git push origin --tags`
-6. 发布 Electron 应用：`cd client && pnpm run publish`
+推送到 GitHub 后，GitHub Actions 会自动构建并发布到 Releases。
 
-**注意**：发布前需确保 `client/.env` 中已设置 `GITHUB_TOKEN`（需要 `repo` 权限）。
+**发布流程**：
+1. 修改 `client/package.json` 的 `version`
+2. 提交并打 tag：`git commit -m "chore: release vX.Y.Z" && git tag vX.Y.Z`
+3. 推送到 GitHub：`git push github main && git push github --tags`
+
+**查看构建状态**：`gh run list --repo qiudeng7/the-agent`
+
+**Git Remote**：
+- `origin` → Gitea 自建仓库
+- `github` → https://github.com/qiudeng7/the-agent
+
+## pnpm 配置注意事项
+
+Electron Forge 需要 `node-linker=hoisted`，已在 `client/.npmrc` 配置：
+```
+node-linker=hoisted
+```
+
+删除此配置会导致 `electron-forge make` 失败。
 
 ## Claude Code 二进制预置
 
