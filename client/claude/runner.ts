@@ -51,10 +51,6 @@ export interface AgentConfig {
   claudePath?: string
   /** Git 路径（Windows 上需要添加到 PATH） */
   gitPath?: string
-  /** API Key（可选，用于覆盖默认配置） */
-  apiKey?: string
-  /** API Base URL（可选，用于代理或自托管服务） */
-  baseURL?: string
   /** 默认模型 */
   defaultModel?: string
 }
@@ -139,23 +135,21 @@ function buildSdkOptions(
     env.PATH = `${gitCmd};${gitBin};${process.env.PATH ?? ''}`
   }
 
-  // API Key（优先使用 options 传入的）
-  const effectiveApiKey = apiKey ?? config.apiKey
-  if (effectiveApiKey) {
-    env.ANTHROPIC_API_KEY = effectiveApiKey
+  // API Key
+  if (apiKey) {
+    env.ANTHROPIC_API_KEY = apiKey
   }
 
-  // Base URL（优先使用 options 传入的）
-  const effectiveBaseURL = baseURL ?? config.baseURL
-  if (effectiveBaseURL) {
-    env.ANTHROPIC_BASE_URL = effectiveBaseURL
+  // Base URL
+  if (baseURL) {
+    env.ANTHROPIC_BASE_URL = baseURL
   }
 
   console.log('[ClaudeRunner] Config:', {
     claudePath: config.claudePath,
     gitPath: config.gitPath,
-    hasApiKey: !!effectiveApiKey,
-    hasBaseURL: !!effectiveBaseURL,
+    hasApiKey: !!apiKey,
+    hasBaseURL: !!baseURL,
     envPath: env.PATH?.slice(0, 200),
   })
 
