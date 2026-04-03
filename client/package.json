@@ -1,6 +1,6 @@
 {
   "name": "the-agent",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "description": "Electron + Vite + Vue Agent Application",
   "main": "dist-electron/main/index.js",
   "pnpm": {
@@ -33,9 +33,9 @@
     "@electron-forge/maker-zip": "^7.8.13",
     "@electron-forge/publisher-github": "^7.11.1",
     "@electron-forge/shared-types": "^7.11.1",
-    "@types/unzipper": "^0.10.11",
     "@vitejs/plugin-vue": "^5.2.1",
     "concurrently": "^9.1.2",
+    "dotenv": "^17.4.0",
     "electron": "^34.2.0",
     "node-7z": "^3.0.0",
     "typescript": "~5.7.2",
@@ -49,13 +49,9 @@
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.86",
     "@anthropic-ai/sdk": "^0.80.0",
-    "@aws-sdk/client-s3": "^3.1019.0",
-    "@vueuse/core": "^14.2.1",
-    "dotenv": "^17.4.0",
     "marked": "^17.0.5",
     "mitt": "^3.0.1",
     "pinia": "^3.0.1",
-    "unzipper": "^0.12.3",
     "vue-router": "^4.5.0"
   }
 }
