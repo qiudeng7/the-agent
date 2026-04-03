@@ -1,4 +1,4 @@
-# The Agent API Server - Docker Compose
+# The Agent Server - Docker Compose
 # 用于 standalone 模式的单机部署
 #
 # 使用方法：
@@ -11,9 +11,9 @@
 # ADMIN_PASSWORD=your-password
 
 services:
-  the-agent-api:
-    image: docker.gh-proxy.org/ghcr.io/qiudeng7/the-agent-api:latest
-    container_name: the-agent-api
+  the-agent-server:
+    image: docker.gh-proxy.org/ghcr.io/qiudeng7/the-agent-server:latest
+    container_name: the-agent-server
     restart: unless-stopped
     ports:
       - "3000:3000"

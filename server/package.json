@@ -13,7 +13,7 @@
     "db:migrate:local": "tsx db/migrate.ts",
     "db:studio": "drizzle-kit studio",
     "deploy": "wrangler deploy",
-    "docker:build": "docker build -t the-agent-api .",
+    "docker:build": "docker build -t the-agent-server .",
     "docker:run": "docker-compose up -d"
   },
   "dependencies": {

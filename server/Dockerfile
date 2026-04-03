@@ -3,7 +3,7 @@
 #
 # 构建步骤：
 # 1. 先在本地构建：pnpm run build:standalone
-# 2. 构建 Docker 镜像：docker build -t the-agent-api .
+# 2. 构建 Docker 镜像：docker build -t the-agent-server .
 
 # 阶段1：安装并编译原生模块
 FROM node:20-alpine AS builder

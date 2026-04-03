@@ -1,4 +1,4 @@
-name = "the-agent-api"
+name = "the-agent-server"
 main = "./.output/server/index.mjs"
 compatibility_date = "2025-03-28"
 compatibility_flags = ["nodejs_compat"]
