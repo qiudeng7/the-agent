@@ -5,11 +5,16 @@
   "scripts": {
     "dev": "nitro dev",
     "build": "nitro build",
+    "build:standalone": "cross-env DEPLOY_MODE=standalone nitro build",
     "preview": "nitro preview",
+    "start:standalone": "cross-env DATABASE_PATH=./data.db node .output/server/index.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate:d1": "wrangler d1 execute the-agent-db --remote --file=./db/migrations/all.sql",
+    "db:migrate:local": "tsx db/migrate.ts",
     "db:studio": "drizzle-kit studio",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "docker:build": "docker build -t the-agent-api .",
+    "docker:run": "docker-compose up -d"
   },
   "dependencies": {
     "better-sqlite3": "^12.8.0",
@@ -23,8 +28,10 @@
     "@rollup/plugin-terser": "^1.0.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.5.0",
+    "cross-env": "^10.1.0",
     "drizzle-kit": "^0.30.0",
     "nitro": "^3.0.0",
+    "tsx": "^4.21.0",
     "typescript": "~5.7.2",
     "wrangler": "^4.6.0"
   }

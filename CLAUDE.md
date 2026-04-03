@@ -20,12 +20,39 @@ pnpm run make:win   # 构建 Windows x86
 
 ### 服务端（在 server/ 目录下）
 
+#### Cloudflare Workers 模式（默认）
+
 ```bash
 pnpm run dev        # 启动 Nitro 开发服务器（better-sqlite3 内存数据库）
 pnpm run build      # 构建 Cloudflare Workers
 pnpm run deploy     # 部署到 Cloudflare Workers
 pnpm run db:generate        # 生成迁移文件
 pnpm run db:migrate:d1     # 应用迁移到 D1
+```
+
+#### Standalone 单机模式
+
+```bash
+pnpm run dev:standalone    # 启动开发服务器（SQLite 文件数据库）
+pnpm run build:standalone  # 构建 Node.js 服务
+pnpm run start:standalone  # 运行构建后的服务
+pnpm run db:migrate:local  # 手动执行本地迁移
+```
+
+**环境变量配置**（创建 `.env` 文件）：
+```
+JWT_SECRET=your-secret-key
+DATABASE_PATH=./data.db       # 数据库路径
+ADMIN_EMAIL=admin@example.com # 首次启动创建管理员
+ADMIN_PASSWORD=your-password
+```
+
+#### Docker 部署
+
+```bash
+pnpm run build:standalone  # 先构建
+pnpm run docker:build      # 构建镜像
+pnpm run docker:run        # 启动容器
 ```
 
 ## 目录结构
@@ -86,16 +113,24 @@ stores/*.ts        ← inject 获取依赖
 
 ### 后端数据库
 
-
 运行时通过 db0 获取数据库连接(cloudflare d1 或者 sqlite), 然后集成到 drizzle orm, 业务层用 drizzle 的 API 访问数据库.
+
+**部署模式**：
+- `cloudflare`（默认）：Cloudflare Workers + D1
+- `standalone`：Node.js 服务 + SQLite 文件数据库（通过 `DEPLOY_MODE` 环境变量切换）
 
 开发环境:
 1. 用 better-sqlote3 创建一个内存中的 sqlite
 2. 通过 nitro plugin 在启动服务时填入少量测试数据.
 
-生产环境:
+生产环境（Cloudflare）:
 1. 通过 drizzle-kit 生成 migration
 2. 用 wrangler 应用 migration
+
+单机部署（Standalone）:
+1. 首次启动自动执行迁移（读取 `db/migrations/all.sql`）
+2. 通过环境变量配置管理员账号（`ADMIN_EMAIL`、`ADMIN_PASSWORD`）
+3. 数据库文件路径通过 `DATABASE_PATH` 配置
 
 ## 版本发布
 

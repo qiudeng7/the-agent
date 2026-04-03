@@ -8,6 +8,9 @@ dist/
 
 # Database
 data/
+*.db
+dev.db
+test.db
 
 # Environment
 .env

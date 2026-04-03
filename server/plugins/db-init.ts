@@ -1,11 +1,14 @@
 /**
  * @module plugins/db-init
  * @description 数据库初始化插件
- *              在 Nitro 服务启动时检查并初始化测试数据
+ *              在 Nitro 服务启动时检查并初始化数据
  *
- *              仅用于开发环境的内存数据库，生产环境 D1 需要通过迁移初始化
+ *              初始化逻辑：
+ *              - D1 环境：跳过（通过迁移初始化）
+ *              - Standalone 模式：通过环境变量创建管理员（ADMIN_EMAIL、ADMIN_PASSWORD）
+ *              - 开发环境：创建默认测试数据
  */
-import { db, users, tasks, initSchema } from '~/db'
+import { db, users, tasks } from '~/db'
 import { hashPassword } from '~/utils/crypto'
 import { nanoid } from 'nanoid'
 
@@ -14,9 +17,16 @@ let initialized = false
 async function initDatabase() {
   if (initialized) return
 
-  console.log('[DB Init] Initializing database schema...')
-  await initSchema()
-  console.log('[DB Init] Schema initialized')
+  // 检查部署模式
+  const deployMode = process.env.DEPLOY_MODE || 'cloudflare'
+  const env = (globalThis as any).__env__
+
+  // D1 环境：跳过初始化（通过 D1 迁移）
+  if (deployMode === 'cloudflare' && env?.DB) {
+    console.log('[DB Init] D1 mode: skipping initialization')
+    initialized = true
+    return
+  }
 
   console.log('[DB Init] Checking database status...')
 
@@ -24,18 +34,66 @@ async function initDatabase() {
   const existingUsers = await db.select().from(users)
 
   if (existingUsers.length > 0) {
-    console.log('[DB Init] Database already has data, skipping initialization...')
+    console.log('[DB Init] Database already has users, skipping initialization')
     initialized = true
     return
   }
 
-  console.log('[DB Init] Creating initial users...')
+  // 根据部署模式决定初始化方式
+  if (deployMode === 'standalone') {
+    // Standalone 模式：通过环境变量创建管理员
+    await initStandaloneAdmin()
+  } else {
+    // 开发环境：创建测试数据
+    await initDevData()
+  }
+
+  initialized = true
+  console.log('[DB Init] Database initialization completed!')
+}
+
+/**
+ * Standalone 模式：通过环境变量创建管理员
+ */
+async function initStandaloneAdmin() {
+  const adminEmail = process.env.ADMIN_EMAIL
+  const adminPassword = process.env.ADMIN_PASSWORD
+
+  if (!adminEmail || !adminPassword) {
+    console.log('[DB Init] No ADMIN_EMAIL/ADMIN_PASSWORD configured, skipping admin creation')
+    console.log('[DB Init] You can create admin via API: POST /api/auth/register')
+    return
+  }
+
+  console.log(`[DB Init] Creating admin user: ${adminEmail}`)
+
+  const now = new Date()
+  const adminId = nanoid()
+
+  await db.insert(users).values({
+    id: adminId,
+    email: adminEmail,
+    passwordHash: await hashPassword(adminPassword),
+    nickname: 'Admin',
+    role: 'admin',
+    createdAt: now,
+    updatedAt: now,
+  })
+
+  console.log('[DB Init] Admin user created successfully')
+}
+
+/**
+ * 开发环境：创建测试数据
+ */
+async function initDevData() {
+  console.log('[DB Init] Creating development test data...')
 
   const now = new Date()
   const adminId = nanoid()
   const employeeId = nanoid()
 
-  // 创建管理员用户
+  // 创建管理员和员工用户
   await db.insert(users).values([
     {
       id: adminId,
@@ -57,11 +115,9 @@ async function initDatabase() {
     },
   ])
 
-  console.log('[DB Init] Users created')
+  console.log('[DB Init] Test users created')
 
   // 创建测试任务
-  console.log('[DB Init] Creating test tasks...')
-
   await db.insert(tasks).values([
     {
       title: '测试任务1 - UI测试',
@@ -102,8 +158,6 @@ async function initDatabase() {
   ])
 
   console.log('[DB Init] Test tasks created')
-  initialized = true
-  console.log('[DB Init] Database initialization completed!')
 }
 
 // Nitro 3 plugin format

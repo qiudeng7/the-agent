@@ -1,0 +1,35 @@
+# The Agent API Server - Docker Compose
+# 用于 standalone 模式的单机部署
+#
+# 使用方法：
+# 1. 拉取镜像：docker-compose pull
+# 2. 启动服务：docker-compose up -d
+#
+# 环境变量配置（创建 .env 文件）：
+# JWT_SECRET=your-secret-key
+# ADMIN_EMAIL=admin@example.com
+# ADMIN_PASSWORD=your-password
+
+services:
+  the-agent-api:
+    image: docker.gh-proxy.org/ghcr.io/qiudeng7/the-agent-api:latest
+    container_name: the-agent-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      # 数据持久化
+      - ./data:/data
+    environment:
+      - NODE_ENV=production
+      - DEPLOY_MODE=standalone
+      - DATABASE_PATH=/data/data.db
+      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/auth/me"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

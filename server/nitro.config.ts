@@ -3,15 +3,16 @@ import { dirname, resolve } from 'node:path'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
+// 部署模式：cloudflare（默认）或 standalone
+const deployMode = process.env.DEPLOY_MODE || 'cloudflare'
+const isStandalone = deployMode === 'standalone'
+
 export default {
   compatibilityDate: '2025-03-28',
-  // 生产环境使用 Cloudflare Workers preset
-  preset: 'cloudflare-module',
-  // 启用 Nitro 数据库 API
-  // 这会让 Nitro 正确配置 D1 binding 到 globalThis.__env__.DB
-  experimental: {
-    database: true,
-  },
+  // 生产环境 preset 根据部署模式切换
+  // cloudflare → Cloudflare Workers
+  // standalone → Node.js 服务
+  preset: isStandalone ? 'node-server' : 'cloudflare-module',
   // 自定义错误处理器，返回详细错误信息
   errorHandler: './error-handler.ts',
   runtimeConfig: {
@@ -20,17 +21,21 @@ export default {
   alias: {
     '~': resolve(__dirname, '.'),
   },
-  // Nitro 数据库配置
-  // 生产环境：Cloudflare D1（通过 globalThis.__env__.DB 访问）
-  // 开发环境：使用 better-sqlite3 内存数据库（在 db/index.ts 中实现）
-  database: {
-    default: {
-      connector: 'cloudflare-d1',
-      options: {
-        bindingName: 'DB',
+  // Nitro 数据库配置（仅 Cloudflare 模式）
+  // standalone 模式使用 better-sqlite3，在 db/index.ts 中处理
+  ...(!isStandalone && {
+    experimental: {
+      database: true,
+    },
+    database: {
+      default: {
+        connector: 'cloudflare-d1',
+        options: {
+          bindingName: 'DB',
+        },
       },
     },
-  },
+  }),
   // 开发环境 CORS 配置
   devServer: {
     cors: true,
