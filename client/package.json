@@ -1,6 +1,6 @@
 {
   "name": "the-agent",
-  "version": "0.17.0",
+  "version": "0.17.1",
   "description": "Electron + Vite + Vue Agent Application",
   "main": "dist-electron/main/index.js",
   "pnpm": {
