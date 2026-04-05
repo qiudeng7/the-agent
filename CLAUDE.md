@@ -65,10 +65,10 @@ pnpm run docker:run        # 启动容器
 
 ```bash
 pnpm run dev        # 启动开发服务器（watch 模式）
+pnpm run debug      # 启动调试模式（带 debugger）
+pnpm run start      # 运行生产服务（需先 build）
 pnpm run build      # 构建生产版本
-pnpm run start:prod # 运行构建后的服务
 pnpm run test       # 运行单元测试（Vitest）
-pnpm run lint       # ESLint 检查
 ```
 
 **数据库**：开发环境使用 `dev.db`（SQLite 文件），自动创建。生产环境可配置 LibURL adapter 连接远程数据库。
