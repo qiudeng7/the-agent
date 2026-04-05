@@ -124,6 +124,23 @@ function downloadAndVerify(
   onProgress?: (downloaded: number, total: number) => void,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
+    const handleError = (err: Error) => {
+      // 删除可能已部分下载的文件
+      try {
+        if (fs.existsSync(destPath)) {
+          fs.unlinkSync(destPath)
+        }
+      } catch {
+        /* ignore */
+      }
+      // 输出手动下载命令
+      console.error('\n[Forge] Download failed:', err.message)
+      console.error('\n[Forge] You can manually download with this command:\n')
+      console.error(`  curl -L -o "${destPath}" "${url}"\n`)
+      console.error('[Forge] After manual download, re-run the build command.\n')
+      reject(err)
+    }
+
     httpsGet(url, (res) => {
       const total = parseInt(res.headers['content-length'] ?? '-1', 10)
       let downloaded = 0
@@ -142,19 +159,15 @@ function downloadAndVerify(
       fileStream.on('finish', () => {
         const actual = hash.digest('hex')
         if (actual !== expectedChecksum) {
-          fs.unlinkSync(destPath)
-          reject(new Error(`Checksum mismatch: expected ${expectedChecksum}, got ${actual}`))
+          handleError(new Error(`Checksum mismatch: expected ${expectedChecksum}, got ${actual}`))
         } else {
           resolve()
         }
       })
 
-      res.on('error', (err: Error) => {
-        fs.unlinkSync(destPath)
-        reject(err)
-      })
-      fileStream.on('error', reject)
-    }).on('error', reject)
+      res.on('error', handleError)
+      fileStream.on('error', handleError)
+    }).on('error', handleError)
   })
 }
 
