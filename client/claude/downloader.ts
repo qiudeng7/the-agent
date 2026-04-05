@@ -67,6 +67,10 @@ export async function downloadClaudeCode(options: DownloadOptions): Promise<Down
 
   // 已存在且 checksum 匹配，跳过下载
   if (fs.existsSync(destPath) && computeFileSha256(destPath) === platformMeta.checksum) {
+    // 确保已有执行权限
+    if (!platform.startsWith('win32')) {
+      fs.chmodSync(destPath, 0o755)
+    }
     return { version, platform, destPath, skipped: true }
   }
 
