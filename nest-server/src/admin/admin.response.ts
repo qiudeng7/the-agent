@@ -1,4 +1,4 @@
-import type { UserRole } from '@prisma/client';
+import type { Role } from '@prisma/client';
 
 /** 批量创建任务数据 */
 export class BatchCreateTasksDataDto {
@@ -36,7 +36,7 @@ export class BatchCreateUsersDataDto {
     id: string;
     email: string;
     nickname: string | null;
-    role: UserRole;
+    role: Role;
     createdAt: number;
   }>;
 }

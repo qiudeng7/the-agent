@@ -1,13 +1,14 @@
 import { IsEnum, IsOptional, IsArray, IsString } from 'class-validator';
+import type { Language, Theme } from '@prisma/client';
 
 export class UpdateSettingsDto {
   @IsEnum(['SYSTEM', 'ZH', 'JA', 'EN'])
   @IsOptional()
-  language?: string;
+  language?: Language;
 
   @IsEnum(['SYSTEM', 'LIGHT', 'DARK'])
   @IsOptional()
-  theme?: string;
+  theme?: Theme;
 
   @IsArray()
   @IsOptional()

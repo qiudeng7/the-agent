@@ -152,7 +152,7 @@ export class AdminService {
         email: user.email,
         passwordHash: await hashPassword(user.password),
         nickname: user.nickname || null,
-        role: user.role || 'EMPLOYEE',
+        role: (user.role || 'EMPLOYEE') as 'ADMIN' | 'EMPLOYEE',
         createdAt: now,
         updatedAt: now,
       })),

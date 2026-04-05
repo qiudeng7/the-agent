@@ -1,11 +1,11 @@
-import type { UserRole } from '@prisma/client';
+import type { Role } from '@prisma/client';
 
 /** 用户响应 */
 export class UserResponseDto {
   id!: string;
   email!: string;
   nickname!: string | null;
-  role!: UserRole;
+  role!: Role;
   createdAt!: number;
 }
 
