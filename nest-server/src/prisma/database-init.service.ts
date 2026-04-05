@@ -31,7 +31,7 @@ async function hashPassword(password: string): Promise<string> {
     keyMaterial,
     KEY_LENGTH * 8,
   );
-  return `${ITERATIONS}:${bufferToHex(salt.buffer as ArrayBuffer)}:${bufferToHex(derivedBits)}`;
+  return `${ITERATIONS}:${bufferToHex(salt.buffer)}:${bufferToHex(derivedBits)}`;
 }
 
 @Injectable()
@@ -42,7 +42,10 @@ export class DatabaseInitService implements OnModuleInit {
 
   async onModuleInit() {
     // 测试环境和生产环境都不执行
-    if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'test') {
+    if (
+      process.env.NODE_ENV === 'production' ||
+      process.env.NODE_ENV === 'test'
+    ) {
       return;
     }
 

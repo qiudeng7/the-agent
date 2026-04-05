@@ -2,7 +2,12 @@ import { IsString, IsOptional, IsInt, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
 // 小写 status 类型（前端发送）
-export type TaskStatusLower = 'todo' | 'in_progress' | 'in_review' | 'done' | 'cancelled';
+export type TaskStatusLower =
+  | 'todo'
+  | 'in_progress'
+  | 'in_review'
+  | 'done'
+  | 'cancelled';
 
 export class CreateTaskDto {
   @IsString()

@@ -1,7 +1,12 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { Task, User } from '@prisma/client';
-import { BatchTasksDto, BatchUsersDto, CreateUserRecordDto, CreateTaskRecordDto } from './admin.dto';
+import {
+  BatchTasksDto,
+  BatchUsersDto,
+  CreateUserRecordDto,
+  CreateTaskRecordDto,
+} from './admin.dto';
 import { nanoid } from 'nanoid';
 
 @Injectable()
@@ -66,7 +71,9 @@ export class AdminService {
           email: userData.email,
           passwordHash,
           nickname: userData.nickname || null,
-          role: (userData.role || 'employee').toUpperCase() as 'ADMIN' | 'EMPLOYEE',
+          role: (userData.role || 'employee').toUpperCase() as
+            | 'ADMIN'
+            | 'EMPLOYEE',
           createdAt: now,
           updatedAt: now,
         },
@@ -120,7 +127,8 @@ export class AdminService {
       const updateData: Record<string, unknown> = { updatedAt: new Date() };
       if (data.email !== undefined) updateData.email = data.email;
       if (data.nickname !== undefined) updateData.nickname = data.nickname;
-      if (data.role !== undefined) updateData.role = (data.role as string).toUpperCase();
+      if (data.role !== undefined)
+        updateData.role = (data.role as string).toUpperCase();
 
       const user = await this.prisma.user.update({
         where: { id: String(id) },
@@ -139,9 +147,12 @@ export class AdminService {
       if (data.title !== undefined) updateData.title = data.title;
       if (data.category !== undefined) updateData.category = data.category;
       if (data.tag !== undefined) updateData.tag = data.tag;
-      if (data.description !== undefined) updateData.description = data.description;
-      if (data.status !== undefined) updateData.status = (data.status as string).toUpperCase();
-      if (data.assignedToUserId !== undefined) updateData.assignedToUserId = data.assignedToUserId;
+      if (data.description !== undefined)
+        updateData.description = data.description;
+      if (data.status !== undefined)
+        updateData.status = (data.status as string).toUpperCase();
+      if (data.assignedToUserId !== undefined)
+        updateData.assignedToUserId = data.assignedToUserId;
 
       const task = await this.prisma.task.update({
         where: { id: Number(id) },
@@ -230,7 +241,10 @@ export class AdminService {
     return { deleted: result.count };
   }
 
-  async createUsersBatch(dto: BatchUsersDto, hashPassword: (p: string) => Promise<string>) {
+  async createUsersBatch(
+    dto: BatchUsersDto,
+    hashPassword: (p: string) => Promise<string>,
+  ) {
     if (!dto.users || dto.users.length === 0) {
       throw new BadRequestException('Users array is required');
     }

@@ -1,4 +1,12 @@
-import { IsString, IsOptional, IsEnum, IsArray, ValidateNested, IsEmail, MinLength } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsArray,
+  ValidateNested,
+  IsEmail,
+  MinLength,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 class TaskBatchItem {

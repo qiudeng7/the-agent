@@ -1,6 +1,12 @@
 import { describe, beforeAll, afterAll, beforeEach, it, expect } from 'vitest';
 import request from 'supertest';
-import { createTestApp, cleanDatabase, initTestUsers, closeTestApp, TestContext } from './test-utils';
+import {
+  createTestApp,
+  cleanDatabase,
+  initTestUsers,
+  closeTestApp,
+  TestContext,
+} from './test-utils';
 
 describe('Auth E2E', () => {
   let ctx: TestContext;
@@ -124,9 +130,7 @@ describe('Auth E2E', () => {
     });
 
     it('should reject without token', async () => {
-      await request(ctx.app.getHttpServer())
-        .get('/api/auth/me')
-        .expect(401);
+      await request(ctx.app.getHttpServer()).get('/api/auth/me').expect(401);
     });
 
     it('should reject invalid token', async () => {

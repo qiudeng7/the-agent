@@ -1,6 +1,12 @@
 import { describe, beforeAll, afterAll, beforeEach, it, expect } from 'vitest';
 import request from 'supertest';
-import { createTestApp, cleanDatabase, initTestUsers, closeTestApp, TestContext } from './test-utils';
+import {
+  createTestApp,
+  cleanDatabase,
+  initTestUsers,
+  closeTestApp,
+  TestContext,
+} from './test-utils';
 
 describe('Admin E2E', () => {
   let ctx: TestContext;
@@ -134,8 +140,8 @@ describe('Admin E2E', () => {
             tasks: [
               { title: 'Batch Task 1' },
               { title: 'Batch Task 2' },
-              { title: 'Batch Task 3' }
-            ]
+              { title: 'Batch Task 3' },
+            ],
           })
           .expect(201);
 
@@ -186,8 +192,8 @@ describe('Admin E2E', () => {
           .send({
             users: [
               { email: 'batch1@example.com', password: 'password123' },
-              { email: 'batch2@example.com', password: 'password123' }
-            ]
+              { email: 'batch2@example.com', password: 'password123' },
+            ],
           })
           .expect(201);
 

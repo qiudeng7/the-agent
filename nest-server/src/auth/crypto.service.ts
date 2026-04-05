@@ -62,16 +62,13 @@ export class CryptoService {
     );
 
     // 格式: iterations:salt:hash
-    return `${ITERATIONS}:${bufferToHex(salt.buffer as ArrayBuffer)}:${bufferToHex(derivedBits)}`;
+    return `${ITERATIONS}:${bufferToHex(salt.buffer)}:${bufferToHex(derivedBits)}`;
   }
 
   /**
    * 验证密码
    */
-  async verifyPassword(
-    password: string,
-    storedHash: string,
-  ): Promise<boolean> {
+  async verifyPassword(password: string, storedHash: string): Promise<boolean> {
     const [iterations, saltHex, hashHex] = storedHash.split(':');
 
     if (!iterations || !saltHex || !hashHex) {

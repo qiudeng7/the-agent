@@ -1,6 +1,12 @@
 import { describe, beforeAll, afterAll, beforeEach, it, expect } from 'vitest';
 import request from 'supertest';
-import { createTestApp, cleanDatabase, initTestUsers, closeTestApp, TestContext } from './test-utils';
+import {
+  createTestApp,
+  cleanDatabase,
+  initTestUsers,
+  closeTestApp,
+  TestContext,
+} from './test-utils';
 
 describe('Tasks E2E', () => {
   let ctx: TestContext;
@@ -65,9 +71,7 @@ describe('Tasks E2E', () => {
       });
 
       it('should reject unauthorized request', async () => {
-        await request(ctx.app.getHttpServer())
-          .get('/api/tasks')
-          .expect(401);
+        await request(ctx.app.getHttpServer()).get('/api/tasks').expect(401);
       });
     });
 

@@ -1,6 +1,12 @@
 import { describe, beforeAll, afterAll, beforeEach, it, expect } from 'vitest';
 import request from 'supertest';
-import { createTestApp, cleanDatabase, initTestUsers, closeTestApp, TestContext } from './test-utils';
+import {
+  createTestApp,
+  cleanDatabase,
+  initTestUsers,
+  closeTestApp,
+  TestContext,
+} from './test-utils';
 
 describe('Sessions E2E', () => {
   let ctx: TestContext;

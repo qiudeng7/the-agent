@@ -1,6 +1,12 @@
 import { describe, beforeAll, afterAll, beforeEach, it, expect } from 'vitest';
 import request from 'supertest';
-import { createTestApp, cleanDatabase, initTestUsers, closeTestApp, TestContext } from './test-utils';
+import {
+  createTestApp,
+  cleanDatabase,
+  initTestUsers,
+  closeTestApp,
+  TestContext,
+} from './test-utils';
 
 describe('Settings E2E', () => {
   let ctx: TestContext;
@@ -33,9 +39,7 @@ describe('Settings E2E', () => {
       });
 
       it('should reject unauthorized request', async () => {
-        await request(ctx.app.getHttpServer())
-          .get('/api/settings')
-          .expect(401);
+        await request(ctx.app.getHttpServer()).get('/api/settings').expect(401);
       });
     });
 
@@ -56,7 +60,9 @@ describe('Settings E2E', () => {
           .put('/api/settings')
           .set('Authorization', `Bearer ${ctx.adminToken}`)
           .send({
-            customModelConfigs: [{ name: 'custom-model', baseUrl: 'https://api.example.com' }]
+            customModelConfigs: [
+              { name: 'custom-model', baseUrl: 'https://api.example.com' },
+            ],
           })
           .expect(200);
 

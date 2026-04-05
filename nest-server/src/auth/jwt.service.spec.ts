@@ -63,9 +63,13 @@ describe('JwtService', () => {
     it('should throw error if JWT_SECRET is not set', () => {
       delete process.env.JWT_SECRET;
 
-      expect(() => new JwtService().generateToken({ id: '1', email: 'a@b.c', role: 'EMPLOYEE' })).rejects.toThrow(
-        'JWT_SECRET environment variable is required',
-      );
+      expect(() =>
+        new JwtService().generateToken({
+          id: '1',
+          email: 'a@b.c',
+          role: 'EMPLOYEE',
+        }),
+      ).rejects.toThrow('JWT_SECRET environment variable is required');
 
       process.env.JWT_SECRET = 'test-secret-key-for-testing';
     });

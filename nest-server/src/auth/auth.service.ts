@@ -21,11 +21,7 @@ export class AuthService {
   /**
    * 用户注册
    */
-  async register(data: {
-    email: string;
-    password: string;
-    nickname?: string;
-  }) {
+  async register(data: { email: string; password: string; nickname?: string }) {
     // 检查邮箱是否已存在
     const existing = await this.prisma.user.findUnique({
       where: { email: data.email },

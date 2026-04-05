@@ -31,11 +31,7 @@ export class TasksService {
    * - admin: 查看自己创建的任务
    * - employee: 查看分配给自己的任务
    */
-  async findAll(
-    userId: string,
-    role: string,
-    query: TaskQueryDto,
-  ) {
+  async findAll(userId: string, role: string, query: TaskQueryDto) {
     const page = query.page || 1;
     const pageSize = query.pageSize || 10;
 
@@ -162,12 +158,7 @@ export class TasksService {
   /**
    * 更新任务
    */
-  async update(
-    id: number,
-    userId: string,
-    role: string,
-    data: UpdateTaskDto,
-  ) {
+  async update(id: number, userId: string, role: string, data: UpdateTaskDto) {
     // 验证任务存在且有权限
     const existing = await this.prisma.task.findUnique({
       where: { id },
@@ -192,9 +183,12 @@ export class TasksService {
     if (data.title !== undefined) updateData.title = data.title;
     if (data.category !== undefined) updateData.category = data.category;
     if (data.tag !== undefined) updateData.tag = data.tag;
-    if (data.description !== undefined) updateData.description = data.description;
-    if (data.status !== undefined) updateData.status = toPrismaStatus(data.status);
-    if (data.assignedToUserId !== undefined) updateData.assignedToUserId = data.assignedToUserId;
+    if (data.description !== undefined)
+      updateData.description = data.description;
+    if (data.status !== undefined)
+      updateData.status = toPrismaStatus(data.status);
+    if (data.assignedToUserId !== undefined)
+      updateData.assignedToUserId = data.assignedToUserId;
 
     const task = await this.prisma.task.update({
       where: { id },

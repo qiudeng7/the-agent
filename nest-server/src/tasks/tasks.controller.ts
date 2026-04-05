@@ -23,10 +23,7 @@ export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
   @Get()
-  async findAll(
-    @CurrentUser() user: JwtPayload,
-    @Query() query: TaskQueryDto,
-  ) {
+  async findAll(@CurrentUser() user: JwtPayload, @Query() query: TaskQueryDto) {
     return this.tasksService.findAll(user.userId, user.role, query);
   }
 
@@ -48,10 +45,7 @@ export class TasksController {
   }
 
   @Post()
-  async create(
-    @Body() data: CreateTaskDto,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  async create(@Body() data: CreateTaskDto, @CurrentUser() user: JwtPayload) {
     return this.tasksService.create(user.userId, data);
   }
 
