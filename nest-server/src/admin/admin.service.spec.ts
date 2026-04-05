@@ -71,7 +71,7 @@ describe('AdminService', () => {
       const result = await service.getTableData('users');
 
       expect(result).toHaveLength(1);
-      expect(result[0].email).toBe('test@example.com');
+      expect((result[0] as { email: string }).email).toBe('test@example.com');
     });
 
     it('should return tasks data', async () => {
@@ -80,7 +80,7 @@ describe('AdminService', () => {
       const result = await service.getTableData('tasks');
 
       expect(result).toHaveLength(1);
-      expect(result[0].title).toBe('Test Task');
+      expect((result[0] as { title: string }).title).toBe('Test Task');
     });
 
     it('should throw for invalid table', async () => {
@@ -101,7 +101,7 @@ describe('AdminService', () => {
         nickname: 'Updated',
       });
 
-      expect(result.nickname).toBe('Updated');
+      expect((result as { nickname: string | null }).nickname).toBe('Updated');
     });
 
     it('should update task record', async () => {
@@ -114,7 +114,7 @@ describe('AdminService', () => {
         status: 'DONE',
       });
 
-      expect(result.status).toBe('DONE');
+      expect((result as { status: string }).status).toBe('DONE');
     });
   });
 
