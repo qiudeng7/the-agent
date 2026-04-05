@@ -9,15 +9,16 @@
       "better-sqlite3",
       "electron",
       "electron-winstaller",
-      "esbuild"
+      "esbuild",
+      "sharp",
+      "workerd"
     ]
   },
   "scripts": {
     "dev": "vite",
     "make": "vue-tsc && vite build && electron-forge make",
     "make:win": "vue-tsc && vite build && electron-forge make --platform=win32 --arch=x64",
-    "release": "vue-tsc && vite build && electron-forge make --platform=darwin && electron-forge make --platform=win32 --arch=x64 && electron-forge publish",
-    "preview": "vite preview"
+    "publish": "electron-forge publish --arch=x64 --platform=win32"
   },
   "keywords": [
     "electron",
