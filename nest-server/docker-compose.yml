@@ -1,0 +1,15 @@
+services:
+  nest-server:
+    image: crpi-hvru9zd4pbpi8a42.cn-shanghai.personal.cr.aliyuncs.com/qiudeng-private/the-agent-nest-server:latest
+    container_name: the-agent-nest-server
+    restart: unless-stopped
+    ports:
+      - "3030:3000"
+    environment:
+      - JWT_SECRET=your-secret-key-change-me
+      - DATABASE_URL=file:/app/data/data.db
+    volumes:
+      - the-agent-data:/app/data
+
+volumes:
+  the-agent-data:
