@@ -10,11 +10,11 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
+import { BatchTasksDto, BatchUsersDto } from './admin.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/jwt.service';
-import type { BatchTasksDto, BatchUsersDto } from './admin.service';
 import { CryptoService } from '../auth/crypto.service';
 
 @Controller('admin')

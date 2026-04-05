@@ -12,7 +12,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
-import type { CreateTaskDto, UpdateTaskDto, TaskQueryDto } from './tasks.service';
+import { CreateTaskDto, UpdateTaskDto, TaskQueryDto } from './tasks.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/jwt.service';

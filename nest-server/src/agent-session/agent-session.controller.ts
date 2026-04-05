@@ -10,7 +10,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { AgentSessionService } from './agent-session.service';
-import type { CreateSessionDto, UpdateSessionDto } from './agent-session.service';
+import { CreateSessionDto, UpdateSessionDto } from './agent-session.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/jwt.service';

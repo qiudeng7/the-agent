@@ -8,8 +8,10 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   constructor() {
+    // 测试环境使用内存数据库，开发环境使用文件数据库
+    const dbPath = process.env.NODE_ENV === 'test' ? ':memory:' : './dev.db';
     const adapter = new PrismaLibSql({
-      url: 'file:./dev.db',
+      url: `file:${dbPath}`,
     });
     super({ adapter });
   }

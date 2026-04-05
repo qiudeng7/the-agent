@@ -9,7 +9,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { AgentMessageService } from './agent-message.service';
-import type { CreateMessageDto } from './agent-message.service';
+import { CreateMessageDto } from './agent-message.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/jwt.service';

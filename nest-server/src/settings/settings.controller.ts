@@ -6,7 +6,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { SettingsService } from './settings.service';
-import type { UpdateSettingsDto } from './settings.service';
+import { UpdateSettingsDto } from './settings.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/jwt.service';

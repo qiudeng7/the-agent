@@ -41,9 +41,8 @@ export class DatabaseInitService implements OnModuleInit {
   constructor(private readonly prisma: PrismaService) {}
 
   async onModuleInit() {
-    // 仅在非生产环境执行
-    if (process.env.NODE_ENV === 'production') {
-      this.logger.log('Production mode, skipping database init');
+    // 测试环境和生产环境都不执行
+    if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'test') {
       return;
     }
 
