@@ -1,0 +1,149 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 用户表
+// ─────────────────────────────────────────────────────────────────────────────
+
+model User {
+  id           String    @id
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  nickname     String?
+  role         Role      @default(EMPLOYEE)
+  createdAt    DateTime  @map("created_at")
+  updatedAt    DateTime  @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  // 关系
+  tasksCreated    Task[]         @relation("CreatedBy")
+  tasksAssigned   Task[]         @relation("AssignedTo")
+  sessions        ChatSession[]
+  settings        UserSettings?
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 任务表
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Task {
+  id               Int       @id @default(autoincrement())
+  title            String
+  category         String?
+  tag              String?
+  description      String?
+  status           TaskStatus @default(TODO)
+  createdByUserId  String     @map("created_by_user_id")
+  assignedToUserId String?    @map("assigned_to_user_id")
+  createdAt        DateTime   @map("created_at")
+  updatedAt        DateTime   @map("updated_at")
+  deletedAt        DateTime?  @map("deleted_at")
+
+  // 关系
+  createdBy  User   @relation("CreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  assignedTo User?  @relation("AssignedTo", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+
+  @@map("tasks")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 聊天会话表
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ChatSession {
+  id        String   @id
+  userId    String   @map("user_id")
+  title     String
+  model     String
+  taskId    Int?     @map("task_id")
+  createdAt DateTime @map("created_at")
+  updatedAt DateTime @map("updated_at")
+
+  // 关系
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@map("chat_sessions")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 消息表
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Message {
+  id        String      @id
+  sessionId String      @map("session_id")
+  role      MessageRole
+  content   String
+  model     String?
+  timestamp DateTime
+
+  // 关系
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 用户设置表
+// ─────────────────────────────────────────────────────────────────────────────
+
+model UserSettings {
+  userId            String   @id @map("user_id")
+  language          Language @default(SYSTEM)
+  theme             Theme    @default(SYSTEM)
+  customModelConfigs String? @map("custom_model_configs")
+  enabledModels     String?  @map("enabled_models")
+  defaultModel      String?  @map("default_model")
+  updatedAt         DateTime @map("updated_at")
+
+  // 关系
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 枚举定义
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  EMPLOYEE
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  DONE
+  CANCELLED
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+}
+
+enum Language {
+  SYSTEM
+  ZH
+  JA
+  EN
+}
+
+enum Theme {
+  SYSTEM
+  LIGHT
+  DARK
+}
