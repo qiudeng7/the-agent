@@ -5,7 +5,7 @@
  * @layer di
  */
 
-import type { IAgentTransportClient, IStorage, ISystemService, IThemeDetector, ILanguageDetector } from './interfaces'
+import type { IAgentTransportClient, IStorage, ISystemService, IThemeDetector, ILanguageDetector, IUpdater } from './interfaces'
 
 /** Electron Agent 传输（渲染进程端） */
 export function createElectronAgentTransport(): IAgentTransportClient {
@@ -78,11 +78,24 @@ export function createElectronSystemService(): ISystemService {
   }
 }
 
+/** Electron 更新器（渲染进程端） */
+export function createElectronUpdater(): IUpdater {
+  return {
+    check: () => window.electronAPI.updaterCheck(),
+    download: () => window.electronAPI.updaterDownload(),
+    cancel: () => window.electronAPI.updaterCancel(),
+    install: () => window.electronAPI.updaterInstall(),
+    onStatus: (handler) => window.electronAPI.onUpdaterStatus(handler),
+    onProgress: (handler) => window.electronAPI.onUpdaterProgress(handler),
+  }
+}
+
 /** 创建 Electron 环境的所有依赖 */
 export function createElectronDependencies() {
   return {
     agentTransport: createElectronAgentTransport(),
     storage: createLocalStorage(),
     systemService: createElectronSystemService(),
+    updater: createElectronUpdater(),
   }
 }

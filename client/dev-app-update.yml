@@ -1,0 +1,4 @@
+provider: github
+owner: qiudeng7
+repo: the-agent
+updaterCacheDirName: the-agent-updater

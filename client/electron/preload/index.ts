@@ -51,4 +51,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   answerAskQuestion: (toolUseId: string, response: Parameters<IElectronAPI['answerAskQuestion']>[1]) =>
     ipcRenderer.invoke('agent:answer-question', { toolUseId, response }),
+
+  // ── Updater API ───────────────────────────────────────────────────────────
+  updaterCheck: () => ipcRenderer.invoke('updater:check'),
+  updaterDownload: () => ipcRenderer.invoke('updater:download'),
+  updaterCancel: () => ipcRenderer.invoke('updater:cancel'),
+  updaterInstall: () => ipcRenderer.invoke('updater:install'),
+  onUpdaterStatus: (handler: Parameters<IElectronAPI['onUpdaterStatus']>[0]) => {
+    const listener = (_: Electron.IpcRendererEvent, data: Parameters<typeof handler>[0]) =>
+      handler(data)
+    ipcRenderer.on('updater:status', listener)
+    return () => ipcRenderer.removeListener('updater:status', listener)
+  },
+  onUpdaterProgress: (handler: Parameters<IElectronAPI['onUpdaterProgress']>[0]) => {
+    const listener = (_: Electron.IpcRendererEvent, progress: Parameters<typeof handler>[0]) =>
+      handler(progress)
+    ipcRenderer.on('updater:progress', listener)
+    return () => ipcRenderer.removeListener('updater:progress', listener)
+  },
 } as IElectronAPI)

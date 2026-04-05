@@ -17,11 +17,23 @@ import path from 'path'
 import fs from 'fs'
 import { runAgent, type AgentConfig } from '#claude'
 import { ElectronAgentTransport } from '#electron/agent-transport'
+import { createElectronUpdater } from '#electron/main/updater'
 
 let mainWindow: BrowserWindow | null = null
 
 // 在创建窗口前配置远程调试端口
 app.commandLine.appendSwitch('remote-debugging-port', '9223')
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Updater
+// ─────────────────────────────────────────────────────────────────────────────
+
+let updater: ReturnType<typeof createElectronUpdater> | null = null
+
+function setupUpdater() {
+  updater = createElectronUpdater(() => mainWindow)
+  updater.checkOnStartup()
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Agent 组装
@@ -173,6 +185,7 @@ function createWindow() {
 
 app.whenReady().then(() => {
   setupAgent()
+  setupUpdater()
   createWindow()
 
   app.on('activate', () => {
@@ -191,6 +204,8 @@ app.on('window-all-closed', () => {
 app.on('will-quit', () => {
   transport?.destroy()
   transport = null
+  updater?.destroy()
+  updater = null
 })
 
 // ─────────────────────────────────────────────────────────────────────────────

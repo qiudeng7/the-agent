@@ -8,6 +8,35 @@
 
 import type { ClaudeRunOptions, ClaudeEvent, AskUserQuestionAnswerPayload, AskUserQuestionItem } from '#claude/types'
 
+// ── Updater 类型 ────────────────────────────────────────────────────────────
+export type UpdaterStatus =
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'not-available'
+  | 'downloading'
+  | 'downloaded'
+  | 'error'
+
+export interface UpdaterStatusData {
+  status: UpdaterStatus
+  info?: UpdateInfo
+  error?: string
+}
+
+export interface UpdateInfo {
+  version: string
+  releaseDate: string
+  releaseNotes?: string
+}
+
+export interface ProgressInfo {
+  percent: number
+  transferred: number
+  total: number
+  bytesPerSecond: number
+}
+
 export interface IElectronAPI {
   // ── 系统 API ────────────────────────────────────────────────────────────
   getAppVersion: () => Promise<string>
@@ -30,6 +59,20 @@ export interface IElectronAPI {
   onAskQuestion: (handler: (request: { taskId: string; toolUseId: string; questions: AskUserQuestionItem[] }) => void) => () => void
   /** 回答 AskUserQuestion */
   answerAskQuestion: (toolUseId: string, response: { answers: Record<string, string>; annotations?: Record<string, { notes?: string; preview?: string }> } | null) => Promise<void>
+
+  // ── Updater API ───────────────────────────────────────────────────────────
+  /** 检查更新 */
+  updaterCheck: () => Promise<void>
+  /** 下载更新 */
+  updaterDownload: () => Promise<void>
+  /** 取消下载 */
+  updaterCancel: () => Promise<void>
+  /** 安装更新（退出并重启） */
+  updaterInstall: () => Promise<void>
+  /** 监听状态变化 */
+  onUpdaterStatus: (handler: (data: UpdaterStatusData) => void) => () => void
+  /** 监听下载进度 */
+  onUpdaterProgress: (handler: (progress: ProgressInfo) => void) => () => void
 }
 
 declare global {

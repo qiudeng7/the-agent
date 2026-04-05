@@ -1,8 +1,22 @@
 import type { ForgeConfig } from '@electron-forge/shared-types'
 import path from 'path'
 import fs from 'fs'
+import { execSync } from 'child_process'
 import { downloadClaudeCode, downloadGitForWindows, type ClaudeCodePlatform } from './claude/downloader'
 import 'dotenv/config'
+
+// 获取 GitHub token（优先环境变量，否则从 gh CLI 获取）
+function getGitHubToken(): string | undefined {
+  if (process.env.GITHUB_TOKEN) {
+    return process.env.GITHUB_TOKEN
+  }
+  try {
+    return execSync('gh auth token', { encoding: 'utf-8' }).trim()
+  } catch {
+    console.warn('[Forge] Failed to get GitHub token from gh CLI')
+    return undefined
+  }
+}
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -18,7 +32,7 @@ const config: ForgeConfig = {
     {
       name: '@electron-forge/maker-zip',
       config: {},
-      platforms: ['darwin','win32', 'linux'],
+      platforms: ['darwin', 'win32', 'linux'],
     },
   ],
   publishers: [
@@ -29,7 +43,7 @@ const config: ForgeConfig = {
           owner: 'qiudeng7',
           name: 'the-agent',
         },
-        authToken: process.env.GITHUB_TOKEN,
+        authToken: getGitHubToken(),
       },
     },
   ],

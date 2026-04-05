@@ -12,6 +12,7 @@
  */
 
 import type { ClaudeRunOptions, ClaudeEvent } from '#claude/types'
+import type { UpdaterStatusData, ProgressInfo } from '../../electron/electron.d'
 
 /** Agent 传输接口（渲染进程端） */
 export interface IAgentTransportClient {
@@ -73,7 +74,24 @@ export interface ISystemService {
   language: ILanguageDetector
 }
 
+/** 更新器接口 */
+export interface IUpdater {
+  /** 检查更新 */
+  check(): Promise<void>
+  /** 下载更新 */
+  download(): Promise<void>
+  /** 取消下载 */
+  cancel(): Promise<void>
+  /** 安装更新（退出并重启） */
+  install(): Promise<void>
+  /** 监听状态变化 */
+  onStatus(handler: (data: UpdaterStatusData) => void): () => void
+  /** 监听下载进度 */
+  onProgress(handler: (progress: ProgressInfo) => void): () => void
+}
+
 /** Vue provide/inject 的 key */
 export const AGENT_TRANSPORT_KEY = Symbol('agentTransportClient')
 export const STORAGE_KEY = Symbol('storage')
 export const SYSTEM_SERVICE_KEY = Symbol('systemService')
+export const UPDATER_KEY = Symbol('updater')

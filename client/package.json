@@ -16,7 +16,7 @@
     "dev": "vite",
     "make": "vue-tsc && vite build && electron-forge make",
     "make:win": "vue-tsc && vite build && electron-forge make --platform=win32 --arch=x64",
-    "publish": "vue-tsc && vite build && electron-forge publish",
+    "release": "vue-tsc && vite build && electron-forge publish",
     "preview": "vite preview"
   },
   "keywords": [
@@ -49,6 +49,7 @@
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.86",
     "@anthropic-ai/sdk": "^0.80.0",
+    "electron-updater": "^6.8.3",
     "marked": "^17.0.5",
     "mitt": "^3.0.1",
     "pinia": "^3.0.1",

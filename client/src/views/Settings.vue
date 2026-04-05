@@ -29,6 +29,66 @@
       </div>
 
       <div class="card">
+        <h2>应用更新</h2>
+        <!-- 空闲状态 -->
+        <div v-if="updaterStore.status === 'idle'" class="update-section">
+          <button class="update-btn" @click="updaterStore.check()">检查更新</button>
+        </div>
+
+        <!-- 正在检查 -->
+        <div v-else-if="updaterStore.status === 'checking'" class="update-section">
+          <span class="update-status">正在检查更新...</span>
+        </div>
+
+        <!-- 有新版本 -->
+        <div v-else-if="updaterStore.status === 'available'" class="update-section">
+          <div class="update-info">
+            <span class="update-available">发现新版本: v{{ updaterStore.updateInfo?.version }}</span>
+            <span class="update-date">{{ formatDate(updaterStore.updateInfo?.releaseDate) }}</span>
+          </div>
+          <button class="update-btn primary" @click="updaterStore.download()">下载更新</button>
+        </div>
+
+        <!-- 已是最新 -->
+        <div v-else-if="updaterStore.status === 'not-available'" class="update-section">
+          <span class="update-status success">已是最新版本</span>
+          <button class="update-btn" @click="updaterStore.check()">再次检查</button>
+        </div>
+
+        <!-- 正在下载 -->
+        <div v-else-if="updaterStore.status === 'downloading'" class="update-section">
+          <div class="download-progress">
+            <div class="progress-bar">
+              <div class="progress-fill" :style="{ width: `${updaterStore.downloadProgress?.percent || 0}%` }"></div>
+            </div>
+            <span class="progress-text">
+              {{ (updaterStore.downloadProgress?.percent || 0).toFixed(1) }}%
+              ({{ formatBytes(updaterStore.downloadProgress?.transferred) }} / {{ formatBytes(updaterStore.downloadProgress?.total) }})
+            </span>
+          </div>
+          <button class="update-btn" @click="updaterStore.cancel()">取消</button>
+        </div>
+
+        <!-- 下载完成 -->
+        <div v-else-if="updaterStore.status === 'downloaded'" class="update-section">
+          <div class="update-info">
+            <span class="update-available">v{{ updaterStore.updateInfo?.version }} 已下载</span>
+            <span class="update-desc">重启应用以完成安装</span>
+          </div>
+          <div class="update-actions">
+            <button class="update-btn primary" @click="updaterStore.install()">立即安装</button>
+            <button class="update-btn" @click="updaterStore.reset()">稍后安装</button>
+          </div>
+        </div>
+
+        <!-- 错误 -->
+        <div v-else-if="updaterStore.status === 'error'" class="update-section">
+          <span class="update-status error">{{ updaterStore.error }}</span>
+          <button class="update-btn" @click="updaterStore.check()">重试</button>
+        </div>
+      </div>
+
+      <div class="card">
         <h2>语言设置</h2>
         <div class="setting-item">
           <div class="setting-info">
@@ -248,9 +308,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useSettingsStore, BUNDLE_MODELS, type CustomModelConfig, type CustomModelItem } from '@/stores/settings'
+import { useUpdaterStore } from '@/stores/updater'
 import { BaseModal, BaseButton } from '@/components/base'
 
 const settingsStore = useSettingsStore()
+const updaterStore = useUpdaterStore()
 
 const appVersion = ref('1.0.0')
 const platform = ref('unknown')
@@ -301,6 +363,24 @@ const languageLabels: Record<string, string> = {
 function getLanguageLabel(lang: string): string {
   if (lang === 'system') return '跟随系统'
   return languageLabels[lang] || 'English'
+}
+
+function formatDate(dateStr?: string): string {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
+}
+
+function formatBytes(bytes?: number): string {
+  if (!bytes) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB']
+  let i = 0
+  let size = bytes
+  while (size >= 1024 && i < units.length - 1) {
+    size /= 1024
+    i++
+  }
+  return `${size.toFixed(1)} ${units[i]}`
 }
 
 function openAddModal() {
@@ -758,5 +838,96 @@ onMounted(async () => {
 .remove-model-btn:hover {
   background: var(--color-destructive)/10;
   color: var(--color-destructive);
+}
+
+/* Update Section */
+.update-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.update-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.update-available {
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.update-date,
+.update-desc {
+  font-size: 0.85rem;
+  color: var(--color-muted-foreground);
+}
+
+.update-status {
+  color: var(--color-muted-foreground);
+}
+
+.update-status.success {
+  color: #22c55e;
+}
+
+.update-status.error {
+  color: var(--color-destructive);
+}
+
+.update-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.update-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: var(--transition-gentle);
+}
+
+.update-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.update-btn.primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}
+
+.update-btn.primary:hover {
+  opacity: 0.9;
+}
+
+.download-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.progress-bar {
+  height: 6px;
+  background: var(--color-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--color-primary);
+  transition: width 0.2s ease;
+}
+
+.progress-text {
+  font-size: 0.85rem;
+  color: var(--color-muted-foreground);
 }
 </style>
