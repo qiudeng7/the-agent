@@ -15,8 +15,6 @@ test.db
 # Environment
 .env
 .env.local
-.env.production
-
 # Wrangler
 .wrangler/
 

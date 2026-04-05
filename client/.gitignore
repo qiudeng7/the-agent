@@ -1,3 +1,6 @@
 # 环境变量
-.env.production
+
+# 继续追踪production env
+# 因为放弃了把代码上传到 github, 所以 production 也无所谓了, 留着更方便.
+# .env.production
 .env.local
