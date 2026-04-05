@@ -44,8 +44,21 @@ server/
 │   │   └── errors.ts            # 错误定义
 │   └── types/
 │   │   └── index.ts             # 共享类型定义
+├── test/                        # 测试目录
+│   ├── unit/                    # 单元测试
+│   │   ├── crypto.test.ts       # 密码哈希测试
+│   │   ├── auth.test.ts         # JWT 认证测试
+│   │   └── rate-limit.test.ts   # 速率限制测试
+│   └── e2e/                     # 端到端测试
+│   │   ├── auth.test.ts         # 认证流程测试
+│   │   ├── sessions.test.ts     # 会话 API 测试
+│   │   ├── tasks.test.ts        # 任务 API 测试
+│   │   └── admin.test.ts        # 管理 API 测试
+│   ├── setup.ts                 # 测试环境设置
+│   └── helpers.ts               # 测试辅助函数
 ├── package.json
 ├── tsconfig.json
+├── vitest.config.ts             # Vitest 配置
 ├── tsup.config.ts
 ├── drizzle.config.ts
 ├── Dockerfile
@@ -291,6 +304,323 @@ start()
 
 ---
 
+## 测试
+
+### 测试框架
+
+使用 **Vitest** 作为测试框架：
+- 与 Vite 生态一致，配置简单
+- 原生支持 TypeScript
+- 内置断言、Mock、覆盖率
+- 支持 ESM 开箱即用
+
+### 单元测试
+
+单元测试覆盖独立的工具函数和逻辑模块，不涉及数据库和网络。
+
+**test/unit/crypto.test.ts**：
+```typescript
+import { describe, it, expect } from 'vitest'
+import { hashPassword, verifyPassword } from '../src/utils/crypto'
+
+describe('crypto', () => {
+  it('should hash password', async () => {
+    const password = 'test123'
+    const hash = await hashPassword(password)
+    expect(hash).toBeDefined()
+    expect(hash).toContain(':')  // iterations:salt:hash
+  })
+
+  it('should verify correct password', async () => {
+    const password = 'test123'
+    const hash = await hashPassword(password)
+    const isValid = await verifyPassword(password, hash)
+    expect(isValid).toBe(true)
+  })
+
+  it('should reject wrong password', async () => {
+    const password = 'test123'
+    const hash = await hashPassword(password)
+    const isValid = await verifyPassword('wrong', hash)
+    expect(isValid).toBe(false)
+  })
+})
+```
+
+**test/unit/auth.test.ts**：
+```typescript
+import { describe, it, expect, beforeEach } from 'vitest'
+import { buildTestApp } from '../helpers'
+
+describe('JWT Plugin', () => {
+  let app: FastifyInstance
+
+  beforeEach(async () => {
+    app = await buildTestApp()
+  })
+
+  it('should sign and verify token', async () => {
+    const payload = { userId: '123', email: 'test@test.com', role: 'user' }
+    const token = await app.jwt.sign(payload)
+    const decoded = await app.jwt.verify(token)
+    expect(decoded.userId).toBe('123')
+    expect(decoded.email).toBe('test@test.com')
+  })
+
+  it('should reject invalid token', async () => {
+    await expect(app.jwt.verify('invalid-token')).rejects.toThrow()
+  })
+})
+```
+
+**test/unit/rate-limit.test.ts**：
+```typescript
+import { describe, it, expect, beforeEach } from 'vitest'
+import { checkRateLimit, recordSuccess, clearRateLimit } from '../src/utils/rate-limit'
+
+describe('rate-limit', () => {
+  beforeEach(() => {
+    clearRateLimit()
+  })
+
+  it('should allow requests within limit', () => {
+    const key = 'test:127.0.0.1'
+    for (let i = 0; i < 5; i++) {
+      const result = checkRateLimit(key, { max: 5, windowMs: 60000 })
+      expect(result.allowed).toBe(true)
+    }
+  })
+
+  it('should block requests over limit', () => {
+    const key = 'test:127.0.0.1'
+    for (let i = 0; i < 5; i++) {
+      checkRateLimit(key, { max: 5, windowMs: 60000 })
+    }
+    const result = checkRateLimit(key, { max: 5, windowMs: 60000 })
+    expect(result.allowed).toBe(false)
+  })
+})
+```
+
+### 端到端测试
+
+端到端测试覆盖完整的 API 流程，使用独立的测试数据库。
+
+**test/helpers.ts**：
+```typescript
+import Fastify from 'fastify'
+import Database from 'better-sqlite3'
+import { drizzle } from 'drizzle-orm/better-sqlite3'
+import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
+import corsPlugin from '../src/plugins/cors'
+import authPlugin from '../src/plugins/auth'
+import * as schema from '../src/db/schema'
+
+// 构建测试用 Fastify 应用
+export async function buildTestApp() {
+  const app = Fastify({ logger: false })
+
+  // 使用内存数据库
+  const sqlite = new Database(':memory:')
+  const db = drizzle(sqlite, { schema })
+
+  // 执行迁移
+  migrate(db, { migrationsFolder: './src/db/migrations' })
+
+  // 注册插件
+  app.decorate('db', db)
+  await app.register(corsPlugin)
+  await app.register(authPlugin)
+
+  return app
+}
+
+// 测试用户创建
+export async function createTestUser(db: any, overrides = {}) {
+  const { nanoid } = await import('nanoid')
+  const { hashPassword } = await import('../src/utils/crypto')
+
+  const id = nanoid()
+  const now = new Date()
+
+  await db.insert(schema.users).values({
+    id,
+    email: `test-${id}@test.com`,
+    passwordHash: await hashPassword('test123'),
+    nickname: 'Test User',
+    role: 'employee',
+    createdAt: now,
+    updatedAt: now,
+    ...overrides
+  })
+
+  return id
+}
+```
+
+**test/e2e/auth.test.ts**：
+```typescript
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { buildTestApp, createTestUser } from '../helpers'
+import authRoutes from '../../src/routes/auth'
+
+describe('Auth API', () => {
+  let app: FastifyInstance
+
+  beforeEach(async () => {
+    app = await buildTestApp()
+    await app.register(authRoutes, { prefix: '/api/auth' })
+  })
+
+  afterEach(async () => {
+    await app.close()
+  })
+
+  describe('POST /api/auth/login', () => {
+    it('should login with correct credentials', async () => {
+      const userId = await createTestUser(app.db, { email: 'test@test.com' })
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/auth/login',
+        payload: { email: 'test@test.com', password: 'test123' }
+      })
+
+      expect(response.statusCode).toBe(200)
+      const body = JSON.parse(response.body)
+      expect(body.success).toBe(true)
+      expect(body.data.token).toBeDefined()
+    })
+
+    it('should reject wrong password', async () => {
+      await createTestUser(app.db, { email: 'test@test.com' })
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/auth/login',
+        payload: { email: 'test@test.com', password: 'wrong' }
+      })
+
+      expect(response.statusCode).toBe(401)
+    })
+  })
+
+  describe('GET /api/auth/me', () => {
+    it('should return user info with valid token', async () => {
+      const userId = await createTestUser(app.db, { email: 'test@test.com' })
+      const token = await app.jwt.sign({ userId, email: 'test@test.com', role: 'employee' })
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/auth/me',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+
+      expect(response.statusCode).toBe(200)
+      const body = JSON.parse(response.body)
+      expect(body.email).toBe('test@test.com')
+    })
+
+    it('should reject without token', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/auth/me'
+      })
+
+      expect(response.statusCode).toBe(401)
+    })
+  })
+})
+```
+
+**test/e2e/tasks.test.ts**：
+```typescript
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { buildTestApp, createTestUser } from '../helpers'
+import taskRoutes from '../../src/routes/tasks'
+
+describe('Tasks API', () => {
+  let app: FastifyInstance
+  let adminToken: string
+  let employeeToken: string
+
+  beforeEach(async () => {
+    app = await buildTestApp()
+    await app.register(taskRoutes, { prefix: '/api/tasks' })
+
+    const adminId = await createTestUser(app.db, { email: 'admin@test.com', role: 'admin' })
+    const employeeId = await createTestUser(app.db, { email: 'emp@test.com', role: 'employee' })
+
+    adminToken = await app.jwt.sign({ userId: adminId, email: 'admin@test.com', role: 'admin' })
+    employeeToken = await app.jwt.sign({ userId: employeeId, email: 'emp@test.com', role: 'employee' })
+  })
+
+  afterEach(async () => {
+    await app.close()
+  })
+
+  describe('GET /api/tasks', () => {
+    it('should return tasks list', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/tasks',
+        headers: { Authorization: `Bearer ${employeeToken}` }
+      })
+
+      expect(response.statusCode).toBe(200)
+    })
+  })
+
+  describe('POST /api/tasks', () => {
+    it('should create task', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/tasks',
+        headers: { Authorization: `Bearer ${adminToken}` },
+        payload: { title: 'New Task', description: 'Test task' }
+      })
+
+      expect(response.statusCode).toBe(201)
+    })
+  })
+})
+```
+
+### 测试配置
+
+**vitest.config.ts**：
+```typescript
+import { defineConfig } from 'vitest/config'
+
+export default defineConfig({
+  test: {
+    globals: true,
+    environment: 'node',
+    include: ['test/**/*.test.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      include: ['src/**/*.ts'],
+      exclude: ['src/db/migrations/**']
+    },
+    testTimeout: 10000,
+    hookTimeout: 10000
+  }
+})
+```
+
+### 测试命令
+
+```bash
+pnpm run test              # 运行所有测试
+pnpm run test:unit         # 只运行单元测试
+pnpm run test:e2e          # 只运行端到端测试
+pnpm run test:coverage     # 运行测试并生成覆盖率报告
+pnpm run test:watch        # 监听模式运行测试
+```
+
+---
+
 ## 构建与部署
 
 ### package.json
@@ -305,6 +635,11 @@ start()
     "build": "tsup",
     "start": "node dist/index.js",
     "db:generate": "drizzle-kit generate",
+    "test": "vitest run",
+    "test:unit": "vitest run test/unit",
+    "test:e2e": "vitest run test/e2e",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
     "docker:build": "docker build -t the-agent-server .",
     "docker:tag": "docker tag the-agent-server crpi-hvru9zd4pbpi8a42.cn-shanghai.personal.cr.aliyuncs.com/qiudeng-private/the-agent-server:latest",
     "docker:push": "docker push crpi-hvru9zd4pbpi8a42.cn-shanghai.personal.cr.aliyuncs.com/qiudeng-private/the-agent-server:latest",
@@ -325,7 +660,9 @@ start()
     "typescript": "~5.7.2",
     "drizzle-kit": "^0.30.0",
     "@types/better-sqlite3": "^7.6.13",
-    "@types/node": "^25.5.0"
+    "@types/node": "^25.5.0",
+    "vitest": "^3.0.0",
+    "@vitest/coverage-v8": "^3.0.0"
   }
 }
 ```
@@ -477,10 +814,30 @@ PORT=3000
 - 更新 `docker-compose.yml`
 - 更新 `drizzle.config.ts`
 
-### 步骤 8：测试验证
+### 步骤 8：配置测试环境
 
+- 创建 `vitest.config.ts`
+- 创建 `test/setup.ts` 和 `test/helpers.ts`
+- 配置测试数据库（内存数据库）
+
+### 步骤 9：编写单元测试
+
+- 创建 `test/unit/crypto.test.ts`（密码哈希测试）
+- 创建 `test/unit/auth.test.ts`（JWT 测试）
+- 创建 `test/unit/rate-limit.test.ts`（速率限制测试）
+
+### 步骤 10：编写端到端测试
+
+- 创建 `test/e2e/auth.test.ts`（认证流程测试）
+- 创建 `test/e2e/sessions.test.ts`（会话 API 测试）
+- 创建 `test/e2e/tasks.test.ts`（任务 API 测试）
+- 创建 `test/e2e/admin.test.ts`（管理 API 测试）
+
+### 步骤 11：验证和部署
+
+- 运行 `pnpm run test` 确保所有测试通过
+- 运行 `pnpm run test:coverage` 确保覆盖率达标
 - 运行 `pnpm run dev` 启动开发服务
-- 测试所有 API 端点
 - 构建 Docker 镜像并部署测试
 
 ---
@@ -549,5 +906,6 @@ PORT=3000
 5. **迁移**：移除手动合并，使用 drizzle-kit generate
 6. **部署**：移除 Cloudflare，使用阿里云镜像仓库
 7. **构建**：tsup + ES Module
+8. **测试**：Vitest 单元测试 + 端到端测试
 
 API 行为和数据结构保持不变，客户端无需修改。
