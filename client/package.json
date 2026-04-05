@@ -16,9 +16,10 @@
   },
   "scripts": {
     "dev": "vite",
-    "make": "vue-tsc && vite build && electron-forge make",
+    "make:mac": "vue-tsc && vite build && electron-forge make --arch=arm64 --platform=darwin",
+    "publish:mac": "electron-forge publish --arch=arm64 --platform=darwin",
     "make:win": "vue-tsc && vite build && electron-forge make --platform=win32 --arch=x64",
-    "publish": "electron-forge publish --arch=x64 --platform=win32"
+    "publish:win": "electron-forge publish --arch=x64 --platform=win32"
   },
   "keywords": [
     "electron",
