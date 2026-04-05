@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import type { Language, Theme } from '@prisma/client';
+import type { Language, Theme, PermissionMode } from '@prisma/client';
 import type { UpdateSettingsDto } from './settings.dto';
 
 export interface UserSettingsResponse {
@@ -9,6 +9,7 @@ export interface UserSettingsResponse {
   customModelConfigs: unknown[];
   enabledModels: string[];
   defaultModel: string;
+  permissionMode: string;
   updatedAt: number;
 }
 
@@ -41,6 +42,28 @@ function toLowerTheme(theme: Theme): string {
   return theme.toLowerCase();
 }
 
+// permissionMode: 前端小写驼峰 <-> Prisma 大写下划线
+function toPrismaPermissionMode(mode: string): PermissionMode {
+  const map: Record<string, PermissionMode> = {
+    default: 'DEFAULT',
+    acceptEdits: 'ACCEPT_EDITS',
+    bypassPermissions: 'BYPASS_PERMISSIONS',
+    dontAsk: 'DONT_ASK',
+  };
+  return map[mode] || 'DEFAULT';
+}
+
+function toLowerPermissionMode(mode: PermissionMode): string {
+  // Prisma ACCEPT_EDITS -> 前端 acceptEdits
+  const map: Record<PermissionMode, string> = {
+    DEFAULT: 'default',
+    ACCEPT_EDITS: 'acceptEdits',
+    BYPASS_PERMISSIONS: 'bypassPermissions',
+    DONT_ASK: 'dontAsk',
+  };
+  return map[mode];
+}
+
 @Injectable()
 export class SettingsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -60,6 +83,7 @@ export class SettingsService {
         customModelConfigs: [],
         enabledModels: [],
         defaultModel: '',
+        permissionMode: 'default',
         updatedAt: Date.now(),
       };
     }
@@ -74,6 +98,7 @@ export class SettingsService {
         ? JSON.parse(settings.enabledModels)
         : [],
       defaultModel: settings.defaultModel || '',
+      permissionMode: toLowerPermissionMode(settings.permissionMode),
       updatedAt: settings.updatedAt.getTime(),
     };
   }
@@ -95,7 +120,9 @@ export class SettingsService {
       const updated = await this.prisma.userSettings.update({
         where: { userId },
         data: {
-          language: data.language ? toPrismaLanguage(data.language) : existing.language,
+          language: data.language
+            ? toPrismaLanguage(data.language)
+            : existing.language,
           theme: data.theme ? toPrismaTheme(data.theme) : existing.theme,
           customModelConfigs: data.customModelConfigs
             ? JSON.stringify(data.customModelConfigs)
@@ -104,6 +131,9 @@ export class SettingsService {
             ? JSON.stringify(data.enabledModels)
             : existing.enabledModels,
           defaultModel: data.defaultModel || existing.defaultModel,
+          permissionMode: data.permissionMode
+            ? toPrismaPermissionMode(data.permissionMode)
+            : existing.permissionMode,
           updatedAt: now,
         },
       });
@@ -118,6 +148,7 @@ export class SettingsService {
           ? JSON.parse(updated.enabledModels)
           : [],
         defaultModel: updated.defaultModel || '',
+        permissionMode: toLowerPermissionMode(updated.permissionMode),
         updatedAt: updated.updatedAt.getTime(),
       };
     } else {
@@ -133,6 +164,9 @@ export class SettingsService {
             ? JSON.stringify(data.enabledModels)
             : null,
           defaultModel: data.defaultModel || null,
+          permissionMode: data.permissionMode
+            ? toPrismaPermissionMode(data.permissionMode)
+            : 'DEFAULT',
           updatedAt: now,
         },
       });
@@ -147,6 +181,7 @@ export class SettingsService {
           ? JSON.parse(created.enabledModels)
           : [],
         defaultModel: created.defaultModel || '',
+        permissionMode: toLowerPermissionMode(created.permissionMode),
         updatedAt: created.updatedAt.getTime(),
       };
     }

@@ -99,13 +99,14 @@ model Message {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model UserSettings {
-  userId            String   @id @map("user_id")
-  language          Language @default(SYSTEM)
-  theme             Theme    @default(SYSTEM)
-  customModelConfigs String? @map("custom_model_configs")
-  enabledModels     String?  @map("enabled_models")
-  defaultModel      String?  @map("default_model")
-  updatedAt         DateTime @map("updated_at")
+  userId            String        @id @map("user_id")
+  language          Language      @default(SYSTEM)
+  theme             Theme         @default(SYSTEM)
+  customModelConfigs String?      @map("custom_model_configs")
+  enabledModels     String?       @map("enabled_models")
+  defaultModel      String?       @map("default_model")
+  permissionMode    PermissionMode @default(DEFAULT) @map("permission_mode")
+  updatedAt         DateTime      @map("updated_at")
 
   // 关系
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -146,4 +147,11 @@ enum Theme {
   SYSTEM
   LIGHT
   DARK
+}
+
+enum PermissionMode {
+  DEFAULT
+  ACCEPT_EDITS
+  BYPASS_PERMISSIONS
+  DONT_ASK
 }

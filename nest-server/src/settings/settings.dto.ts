@@ -1,11 +1,17 @@
-import { IsString, IsOptional, IsArray } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsEnum } from 'class-validator';
+
+export type PermissionMode =
+  | 'default'
+  | 'acceptEdits'
+  | 'bypassPermissions'
+  | 'dontAsk';
 
 export class UpdateSettingsDto {
-  @IsString()
+  @IsEnum(['system', 'zh', 'ja', 'en'])
   @IsOptional()
   language?: 'system' | 'zh' | 'ja' | 'en';
 
-  @IsString()
+  @IsEnum(['system', 'light', 'dark'])
   @IsOptional()
   theme?: 'system' | 'light' | 'dark';
 
@@ -21,4 +27,8 @@ export class UpdateSettingsDto {
   @IsString()
   @IsOptional()
   defaultModel?: string;
+
+  @IsEnum(['default', 'acceptEdits', 'bypassPermissions', 'dontAsk'])
+  @IsOptional()
+  permissionMode?: PermissionMode;
 }
