@@ -1,5 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException, UnauthorizedException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  UnauthorizedException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from './crypto.service';
@@ -7,38 +12,37 @@ import { JwtService } from './jwt.service';
 
 describe('AuthService', () => {
   let service: AuthService;
-  let prisma: jest.Mocked<PrismaService>;
-  let crypto: jest.Mocked<CryptoService>;
-  let jwt: jest.Mocked<JwtService>;
 
   const mockUser = {
     id: 'user-123',
     email: 'test@example.com',
     passwordHash: 'hashed-password',
     nickname: 'Test User',
-    role: 'EMPLOYEE',
+    role: 'EMPLOYEE' as const,
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
     deletedAt: null,
   };
 
+  const mockPrisma = {
+    user: {
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      count: jest.fn(),
+    },
+  };
+
+  const mockCrypto = {
+    hashPassword: jest.fn(),
+    verifyPassword: jest.fn(),
+  };
+
+  const mockJwt = {
+    generateToken: jest.fn(),
+  };
+
   beforeEach(async () => {
-    const mockPrisma = {
-      user: {
-        findUnique: jest.fn(),
-        create: jest.fn(),
-        count: jest.fn(),
-      },
-    };
-
-    const mockCrypto = {
-      hashPassword: jest.fn(),
-      verifyPassword: jest.fn(),
-    };
-
-    const mockJwt = {
-      generateToken: jest.fn(),
-    };
+    jest.clearAllMocks();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -50,9 +54,6 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-    prisma = module.get(PrismaService);
-    crypto = module.get(CryptoService);
-    jwt = module.get(JwtService);
   });
 
   it('should be defined', () => {
@@ -61,11 +62,11 @@ describe('AuthService', () => {
 
   describe('register', () => {
     it('should register a new user successfully', async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
-      prisma.user.count.mockResolvedValue(1);
-      prisma.user.create.mockResolvedValue(mockUser);
-      crypto.hashPassword.mockResolvedValue('hashed-password');
-      jwt.generateToken.mockResolvedValue('token-123');
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      mockPrisma.user.count.mockResolvedValue(1);
+      mockPrisma.user.create.mockResolvedValue(mockUser);
+      mockCrypto.hashPassword.mockResolvedValue('hashed-password');
+      mockJwt.generateToken.mockResolvedValue('token-123');
 
       const result = await service.register({
         email: 'test@example.com',
@@ -78,18 +79,18 @@ describe('AuthService', () => {
     });
 
     it('should make first user admin', async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
-      prisma.user.count.mockResolvedValue(0);
-      prisma.user.create.mockResolvedValue({ ...mockUser, role: 'ADMIN' });
-      crypto.hashPassword.mockResolvedValue('hashed-password');
-      jwt.generateToken.mockResolvedValue('token-123');
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      mockPrisma.user.count.mockResolvedValue(0);
+      mockPrisma.user.create.mockResolvedValue({ ...mockUser, role: 'ADMIN' });
+      mockCrypto.hashPassword.mockResolvedValue('hashed-password');
+      mockJwt.generateToken.mockResolvedValue('token-123');
 
-      const result = await service.register({
+      await service.register({
         email: 'admin@example.com',
         password: 'password123',
       });
 
-      expect(prisma.user.create).toHaveBeenCalledWith(
+      expect(mockPrisma.user.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ role: 'ADMIN' }),
         }),
@@ -97,7 +98,7 @@ describe('AuthService', () => {
     });
 
     it('should throw ConflictException if email exists', async () => {
-      prisma.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
 
       await expect(
         service.register({ email: 'test@example.com', password: 'password123' }),
@@ -107,9 +108,9 @@ describe('AuthService', () => {
 
   describe('login', () => {
     it('should login successfully', async () => {
-      prisma.user.findUnique.mockResolvedValue(mockUser);
-      crypto.verifyPassword.mockResolvedValue(true);
-      jwt.generateToken.mockResolvedValue('token-123');
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockCrypto.verifyPassword.mockResolvedValue(true);
+      mockJwt.generateToken.mockResolvedValue('token-123');
 
       const result = await service.login({
         email: 'test@example.com',
@@ -121,7 +122,7 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException for non-existent user', async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
+      mockPrisma.user.findUnique.mockResolvedValue(null);
 
       await expect(
         service.login({ email: 'notfound@example.com', password: 'password' }),
@@ -129,7 +130,7 @@ describe('AuthService', () => {
     });
 
     it('should throw ForbiddenException for deleted user', async () => {
-      prisma.user.findUnique.mockResolvedValue({
+      mockPrisma.user.findUnique.mockResolvedValue({
         ...mockUser,
         deletedAt: new Date(),
       });
@@ -140,8 +141,8 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException for wrong password', async () => {
-      prisma.user.findUnique.mockResolvedValue(mockUser);
-      crypto.verifyPassword.mockResolvedValue(false);
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockCrypto.verifyPassword.mockResolvedValue(false);
 
       await expect(
         service.login({ email: 'test@example.com', password: 'wrongpassword' }),
@@ -151,7 +152,7 @@ describe('AuthService', () => {
 
   describe('me', () => {
     it('should return user info', async () => {
-      prisma.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
 
       const result = await service.me('user-123');
 
@@ -160,13 +161,13 @@ describe('AuthService', () => {
     });
 
     it('should throw NotFoundException for non-existent user', async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
+      mockPrisma.user.findUnique.mockResolvedValue(null);
 
       await expect(service.me('not-found')).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ForbiddenException for deleted user', async () => {
-      prisma.user.findUnique.mockResolvedValue({
+      mockPrisma.user.findUnique.mockResolvedValue({
         ...mockUser,
         deletedAt: new Date(),
       });
