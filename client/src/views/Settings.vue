@@ -69,6 +69,11 @@
           <button class="update-btn" @click="updaterStore.cancel()">取消</button>
         </div>
 
+        <!-- 正在解压 -->
+        <div v-else-if="updaterStore.status === 'extracting'" class="update-section">
+          <span class="update-status">正在解压更新包...</span>
+        </div>
+
         <!-- 下载完成 -->
         <div v-else-if="updaterStore.status === 'downloaded'" class="update-section">
           <div class="update-info">
