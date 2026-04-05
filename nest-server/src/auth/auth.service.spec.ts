@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
+import { vi } from 'vitest';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from './crypto.service';
@@ -26,23 +27,23 @@ describe('AuthService', () => {
 
   const mockPrisma = {
     user: {
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      count: jest.fn(),
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      count: vi.fn(),
     },
   };
 
   const mockCrypto = {
-    hashPassword: jest.fn(),
-    verifyPassword: jest.fn(),
+    hashPassword: vi.fn(),
+    verifyPassword: vi.fn(),
   };
 
   const mockJwt = {
-    generateToken: jest.fn(),
+    generateToken: vi.fn(),
   };
 
   beforeEach(async () => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [

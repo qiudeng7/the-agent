@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { vi } from 'vitest';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaService } from './prisma/prisma.service';
@@ -15,7 +16,7 @@ describe('AppController', () => {
           provide: PrismaService,
           useValue: {
             user: {
-              count: jest.fn().mockResolvedValue(0),
+              count: vi.fn().mockResolvedValue(0),
             },
           },
         },
