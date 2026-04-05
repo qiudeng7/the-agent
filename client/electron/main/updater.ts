@@ -17,6 +17,14 @@
 import { autoUpdater, CancellationToken } from 'electron-updater'
 import { ipcMain, BrowserWindow } from 'electron'
 
+// ── 配置 ────────────────────────────────────────────────────────────────────
+
+/** GitHub 代理地址（用于加速国内下载） */
+const GITHUB_PROXY = 'https://v6.gh-proxy.org'
+
+/** 更新源 URL（使用代理加速 GitHub Release 下载） */
+const UPDATE_FEED_URL = `${GITHUB_PROXY}/https://github.com/qiudeng7/the-agent/releases/latest`
+
 // ── 类型定义 ────────────────────────────────────────────────────────────────
 
 export type UpdaterStatus =
@@ -71,6 +79,12 @@ export function createElectronUpdater(getWindow: () => BrowserWindow | null): Up
   autoUpdater.autoDownload = false
   autoUpdater.autoInstallOnAppQuit = true
   autoUpdater.logger = console
+
+  // 使用 GitHub 代理加速下载
+  autoUpdater.setFeedURL({
+    provider: 'generic',
+    url: UPDATE_FEED_URL,
+  })
 
   // ── 事件转发 ─────────────────────────────────────────────────────────────
   autoUpdater.on('checking-for-update', () => {
