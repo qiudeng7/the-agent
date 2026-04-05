@@ -1,14 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { Language, Theme } from '@prisma/client';
-
-export interface UpdateSettingsDto {
-  language?: Language;
-  theme?: Theme;
-  customModelConfigs?: unknown[];
-  enabledModels?: string[];
-  defaultModel?: string;
-}
+import type { UpdateSettingsDto } from './settings.dto';
 
 export interface UserSettingsResponse {
   language: string;
@@ -17,6 +10,35 @@ export interface UserSettingsResponse {
   enabledModels: string[];
   defaultModel: string;
   updatedAt: number;
+}
+
+// 小写 -> Prisma 大写转换
+function toPrismaLanguage(lang: string): Language {
+  const map: Record<string, Language> = {
+    system: 'SYSTEM',
+    zh: 'ZH',
+    ja: 'JA',
+    en: 'EN',
+  };
+  return map[lang] || 'SYSTEM';
+}
+
+function toPrismaTheme(theme: string): Theme {
+  const map: Record<string, Theme> = {
+    system: 'SYSTEM',
+    light: 'LIGHT',
+    dark: 'DARK',
+  };
+  return map[theme] || 'SYSTEM';
+}
+
+// Prisma 大写 -> 小写转换
+function toLowerLanguage(lang: Language): string {
+  return lang.toLowerCase();
+}
+
+function toLowerTheme(theme: Theme): string {
+  return theme.toLowerCase();
 }
 
 @Injectable()
@@ -33,8 +55,8 @@ export class SettingsService {
 
     if (!settings) {
       return {
-        language: 'SYSTEM',
-        theme: 'SYSTEM',
+        language: 'system',
+        theme: 'system',
         customModelConfigs: [],
         enabledModels: [],
         defaultModel: '',
@@ -43,8 +65,8 @@ export class SettingsService {
     }
 
     return {
-      language: settings.language,
-      theme: settings.theme,
+      language: toLowerLanguage(settings.language),
+      theme: toLowerTheme(settings.theme),
       customModelConfigs: settings.customModelConfigs
         ? JSON.parse(settings.customModelConfigs)
         : [],
@@ -73,8 +95,8 @@ export class SettingsService {
       const updated = await this.prisma.userSettings.update({
         where: { userId },
         data: {
-          language: data.language || existing.language,
-          theme: data.theme || existing.theme,
+          language: data.language ? toPrismaLanguage(data.language) : existing.language,
+          theme: data.theme ? toPrismaTheme(data.theme) : existing.theme,
           customModelConfigs: data.customModelConfigs
             ? JSON.stringify(data.customModelConfigs)
             : existing.customModelConfigs,
@@ -87,8 +109,8 @@ export class SettingsService {
       });
 
       return {
-        language: updated.language,
-        theme: updated.theme,
+        language: toLowerLanguage(updated.language),
+        theme: toLowerTheme(updated.theme),
         customModelConfigs: updated.customModelConfigs
           ? JSON.parse(updated.customModelConfigs)
           : [],
@@ -102,8 +124,8 @@ export class SettingsService {
       const created = await this.prisma.userSettings.create({
         data: {
           userId,
-          language: data.language || 'SYSTEM',
-          theme: data.theme || 'SYSTEM',
+          language: data.language ? toPrismaLanguage(data.language) : 'SYSTEM',
+          theme: data.theme ? toPrismaTheme(data.theme) : 'SYSTEM',
           customModelConfigs: data.customModelConfigs
             ? JSON.stringify(data.customModelConfigs)
             : null,
@@ -116,8 +138,8 @@ export class SettingsService {
       });
 
       return {
-        language: created.language,
-        theme: created.theme,
+        language: toLowerLanguage(created.language),
+        theme: toLowerTheme(created.theme),
         customModelConfigs: created.customModelConfigs
           ? JSON.parse(created.customModelConfigs)
           : [],

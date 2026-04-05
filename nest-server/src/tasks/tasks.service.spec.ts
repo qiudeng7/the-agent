@@ -86,7 +86,7 @@ describe('TasksService', () => {
       mockPrisma.task.findMany.mockResolvedValue([]);
       mockPrisma.task.count.mockResolvedValue(0);
 
-      await service.findAll('user-123', 'ADMIN', { status: 'TODO' });
+      await service.findAll('user-123', 'ADMIN', { status: 'todo' });
 
       expect(mockPrisma.task.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -123,7 +123,7 @@ describe('TasksService', () => {
       const result = await service.findOne(1, 'user-123', 'ADMIN');
 
       expect(result?.success).toBe(true);
-      expect(result?.data.id).toBe(1);
+      expect(result?.data.task.id).toBe(1);
     });
 
     it('should return null for non-existent task', async () => {
@@ -172,7 +172,7 @@ describe('TasksService', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.data.title).toBe('Test Task');
+      expect(result.data.task.title).toBe('Test Task');
       expect(mockPrisma.task.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -194,18 +194,18 @@ describe('TasksService', () => {
       });
 
       const result = await service.update(1, 'user-123', 'ADMIN', {
-        status: 'IN_PROGRESS',
+        status: 'in_progress',
       });
 
       expect(result?.success).toBe(true);
-      expect(result?.data.status).toBe('IN_PROGRESS');
+      expect(result?.data.task.status).toBe('in_progress');
     });
 
     it('should return null for non-existent task', async () => {
       mockPrisma.task.findUnique.mockResolvedValue(null);
 
       const result = await service.update(999, 'user-123', 'ADMIN', {
-        status: 'IN_PROGRESS',
+        status: 'in_progress',
       });
 
       expect(result).toBeNull();

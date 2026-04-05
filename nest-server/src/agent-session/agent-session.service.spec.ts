@@ -26,6 +26,7 @@ describe('AgentSessionService', () => {
     },
     message: {
       count: vi.fn(),
+      findMany: vi.fn(),
     },
   };
 
@@ -67,12 +68,14 @@ describe('AgentSessionService', () => {
   });
 
   describe('findOne', () => {
-    it('should return a session', async () => {
+    it('should return a session with messages', async () => {
       mockPrisma.chatSession.findUnique.mockResolvedValue(mockSession);
+      mockPrisma.message.findMany.mockResolvedValue([]);
 
       const result = await service.findOne('session-123', 'user-123');
 
-      expect(result?.id).toBe('session-123');
+      expect(result?.session.id).toBe('session-123');
+      expect(result?.messages).toEqual([]);
     });
 
     it('should return null for non-existent session', async () => {

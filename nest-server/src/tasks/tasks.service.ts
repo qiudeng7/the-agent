@@ -1,30 +1,25 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { Task, TaskStatus } from '@prisma/client';
+import type { CreateTaskDto, UpdateTaskDto, TaskQueryDto } from './tasks.dto';
 
-export interface CreateTaskDto {
-  title: string;
-  category?: string;
-  tag?: string;
-  description?: string;
-  assignedToUserId?: string;
+// 小写 -> Prisma 大写转换
+function toPrismaStatus(
+  status: 'todo' | 'in_progress' | 'in_review' | 'done' | 'cancelled',
+): TaskStatus {
+  const map: Record<string, TaskStatus> = {
+    todo: 'TODO',
+    in_progress: 'IN_PROGRESS',
+    in_review: 'IN_REVIEW',
+    done: 'DONE',
+    cancelled: 'CANCELLED',
+  };
+  return map[status];
 }
 
-export interface UpdateTaskDto {
-  title?: string;
-  category?: string;
-  tag?: string;
-  description?: string;
-  status?: TaskStatus;
-  assignedToUserId?: string | null;
-}
-
-export interface TaskQueryDto {
-  page?: number;
-  pageSize?: number;
-  status?: TaskStatus;
-  category?: string;
-  search?: string;
+// Prisma 大写 -> 小写转换
+function toLowerStatus(status: TaskStatus): string {
+  return status.toLowerCase();
 }
 
 @Injectable()
@@ -56,7 +51,7 @@ export class TasksService {
     }
 
     if (query.status) {
-      where.status = query.status;
+      where.status = toPrismaStatus(query.status);
     }
 
     if (query.category) {
@@ -85,6 +80,7 @@ export class TasksService {
       data: {
         tasks: tasks.map((task: Task) => ({
           ...task,
+          status: toLowerStatus(task.status),
           createdAt: task.createdAt.getTime(),
           updatedAt: task.updatedAt.getTime(),
           deletedAt: task.deletedAt?.getTime() || null,
@@ -119,10 +115,13 @@ export class TasksService {
     return {
       success: true,
       data: {
-        ...task,
-        createdAt: task.createdAt.getTime(),
-        updatedAt: task.updatedAt.getTime(),
-        deletedAt: null,
+        task: {
+          ...task,
+          status: toLowerStatus(task.status),
+          createdAt: task.createdAt.getTime(),
+          updatedAt: task.updatedAt.getTime(),
+          deletedAt: null,
+        },
       },
     };
   }
@@ -149,10 +148,13 @@ export class TasksService {
     return {
       success: true,
       data: {
-        ...task,
-        createdAt: task.createdAt.getTime(),
-        updatedAt: task.updatedAt.getTime(),
-        deletedAt: task.deletedAt?.getTime() || null,
+        task: {
+          ...task,
+          status: toLowerStatus(task.status),
+          createdAt: task.createdAt.getTime(),
+          updatedAt: task.updatedAt.getTime(),
+          deletedAt: task.deletedAt?.getTime() || null,
+        },
       },
     };
   }
@@ -183,29 +185,46 @@ export class TasksService {
       return null;
     }
 
+    // 构建更新数据，转换 status
+    const updateData: Record<string, unknown> = {
+      updatedAt: new Date(),
+    };
+    if (data.title !== undefined) updateData.title = data.title;
+    if (data.category !== undefined) updateData.category = data.category;
+    if (data.tag !== undefined) updateData.tag = data.tag;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.status !== undefined) updateData.status = toPrismaStatus(data.status);
+    if (data.assignedToUserId !== undefined) updateData.assignedToUserId = data.assignedToUserId;
+
     const task = await this.prisma.task.update({
       where: { id },
-      data: {
-        ...data,
-        updatedAt: new Date(),
-      },
+      data: updateData,
     });
 
     return {
       success: true,
       data: {
-        ...task,
-        createdAt: task.createdAt.getTime(),
-        updatedAt: task.updatedAt.getTime(),
-        deletedAt: task.deletedAt?.getTime() || null,
+        task: {
+          ...task,
+          status: toLowerStatus(task.status),
+          createdAt: task.createdAt.getTime(),
+          updatedAt: task.updatedAt.getTime(),
+          deletedAt: task.deletedAt?.getTime() || null,
+        },
       },
     };
   }
 
   /**
    * 删除任务（软删除）
+   * 只有 ADMIN 可以删除自己创建的任务
    */
   async remove(id: number, userId: string, role: string) {
+    // 只有 admin 可以删除任务
+    if (role !== 'ADMIN') {
+      return null;
+    }
+
     // 验证任务存在且有权限
     const existing = await this.prisma.task.findUnique({
       where: { id },
@@ -215,11 +234,8 @@ export class TasksService {
       return null;
     }
 
-    // 验证权限
-    if (role === 'EMPLOYEE' && existing.assignedToUserId !== userId) {
-      return null;
-    }
-    if (role === 'ADMIN' && existing.createdByUserId !== userId) {
+    // 验证是自己创建的任务
+    if (existing.createdByUserId !== userId) {
       return null;
     }
 

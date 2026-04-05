@@ -20,7 +20,7 @@ describe('AgentMessageService', () => {
     id: 'msg-123',
     sessionId: 'session-123',
     role: 'USER',
-    content: 'Hello',
+    content: '"Hello"', // JSON string
     model: null,
     timestamp: new Date('2024-01-01'),
   };
@@ -35,6 +35,7 @@ describe('AgentMessageService', () => {
       findUnique: vi.fn(),
       create: vi.fn(),
       delete: vi.fn(),
+      count: vi.fn(),
     },
   };
 
@@ -87,6 +88,7 @@ describe('AgentMessageService', () => {
     it('should create a message', async () => {
       mockPrisma.chatSession.findUnique.mockResolvedValue(mockSession);
       mockPrisma.message.create.mockResolvedValue(mockMessage);
+      mockPrisma.message.count.mockResolvedValue(1);
       mockPrisma.chatSession.update.mockResolvedValue(mockSession);
 
       const result = await service.create('session-123', 'user-123', {

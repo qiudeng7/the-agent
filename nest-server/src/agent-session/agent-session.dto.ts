@@ -3,10 +3,12 @@ import { Type } from 'class-transformer';
 
 export class CreateSessionDto {
   @IsString()
-  title!: string;
+  @IsOptional()
+  title?: string;
 
   @IsString()
-  model!: string;
+  @IsOptional()
+  model?: string;
 
   @Type(() => Number)
   @IsInt()

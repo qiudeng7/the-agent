@@ -111,10 +111,10 @@ describe('AdminService', () => {
       });
 
       const result = await service.updateTableRecord('tasks', 1, {
-        status: 'DONE',
+        status: 'done',
       });
 
-      expect((result as { status: string }).status).toBe('DONE');
+      expect((result as { status: string }).status).toBe('done');
     });
   });
 

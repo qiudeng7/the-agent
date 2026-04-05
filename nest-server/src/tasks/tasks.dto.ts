@@ -1,6 +1,8 @@
-import { IsString, IsOptional, IsEnum, IsInt, Min } from 'class-validator';
+import { IsString, IsOptional, IsInt, Min } from 'class-validator';
 import { Type } from 'class-transformer';
-import type { TaskStatus } from '@prisma/client';
+
+// 小写 status 类型（前端发送）
+export type TaskStatusLower = 'todo' | 'in_progress' | 'in_review' | 'done' | 'cancelled';
 
 export class CreateTaskDto {
   @IsString()
@@ -40,9 +42,9 @@ export class UpdateTaskDto {
   @IsOptional()
   description?: string;
 
-  @IsEnum(['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE', 'CANCELLED'])
+  @IsString()
   @IsOptional()
-  status?: TaskStatus;
+  status?: TaskStatusLower;
 
   @IsString()
   @IsOptional()
@@ -62,9 +64,9 @@ export class TaskQueryDto {
   @IsOptional()
   pageSize?: number = 10;
 
-  @IsEnum(['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE', 'CANCELLED'])
+  @IsString()
   @IsOptional()
-  status?: TaskStatus;
+  status?: TaskStatusLower;
 
   @IsString()
   @IsOptional()

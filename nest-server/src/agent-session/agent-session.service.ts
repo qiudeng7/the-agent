@@ -2,18 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { nanoid } from 'nanoid';
 import type { ChatSession } from '@prisma/client';
-
-export interface CreateSessionDto {
-  title: string;
-  model: string;
-  taskId?: number;
-}
-
-export interface UpdateSessionDto {
-  title?: string;
-  model?: string;
-  taskId?: number | null;
-}
+import type { CreateSessionDto, UpdateSessionDto } from './agent-session.dto';
 
 @Injectable()
 export class AgentSessionService {
@@ -55,13 +44,28 @@ export class AgentSessionService {
       return null;
     }
 
+    // 获取消息
+    const messages = await this.prisma.message.findMany({
+      where: { sessionId: id },
+      orderBy: { timestamp: 'asc' },
+    });
+
     return {
-      id: session.id,
-      title: session.title,
-      model: session.model,
-      taskId: session.taskId,
-      createdAt: session.createdAt.getTime(),
-      updatedAt: session.updatedAt.getTime(),
+      session: {
+        id: session.id,
+        title: session.title,
+        model: session.model,
+        taskId: session.taskId,
+        createdAt: session.createdAt.getTime(),
+        updatedAt: session.updatedAt.getTime(),
+      },
+      messages: messages.map((msg) => ({
+        id: msg.id,
+        role: msg.role.toLowerCase(),
+        content: JSON.parse(msg.content),
+        model: msg.model,
+        timestamp: msg.timestamp.getTime(),
+      })),
     };
   }
 
@@ -71,8 +75,8 @@ export class AgentSessionService {
       data: {
         id: nanoid(),
         userId,
-        title: data.title,
-        model: data.model,
+        title: data.title || '新会话',
+        model: data.model || 'default',
         taskId: data.taskId || null,
         createdAt: now,
         updatedAt: now,
@@ -86,6 +90,7 @@ export class AgentSessionService {
       taskId: session.taskId,
       createdAt: session.createdAt.getTime(),
       updatedAt: session.updatedAt.getTime(),
+      messageCount: 0,
     };
   }
 
@@ -129,6 +134,6 @@ export class AgentSessionService {
       where: { id },
     });
 
-    return { success: true };
+    return { success: true, id };
   }
 }

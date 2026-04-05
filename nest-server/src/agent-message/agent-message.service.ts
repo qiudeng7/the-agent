@@ -5,9 +5,11 @@ import type { Message } from '@prisma/client';
 import { MessageRole } from '@prisma/client';
 
 export interface CreateMessageDto {
+  id?: string;
   role: 'user' | 'assistant';
-  content: string;
+  content: string | Record<string, unknown>[];
   model?: string;
+  timestamp?: number;
 }
 
 @Injectable()
@@ -35,7 +37,7 @@ export class AgentMessageService {
     return messages.map((msg: Message) => ({
       id: msg.id,
       role: msg.role.toLowerCase(),
-      content: msg.content,
+      content: JSON.parse(msg.content),
       model: msg.model,
       timestamp: msg.timestamp.getTime(),
     }));
@@ -51,26 +53,60 @@ export class AgentMessageService {
     }
 
     const now = new Date();
+    const messageId = data.id || nanoid();
+    const timestamp = data.timestamp ? new Date(data.timestamp) : now;
+    const contentStr =
+      typeof data.content === 'string'
+        ? data.content
+        : JSON.stringify(data.content);
+
     const message = await this.prisma.message.create({
       data: {
-        id: nanoid(),
+        id: messageId,
         sessionId,
         role: this.toPrismaRole(data.role),
-        content: data.content,
+        content: contentStr,
         model: data.model || null,
-        timestamp: now,
+        timestamp,
       },
     });
 
+    // 更新会话的 updatedAt
     await this.prisma.chatSession.update({
       where: { id: sessionId },
       data: { updatedAt: now },
     });
 
+    // 如果是第一条用户消息，自动提取标题
+    if (data.role === 'user') {
+      const existingMessages = await this.prisma.message.count({
+        where: { sessionId },
+      });
+
+      if (existingMessages === 1) {
+        let text = '';
+        if (typeof data.content === 'string') {
+          text = data.content;
+        } else if (Array.isArray(data.content)) {
+          const textBlock = data.content.find(
+            (b: Record<string, unknown>) => b.type === 'text',
+          );
+          text = (textBlock?.text as string) || '';
+        }
+
+        const title = text.slice(0, 30) + (text.length > 30 ? '...' : '');
+        await this.prisma.chatSession.update({
+          where: { id: sessionId },
+          data: { title },
+        });
+      }
+    }
+
     return {
       id: message.id,
+      sessionId,
       role: message.role.toLowerCase(),
-      content: message.content,
+      content: JSON.parse(message.content),
       model: message.model,
       timestamp: message.timestamp.getTime(),
     };

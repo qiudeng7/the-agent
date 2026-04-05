@@ -47,8 +47,8 @@ describe('SettingsService', () => {
 
       const result = await service.findOne('user-123');
 
-      expect(result.language).toBe('ZH');
-      expect(result.theme).toBe('DARK');
+      expect(result.language).toBe('zh');
+      expect(result.theme).toBe('dark');
       expect(result.customModelConfigs).toEqual([{ name: 'custom-model' }]);
     });
 
@@ -57,8 +57,8 @@ describe('SettingsService', () => {
 
       const result = await service.findOne('user-123');
 
-      expect(result.language).toBe('SYSTEM');
-      expect(result.theme).toBe('SYSTEM');
+      expect(result.language).toBe('system');
+      expect(result.theme).toBe('system');
       expect(result.customModelConfigs).toEqual([]);
     });
   });
@@ -73,12 +73,12 @@ describe('SettingsService', () => {
       });
 
       const result = await service.update('user-123', {
-        language: 'EN',
-        theme: 'LIGHT',
+        language: 'en',
+        theme: 'light',
       });
 
       expect(mockPrisma.userSettings.update).toHaveBeenCalled();
-      expect(result.language).toBe('EN');
+      expect(result.language).toBe('en');
     });
 
     it('should create settings if not exists', async () => {
@@ -90,12 +90,12 @@ describe('SettingsService', () => {
       });
 
       const result = await service.update('user-123', {
-        language: 'EN',
-        theme: 'LIGHT',
+        language: 'en',
+        theme: 'light',
       });
 
       expect(mockPrisma.userSettings.create).toHaveBeenCalled();
-      expect(result.language).toBe('EN');
+      expect(result.language).toBe('en');
     });
   });
 });
