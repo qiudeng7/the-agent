@@ -55,10 +55,8 @@ export class AgentMessageService {
     const now = new Date();
     const messageId = data.id || nanoid();
     const timestamp = data.timestamp ? new Date(data.timestamp) : now;
-    const contentStr =
-      typeof data.content === 'string'
-        ? data.content
-        : JSON.stringify(data.content);
+    // 统一 stringify，保持与 nitro 后端一致
+    const contentStr = JSON.stringify(data.content);
 
     const message = await this.prisma.message.create({
       data: {
