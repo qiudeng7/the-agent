@@ -6,8 +6,8 @@
  */
 import type { ContentBlock } from '#claude/types'
 import type {
-  User, AuthResponse, MeResponse, Session, SessionDetail, Message, Settings,
-  Task, TaskListParams, TaskListApiResponse, TaskApiResponse, TaskStatsApiResponse,
+  AuthResponse, MeResponse, Session, SessionDetail, Message, Settings,
+  TaskListParams, TaskListApiResponse, TaskApiResponse, TaskStatsApiResponse,
 } from './types'
 
 // API 基础地址（开发环境使用本地服务器，生产环境使用配置的地址）
@@ -226,7 +226,13 @@ export async function fetchTask(id: number): Promise<TaskApiResponse> {
 }
 
 /** 创建任务 */
-export async function createTask(taskData: Partial<Task>): Promise<TaskApiResponse> {
+export async function createTask(taskData: {
+  title: string
+  category?: string
+  tag?: string
+  description?: string
+  assignedToUserId?: string
+}): Promise<TaskApiResponse> {
   return request('/api/tasks', {
     method: 'POST',
     body: JSON.stringify(taskData),
@@ -234,7 +240,17 @@ export async function createTask(taskData: Partial<Task>): Promise<TaskApiRespon
 }
 
 /** 更新任务 */
-export async function updateTask(id: number, taskData: Partial<Task>): Promise<TaskApiResponse> {
+export async function updateTask(
+  id: number,
+  taskData: {
+    title?: string
+    category?: string
+    tag?: string
+    description?: string
+    status?: string
+    assignedToUserId?: string | null
+  },
+): Promise<TaskApiResponse> {
   return request(`/api/tasks/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(taskData),

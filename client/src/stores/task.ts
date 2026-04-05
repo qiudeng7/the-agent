@@ -98,7 +98,13 @@ export const useTaskStore = defineStore('task', () => {
   }
 
   /** 创建任务 */
-  async function createTask(taskData: Partial<Task>) {
+  async function createTask(taskData: {
+    title: string
+    category?: string
+    tag?: string
+    description?: string
+    assignedToUserId?: string
+  }) {
     try {
       const response = await backend.createTask(taskData)
 
@@ -117,7 +123,17 @@ export const useTaskStore = defineStore('task', () => {
   }
 
   /** 更新任务 */
-  async function updateTask(id: number, taskData: Partial<Task>) {
+  async function updateTask(
+    id: number,
+    taskData: {
+      title?: string
+      category?: string
+      tag?: string
+      description?: string
+      status?: string
+      assignedToUserId?: string | null
+    },
+  ) {
     try {
       const response = await backend.updateTask(id, taskData)
 

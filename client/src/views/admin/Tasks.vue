@@ -274,10 +274,7 @@ async function loadTasks() {
 
 async function handleCreateTask() {
   try {
-    await taskStore.createTask({
-      ...newTask,
-      createdByUserId: Number(authStore.user?.id) || 0
-    })
+    await taskStore.createTask(newTask)
     showCreateModal.value = false
     Object.assign(newTask, {
       title: '',
