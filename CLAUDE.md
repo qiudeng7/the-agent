@@ -272,6 +272,17 @@ windows 还需要打包 git for windows portable.
 
 ## 开发流程注意事项
 
+### nest-server
+
+修改 nest-server 代码后，必须运行 lint 和所有测试确保代码质量：
+
+```bash
+cd nest-server
+pnpm lint && pnpm test && pnpm test:e2e
+```
+
+### client
+
 启动开发环境前建议先运行类型检查，确保代码无类型错误：
 
 ```bash
