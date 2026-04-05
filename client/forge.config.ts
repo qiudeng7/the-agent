@@ -44,6 +44,7 @@ const config: ForgeConfig = {
           name: 'the-agent',
         },
         authToken: getGitHubToken(),
+        draft: false,
       },
     },
   ],

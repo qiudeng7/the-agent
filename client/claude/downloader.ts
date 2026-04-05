@@ -9,10 +9,10 @@
  *              3. GET .../{ver}/{platform}/claude[.exe] → 二进制，边下边校验
  */
 
-import https from 'https'
-import http from 'http'
 import fs from 'fs'
+import path from 'path'
 import crypto from 'crypto'
+import { pipeline } from 'stream/promises'
 
 const GCS_BUCKET =
   'https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases'
@@ -39,7 +39,7 @@ export interface DownloadResult {
   version: string
   platform: ClaudeCodePlatform
   destPath: string
-  /** true 表示本地已是最新，跳过了下载 */
+  /** true 表示本地已是最新，跳过下载 */
   skipped: boolean
 }
 
@@ -99,98 +99,87 @@ function computeFileSha256(filePath: string): string {
   return hash.digest('hex')
 }
 
-function fetchText(url: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    httpsGet(url, (res) => {
-      let data = ''
-      res.on('data', (chunk: Buffer) => (data += chunk.toString()))
-      res.on('end', () => resolve(data.trim()))
-      res.on('error', reject)
-    }).on('error', reject)
-  })
+async function fetchText(url: string): Promise<string> {
+  const response = await fetch(url)
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${url}`)
+  }
+  return (await response.text()).trim()
 }
 
 async function fetchJSON<T>(url: string): Promise<T> {
-  return JSON.parse(await fetchText(url)) as T
+  const response = await fetch(url)
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${url}`)
+  }
+  return response.json() as Promise<T>
 }
 
 /**
  * 流式下载到文件，同时计算 SHA256，完成后与 expectedChecksum 比对。
  */
-function downloadAndVerify(
+async function downloadAndVerify(
   url: string,
   destPath: string,
   expectedChecksum: string,
   onProgress?: (downloaded: number, total: number) => void,
 ): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const handleError = (err: Error) => {
-      // 删除可能已部分下载的文件
-      try {
-        if (fs.existsSync(destPath)) {
-          fs.unlinkSync(destPath)
-        }
-      } catch {
-        /* ignore */
-      }
-      // 输出手动下载命令
-      console.error('\n[Forge] Download failed:', err.message)
-      console.error('\n[Forge] You can manually download with this command:\n')
-      console.error(`  curl -L -o "${destPath}" "${url}"\n`)
-      console.error('[Forge] After manual download, re-run the build command.\n')
-      reject(err)
-    }
+  const response = await fetch(url)
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${url}`)
+  }
 
-    httpsGet(url, (res) => {
-      const total = parseInt(res.headers['content-length'] ?? '-1', 10)
-      let downloaded = 0
+  const total = parseInt(response.headers.get('content-length') ?? '-1', 10)
+  let downloaded = 0
 
-      const fileStream = fs.createWriteStream(destPath)
-      const hash = crypto.createHash('sha256')
+  // 确保目标目录存在
+  fs.mkdirSync(path.dirname(destPath), { recursive: true })
 
-      res.on('data', (chunk: Buffer) => {
+  // 创建写入流和 hash
+  const fileStream = fs.createWriteStream(destPath)
+  const hash = crypto.createHash('sha256')
+
+  try {
+    // 使用 TransformStream 来计算进度和 hash
+    const transform = new TransformStream({
+      transform(chunk, controller) {
         downloaded += chunk.length
         hash.update(chunk)
         onProgress?.(downloaded, total)
-      })
+        controller.enqueue(chunk)
+      },
+    })
 
-      res.pipe(fileStream)
-
-      fileStream.on('finish', () => {
-        const actual = hash.digest('hex')
-        if (actual !== expectedChecksum) {
-          handleError(new Error(`Checksum mismatch: expected ${expectedChecksum}, got ${actual}`))
-        } else {
-          resolve()
-        }
-      })
-
-      res.on('error', handleError)
-      fileStream.on('error', handleError)
-    }).on('error', handleError)
-  })
-}
-
-/**
- * 支持 301/302 跳转的 https.get。
- */
-function httpsGet(
-  url: string,
-  callback: (res: http.IncomingMessage) => void,
-): http.ClientRequest {
-  const req = https.get(url, (res) => {
-    if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-      httpsGet(res.headers.location, callback)
-      return
+    // 检查 body 是否存在
+    if (!response.body) {
+      throw new Error('Response body is null')
     }
-    if (res.statusCode && res.statusCode >= 400) {
-      callback(res)
-      res.resume()
-      return
+
+    // 连接管道：response.body -> transform -> fileStream
+    await pipeline(response.body.pipeThrough(transform), fileStream)
+
+    // 验证 checksum
+    const actual = hash.digest('hex')
+    if (actual !== expectedChecksum) {
+      fs.unlinkSync(destPath)
+      throw new Error(`Checksum mismatch: expected ${expectedChecksum}, got ${actual}`)
     }
-    callback(res)
-  })
-  return req
+  } catch (err) {
+    // 清理部分下载的文件
+    try {
+      if (fs.existsSync(destPath)) {
+        fs.unlinkSync(destPath)
+      }
+    } catch {
+      /* ignore */
+    }
+    // 输出手动下载命令
+    console.error('\n[Forge] Download failed:', err instanceof Error ? err.message : String(err))
+    console.error('\n[Forge] You can manually download with this command:\n')
+    console.error(`  curl -L -o "${destPath}" "${url}"\n`)
+    console.error('[Forge] After manual download, re-run the build command.\n')
+    throw err
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -219,7 +208,11 @@ export async function downloadGitForWindows(options: GitForWindowsOptions): Prom
   const sevenBin = (await import('7zip-bin')).default
 
   // 确保 7za 二进制有执行权限（macOS/Linux 上 npm 安装后可能缺失）
-  try { fs.chmodSync(sevenBin.path7za, 0o755) } catch { /* ignore */ }
+  try {
+    fs.chmodSync(sevenBin.path7za, 0o755)
+  } catch {
+    /* ignore */
+  }
 
   const filename = arch === 'x64' ? 'PortableGit-2.53.0.2-64-bit.7z.exe' : 'PortableGit-2.53.0.2-arm64.7z.exe'
   const url = `${GIT_FOR_WINDOWS_BASE_URL}/${filename}`
@@ -228,15 +221,21 @@ export async function downloadGitForWindows(options: GitForWindowsOptions): Prom
   onProgress?.(`Downloading Git for Windows ${arch}...`)
   fs.mkdirSync(destDir, { recursive: true })
 
-  await new Promise<void>((resolve, reject) => {
-    httpsGet(url, (res) => {
-      const fileStream = fs.createWriteStream(tempFile)
-      res.pipe(fileStream)
-      fileStream.on('finish', resolve)
-      fileStream.on('error', reject)
-      res.on('error', reject)
-    }).on('error', reject)
-  })
+  try {
+    const response = await fetch(url)
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${url}`)
+    }
+    if (!response.body) {
+      throw new Error('Response body is null')
+    }
+    await pipeline(response.body, fs.createWriteStream(tempFile))
+  } catch (err) {
+    console.error('\n[Forge] Download failed:', err instanceof Error ? err.message : String(err))
+    console.error('\n[Forge] You can manually download with this command:\n')
+    console.error(`  curl -L -o "${tempFile}" "${url}"\n`)
+    throw err
+  }
 
   onProgress?.('Extracting Git for Windows...')
   const stream = Seven.extractFull(tempFile, destDir, {
