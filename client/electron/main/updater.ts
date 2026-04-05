@@ -18,6 +18,10 @@ import { ipcMain, app, BrowserWindow, shell } from 'electron'
 import { https } from 'follow-redirects'
 import fs from 'fs'
 import path from 'path'
+import { exec, spawn } from 'child_process'
+import { promisify } from 'util'
+
+const execPromise = promisify(exec)
 
 // ── 配置 ────────────────────────────────────────────────────────────────────
 
@@ -38,6 +42,7 @@ export type UpdaterStatus =
   | 'available'
   | 'not-available'
   | 'downloading'
+  | 'extracting'
   | 'downloaded'
   | 'error'
 
@@ -95,6 +100,7 @@ export function createElectronUpdater(getWindow: () => BrowserWindow | null): Up
   let targetAsset: GitHubRelease['assets'][0] | null = null
   let downloadRequest: ReturnType<typeof https.request> | null = null
   let downloadedFilePath: string | null = null
+  let pendingUpdateDir: string | null = null
 
   // ── 辅助函数 ─────────────────────────────────────────────────────────────
 
@@ -153,6 +159,125 @@ export function createElectronUpdater(getWindow: () => BrowserWindow | null): Up
     if (l.major !== c.major) return l.major > c.major
     if (l.minor !== c.minor) return l.minor > c.minor
     return l.patch > c.patch
+  }
+
+  /** 获取当前安装位置 */
+  function getCurrentInstallPath(): string {
+    const appPath = app.getAppPath()
+
+    if (process.platform === 'darwin') {
+      // macOS: app.getAppPath() = /path/to/the-agent.app/Contents/Resources/app.asar
+      // 需要向上找到 .app 目录
+      let current = appPath
+      while (current !== '/') {
+        if (current.endsWith('.app')) return current
+        current = path.dirname(current)
+      }
+      // 兜底：假设标准结构
+      return path.dirname(path.dirname(path.dirname(appPath)))
+    } else if (process.platform === 'win32') {
+      // Windows: app.getAppPath() = /path/to/the-agent/resources/app.asar
+      // 应用根目录是 resources 的父目录
+      return path.dirname(path.dirname(appPath))
+    }
+    return appPath
+  }
+
+  /** 解压 zip 文件 */
+  async function extractZip(zipPath: string, destDir: string): Promise<void> {
+    fs.mkdirSync(destDir, { recursive: true })
+
+    if (process.platform === 'darwin') {
+      await execPromise(`unzip -o "${zipPath}" -d "${destDir}"`)
+    } else if (process.platform === 'win32') {
+      await execPromise(`powershell -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${destDir}' -Force"`)
+    }
+  }
+
+  /** macOS: 找解压后的 .app */
+  function findExtractedApp(updateDir: string): string {
+    const items = fs.readdirSync(updateDir)
+    const appFile = items.find((f) => f.endsWith('.app'))
+    if (appFile) return path.join(updateDir, appFile)
+
+    // 嵌套结构: the-agent-darwin-arm64-xxx/the-agent.app
+    for (const item of items) {
+      const itemPath = path.join(updateDir, item)
+      if (fs.statSync(itemPath).isDirectory()) {
+        const subItems = fs.readdirSync(itemPath)
+        const subApp = subItems.find((f) => f.endsWith('.app'))
+        if (subApp) return path.join(itemPath, subApp)
+      }
+    }
+    throw new Error('Could not find .app in extracted zip')
+  }
+
+  /** Windows: 找解压后的应用目录 */
+  function findExtractedDir(updateDir: string): string {
+    const items = fs.readdirSync(updateDir)
+    if (items.includes('the-agent')) return path.join(updateDir, 'the-agent')
+
+    // 嵌套结构
+    for (const item of items) {
+      const itemPath = path.join(updateDir, item)
+      if (fs.statSync(itemPath).isDirectory()) {
+        const subItems = fs.readdirSync(itemPath)
+        if (subItems.includes('the-agent.exe')) return itemPath
+      }
+    }
+    throw new Error('Could not find app directory in extracted zip')
+  }
+
+  /** 生成并执行替换脚本 */
+  function quitAndInstall(updateDir: string): void {
+    const installPath = getCurrentInstallPath()
+    const tmpDir = app.getPath('temp')
+
+    if (process.platform === 'darwin') {
+      const scriptPath = path.join(tmpDir, 'the-agent-update.sh')
+      const extractedApp = findExtractedApp(updateDir)
+
+      const script = `#!/bin/bash
+TARGET="$1"
+SOURCE="$2"
+
+sleep 3
+rm -rf "$TARGET"
+cp -R "$SOURCE" "$TARGET"
+open "$TARGET"
+`
+      fs.writeFileSync(scriptPath, script)
+      fs.chmodSync(scriptPath, 0o755)
+
+      spawn('sh', [scriptPath, installPath, extractedApp], {
+        detached: true,
+        stdio: 'ignore',
+      })
+    } else if (process.platform === 'win32') {
+      const scriptPath = path.join(tmpDir, 'the-agent-update.ps1')
+      const extractedDir = findExtractedDir(updateDir)
+
+      const script = `
+param($Target, $Source)
+
+Start-Sleep -Seconds 3
+Remove-Item -Path $Target -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item -Path $Source -Destination $Target -Recurse -Force
+Start-Process (Join-Path $Target "the-agent.exe")
+`
+      fs.writeFileSync(scriptPath, script)
+
+      spawn(
+        'powershell',
+        ['-ExecutionPolicy', 'Bypass', '-File', scriptPath, '-Target', installPath, '-Source', extractedDir],
+        {
+          detached: true,
+          stdio: 'ignore',
+        }
+      )
+    }
+
+    app.quit()
   }
 
   // ── 核心逻辑函数 ───────────────────────────────────────────────────────────
@@ -254,13 +379,21 @@ export function createElectronUpdater(getWindow: () => BrowserWindow | null): Up
         })
       })
 
+      // 解压 zip
+      sendStatus({ status: 'extracting' })
+      const updateDir = path.join(tmpDir, 'the-agent-update')
+      if (fs.existsSync(updateDir)) {
+        fs.rmSync(updateDir, { recursive: true })
+      }
+      await extractZip(zipPath, updateDir)
+      pendingUpdateDir = updateDir
+
       sendStatus({
         status: 'downloaded',
         info: {
           version: latestRelease!.tag_name.replace(/^v/, ''),
           releaseDate: latestRelease!.published_at,
           releaseNotes: latestRelease!.body,
-          downloadPath: downloadedFilePath ?? undefined,
         },
       })
     } catch (err) {
@@ -281,7 +414,10 @@ export function createElectronUpdater(getWindow: () => BrowserWindow | null): Up
   }
 
   function doInstall(): void {
-    if (downloadedFilePath) {
+    if (pendingUpdateDir) {
+      quitAndInstall(pendingUpdateDir)
+    } else if (downloadedFilePath) {
+      // 兜底：打开 zip 所在目录
       shell.showItemInFolder(downloadedFilePath)
     }
   }

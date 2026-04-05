@@ -15,6 +15,7 @@ export type UpdaterStatus =
   | 'available'
   | 'not-available'
   | 'downloading'
+  | 'extracting'
   | 'downloaded'
   | 'error'
 
