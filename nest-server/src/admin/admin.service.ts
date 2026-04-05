@@ -1,25 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { Task, User } from '@prisma/client';
-
-export interface BatchTasksDto {
-  tasks: Array<{
-    title: string;
-    category?: string;
-    tag?: string;
-    description?: string;
-    assignedToUserId?: string;
-  }>;
-}
-
-export interface BatchUsersDto {
-  users: Array<{
-    email: string;
-    password: string;
-    nickname?: string;
-    role?: 'ADMIN' | 'EMPLOYEE';
-  }>;
-}
+import { BatchTasksDto, BatchUsersDto } from './admin.dto';
 
 @Injectable()
 export class AdminService {

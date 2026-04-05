@@ -21,6 +21,9 @@ export class PrismaService
   }
 
   async onModuleDestroy() {
-    await this.$disconnect();
+    // 测试环境不断开连接，保留内存数据库
+    if (process.env.NODE_ENV !== 'test') {
+      await this.$disconnect();
+    }
   }
 }

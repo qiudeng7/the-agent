@@ -3,7 +3,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
-import { readFileSync } from 'fs';
+import { readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
 
 export interface TestContext {
@@ -15,29 +15,36 @@ export interface TestContext {
   employeeId: string;
 }
 
-// 读取迁移 SQL（只读一次）
-let migrationSql: string | null = null;
-
-function getMigrationSql(): string {
-  if (!migrationSql) {
-    const migrationPath = join(process.cwd(), 'prisma/migrations/20260405091553/migration.sql');
-    migrationSql = readFileSync(migrationPath, 'utf-8');
-  }
-  return migrationSql;
-}
-
 /**
- * 初始化内存数据库的 schema
+ * 动态读取所有迁移文件并执行
  */
 async function initSchema(prisma: PrismaService): Promise<void> {
-  const sql = getMigrationSql();
-  const statements = sql
-    .split(';')
-    .map(s => s.trim())
-    .filter(s => s.length > 0);
+  const migrationsDir = join(process.cwd(), 'prisma/migrations');
+  const entries = readdirSync(migrationsDir);
 
-  for (const statement of statements) {
-    await prisma.$executeRawUnsafe(statement);
+  // 只处理目录（排除 migration_lock.toml 等文件）
+  const migrationFolders = entries
+    .filter(name => statSync(join(migrationsDir, name)).isDirectory())
+    .sort();
+
+  for (const folder of migrationFolders) {
+    const migrationPath = join(migrationsDir, folder, 'migration.sql');
+    const sql = readFileSync(migrationPath, 'utf-8');
+
+    // 移除注释行，然后分割语句
+    const cleanSql = sql
+      .split('\n')
+      .filter(line => !line.trim().startsWith('--'))
+      .join('\n');
+
+    const statements = cleanSql
+      .split(';')
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+
+    for (const statement of statements) {
+      await prisma.$executeRawUnsafe(statement);
+    }
   }
 }
 
@@ -76,44 +83,56 @@ export async function createTestApp(): Promise<TestContext> {
  * 清空数据库（可选保留用户）
  */
 export async function cleanDatabase(prisma: PrismaService, keepUsers = false): Promise<void> {
-  try {
-    await prisma.message.deleteMany();
-  } catch {}
-  try {
-    await prisma.chatSession.deleteMany();
-  } catch {}
-  try {
-    await prisma.userSettings.deleteMany();
-  } catch {}
-  try {
-    await prisma.task.deleteMany();
-  } catch {}
+  await prisma.message.deleteMany();
+  await prisma.chatSession.deleteMany();
+  await prisma.userSettings.deleteMany();
+  await prisma.task.deleteMany();
+
   if (!keepUsers) {
-    try {
-      await prisma.user.deleteMany();
-    } catch {}
+    await prisma.user.deleteMany();
   }
 }
 
 /**
  * 初始化测试用户并获取 token
+ * 如果用户已存在，会重新获取 token
  */
 export async function initTestUsers(ctx: TestContext): Promise<void> {
-  // 创建管理员
-  const adminRes = await request(ctx.app.getHttpServer())
-    .post('/api/auth/register')
-    .send({ email: 'test-admin@example.com', password: 'admin123', nickname: 'TestAdmin' });
+  // 检查用户是否存在
+  const existingUsers = await ctx.prisma.user.findMany();
 
-  ctx.adminId = adminRes.body.data.user.id;
-  ctx.adminToken = adminRes.body.data.token;
+  if (existingUsers.length === 0) {
+    // 创建管理员
+    const adminRes = await request(ctx.app.getHttpServer())
+      .post('/api/auth/register')
+      .send({ email: 'test-admin@example.com', password: 'admin123', nickname: 'TestAdmin' });
 
-  // 创建员工
-  const employeeRes = await request(ctx.app.getHttpServer())
-    .post('/api/auth/register')
-    .send({ email: 'test-employee@example.com', password: 'employee123', nickname: 'TestEmployee' });
+    ctx.adminId = adminRes.body.data?.user?.id || '';
+    ctx.adminToken = adminRes.body.data?.token || '';
 
-  ctx.employeeId = employeeRes.body.data.user.id;
-  ctx.employeeToken = employeeRes.body.data.token;
+    // 创建员工
+    const employeeRes = await request(ctx.app.getHttpServer())
+      .post('/api/auth/register')
+      .send({ email: 'test-employee@example.com', password: 'employee123', nickname: 'TestEmployee' });
+
+    ctx.employeeId = employeeRes.body.data?.user?.id || '';
+    ctx.employeeToken = employeeRes.body.data?.token || '';
+  } else {
+    // 用户已存在，登录获取 token
+    const adminRes = await request(ctx.app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ email: 'test-admin@example.com', password: 'admin123' });
+
+    ctx.adminId = adminRes.body.data?.user?.id || '';
+    ctx.adminToken = adminRes.body.data?.token || '';
+
+    const employeeRes = await request(ctx.app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ email: 'test-employee@example.com', password: 'employee123' });
+
+    ctx.employeeId = employeeRes.body.data?.user?.id || '';
+    ctx.employeeToken = employeeRes.body.data?.token || '';
+  }
 }
 
 /**

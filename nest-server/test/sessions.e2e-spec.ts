@@ -15,7 +15,8 @@ describe('Sessions E2E', () => {
   });
 
   beforeEach(async () => {
-    await cleanDatabase(ctx.prisma, true); // 保留测试用户
+    await cleanDatabase(ctx.prisma, true);
+    await initTestUsers(ctx);
   });
 
   describe('/api/sessions', () => {
