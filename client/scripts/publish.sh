@@ -4,7 +4,7 @@
 
 set -e
 
-cd "$(dirname "$0)/.."
+cd "$(dirname "$0")/.."
 
 PLATFORM="${1:-mac}"
 VERSION=$(node -p "require('./package.json').version")

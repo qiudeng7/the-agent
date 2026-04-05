@@ -12,11 +12,11 @@
 
 services:
   the-agent-server:
-    image: docker.gh-proxy.org/ghcr.io/qiudeng7/the-agent-server:latest
+    build: .
     container_name: the-agent-server
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3030:3000"
     volumes:
       # 数据持久化
       - ./data:/data
