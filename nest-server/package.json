@@ -16,7 +16,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
-    "test:e2e": "vitest run --config ./vitest.config.e2e.ts"
+    "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
+    "docker:build": "docker build -t crpi-hvru9zd4pbpi8a42.cn-shanghai.personal.cr.aliyuncs.com/qiudeng-private/nest-server:latest .",
+    "docker:push": "docker push crpi-hvru9zd4pbpi8a42.cn-shanghai.personal.cr.aliyuncs.com/qiudeng-private/nest-server:latest"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
